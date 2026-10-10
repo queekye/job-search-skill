@@ -12,6 +12,8 @@
 
 更新时解压新版本，运行新目录的 `Install.cmd`，再开启新的 Codex 任务。安装器核对本项目旧入口后切换，失败时恢复旧入口；成功前保留旧解压目录，其他市场不受影响。个人数据继续使用原来的私有目录。
 
+[公共公司资源目录](https://job-search-company-resources.pages.dev/)已上线。网页“设置与跟进 → 资源与共建入口”填写 `https://job-search-company-resources.pages.dev/index.json`，即可刷新目录、下载并完整审阅所需版本，再由本人启用。公司资源更新从 [GitHub 仓库](https://github.com/queekye/job-search-skill) 的 `main` 自动构建并部署，个人数据仍在本机或私有 WebDAV。
+
 ```powershell
 .\Start.cmd --data-dir D:\PrivateCareer --port 8767
 ```
@@ -61,4 +63,4 @@ portable v1 JSON 用于当前账号结构化记录互换，不含附件原件、
 
 源码仓库保留 `Check.cmd`、`tests/` 和开发脚本。使用 `Check.cmd`、`python scripts/check_node.py` 运行合成回归，`python scripts/check_source.py` 扫描全部允许的公开源码，`python scripts/build_release.py` 生成 `dist/` 内的运行 ZIP、公司 ZIP、静态目录、SHA-256 清单和本地市场。源码与运行快照分别扫描；运行 ZIP 不携带开发测试、CI、构建器或开发约定。贡献与维护在源码仓库进行。
 
-公司包只包含公共方法、合成用例及许可材料；`dist/catalog/` 可直接静态托管，包含版本 ZIP 与哈希索引，无后台服务或额外依赖。本地生成不等于已经公开发布；未建立公共仓库或线上目录。许可证：[MIT](LICENSE)。
+公司包只包含公共方法、合成用例及许可材料；Cloudflare Pages 原生连接 GitHub 的 `main`，先扫描公开源码，再构建并仅部署 `dist/catalog/`。目录包含版本 ZIP 与哈希索引，无后台服务、部署令牌或额外依赖。部署与版本维护见[公共资源分发](references/public-resources.md)。许可证：[MIT](LICENSE)。

@@ -6,7 +6,9 @@
 
 发布构建生成 `dist/catalog/` 和 `company-catalog-<版本>.zip`。目录内只有公开 HTML/CSS/JS、`index.json`、许可证、`.nojekyll` 和 `packages/<id>-<version>.zip`，不读取个人数据目录。可整体托管到 GitHub Pages、Cloudflare Pages 或其他 HTTPS 静态站点，无需数据库、服务器 API、登录或访问 Token。
 
-在网页“设置与跟进 → 资源与共建入口”填写完整索引地址，例如 `https://你的公开站点/index.json`。进入“公司资源”，点击“刷新公共目录”，再选择“下载并审阅”。下载仅保存待审 ZIP；阅读显示的完整文本和脚本后，点击“确认已审阅并启用”。安装不会执行脚本，网站操作仍遵循各包的能力范围。
+生产目录为 [job-search-company-resources.pages.dev](https://job-search-company-resources.pages.dev/)，源码和版本由 [queekye/job-search-skill](https://github.com/queekye/job-search-skill) 管理。
+
+在网页“设置与跟进 → 资源与共建入口”填写 `https://job-search-company-resources.pages.dev/index.json`。进入“公司资源”，点击“刷新公共目录”，再选择“下载并审阅”。下载仅保存待审 ZIP；阅读显示的完整文本和脚本后，点击“确认已审阅并启用”。安装不会执行脚本，网站操作仍遵循各包的能力范围。
 
 目录地址未配置或用户没有点击刷新时，不自动访问远端。目录连接失败不影响内置资源、已接受资源或离线导入。网页与本地服务仍在本机运行；公共站点只负责下载公司方法。
 
@@ -28,7 +30,7 @@
 
 本地也可运行同一条命令。`--output` 要求新目录或空目录，避免把额外文件带进部署；重复本地构建时使用另一空目录。当前 15 个公司包生成 21 个公开文件，包含 15 个版本 ZIP。无参数运行 `python scripts/build_catalog.py` 仍只更新本地 `web/catalog.js`，保持既有发布构建兼容。
 
-部署后，将生产域名的 `/index.json` 配置到本机网页。先核对线上索引和选定 ZIP 的 HTTP 200、字节数与 SHA-256，再在本机完成“刷新公共目录 → 下载并审阅 → 确认已审阅并启用”；启用状态留在本机。生产域名确定后记录完整地址。
+首次发布后，另一次 `main` 推送用于核验原生自动构建和部署。线上索引和选定 ZIP 核对 HTTP 200、字节数与 SHA-256；本机使用合成档案验收“刷新公共目录 → 下载并审阅 → 确认已审阅并启用”，不读取或发布真实求职资料。启用状态留在本机。
 
 ## 免费静态托管选择
 

@@ -1,17 +1,20 @@
 """Public static downloads use only local synthetic HTTP and temporary storage."""
 import copy
+from contextlib import ExitStack
 import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import io
 import json
 import os
 from pathlib import Path
+import socket
+import ssl
 import tempfile
 import subprocess
 import sys
 import threading
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 import zipfile
 
 from scripts.build_catalog import catalog_files
@@ -213,6 +216,83 @@ class PublicRegistryTests(unittest.TestCase):
         self.item["download"].update(sha256=hashlib.sha256(self.raw).hexdigest(), bytes=len(self.raw))
         self.error("invalid_package", self.download)
         self.assertEqual([], list(self.app.data_dir.iterdir()))
+
+
+class PublicTransportTests(unittest.TestCase):
+    URL = "https://registry.example.test/index.json"
+
+    def network(self, stack, addresses, *, certificate_error=None):
+        answers = [(socket.AF_INET6 if ":" in ip else socket.AF_INET,
+                    socket.SOCK_STREAM, socket.IPPROTO_TCP, "", (ip, 443)) for ip in addresses]
+        raw_socket, tls_socket = Mock(), Mock()
+        response = Mock(status=200)
+        response.getheader.return_value = "2"
+        response.read.return_value = b"{}"
+        connection = Mock()
+        connection.getresponse.return_value = response
+        # Keep the actual default verification policy; only the network handshake is mocked.
+        context = ssl.create_default_context()
+        self.assertTrue(context.check_hostname)
+        self.assertEqual(ssl.CERT_REQUIRED, context.verify_mode)
+        resolve = stack.enter_context(patch("service.packages.socket.getaddrinfo", return_value=answers))
+        connect = stack.enter_context(patch("service.packages.socket.create_connection", return_value=raw_socket))
+        https = stack.enter_context(patch("service.packages.http.client.HTTPSConnection", return_value=connection))
+        default_context = stack.enter_context(patch("service.packages.ssl.create_default_context", return_value=context))
+        wrap = stack.enter_context(patch.object(context, "wrap_socket", return_value=tls_socket,
+                                               side_effect=certificate_error))
+        return resolve, connect, https, default_context, wrap, connection, raw_socket, tls_socket
+
+    def test_domain_fakeip_pins_numeric_address_and_verifies_original_tls_hostname(self):
+        for addresses in (("198.18.0.102",), ("198.19.255.254",), ("198.18.0.102", "8.8.8.8")):
+            with self.subTest(addresses=addresses), ExitStack() as stack:
+                resolve, connect, https, default_context, wrap, connection, raw, tls = self.network(stack, addresses)
+                self.assertEqual(b"{}", packages._fetch_public(self.URL, 1024))
+                resolve.assert_called_once_with("registry.example.test", 443, type=socket.SOCK_STREAM)
+                connect.assert_called_once_with((addresses[0], 443), timeout=10)
+                https.assert_called_once_with("registry.example.test", 443, timeout=10)
+                default_context.assert_called_once_with()
+                wrap.assert_called_once_with(raw, server_hostname="registry.example.test")
+                self.assertIs(connection.sock, tls)
+                connection.request.assert_called_once_with("GET", "/index.json", headers={
+                    "Accept-Encoding": "identity", "User-Agent": "Career-Public-Resources/1"})
+                connection.close.assert_called_once_with()
+
+    def test_fakeip_certificate_failure_sends_no_http_request(self):
+        with ExitStack() as stack:
+            _, connect, _, default_context, wrap, connection, raw, _ = self.network(
+                stack, ("198.18.0.102",), certificate_error=ssl.SSLCertVerificationError("synthetic mismatch"))
+            with self.assertRaises(AppError) as caught:
+                packages._fetch_public(self.URL, 1024)
+            self.assertEqual("registry_unavailable", caught.exception.code)
+            connect.assert_called_once_with(("198.18.0.102", 443), timeout=10)
+            default_context.assert_called_once_with()
+            wrap.assert_called_once_with(raw, server_hostname="registry.example.test")
+            connection.request.assert_not_called()
+            connection.getresponse.assert_not_called()
+            connection.close.assert_called_once_with()
+
+    def test_literal_fakeip_private_ipv4_ipv6_and_mixed_dns_are_rejected_before_connect(self):
+        cases = [
+            ("https://198.18.0.102/index.json", ("198.18.0.102",)),
+            ("https://198.19.255.254/index.json", ("198.19.255.254",)),
+            ("http://registry.example.test/index.json", ("198.18.0.102",)),
+            *((self.URL, (ip,)) for ip in ("10.0.0.1", "127.0.0.1", "fc00::1", "::1", "fe80::1", "::ffff:198.18.0.102")),
+            (self.URL, ("198.18.0.102", "10.0.0.1")),
+            (self.URL, ("8.8.8.8", "127.0.0.1")),
+            (self.URL, ("198.18.0.102", "fc00::1")),
+            (self.URL, ("10.0.0.1", "198.18.0.102")),
+        ]
+        for url, addresses in cases:
+            with self.subTest(url=url, addresses=addresses), ExitStack() as stack:
+                _, connect, https, default_context, wrap, connection, _, _ = self.network(stack, addresses)
+                with self.assertRaises(AppError) as caught:
+                    packages._fetch_public(url, 1024)
+                self.assertEqual("invalid_registry_url", caught.exception.code)
+                connect.assert_not_called()
+                https.assert_not_called()
+                default_context.assert_not_called()
+                wrap.assert_not_called()
+                connection.request.assert_not_called()
 
 
 if __name__ == "__main__":

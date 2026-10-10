@@ -19,7 +19,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 from .locking import gate, locked
 
-VERSION = "0.1.4"
+VERSION = "0.1.5"
 MAX_DOCUMENT_BYTES = 15 * 1024 * 1024
 MAX_TEXT = 1024 * 1024
 FIELDS = {

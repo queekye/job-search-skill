@@ -1,0 +1,43 @@
+{
+  "id": "dji",
+  "name": "大疆",
+  "version": "0.1.1",
+  "contract_version": 1,
+  "origin": "https://we.dji.com",
+  "description": "文档型共建起点，未实现脚本或字段映射。",
+  "capabilities": {
+    "onboarding": {
+      "status": "documentation",
+      "detail": "Suggested portal and generic guidance; verify first."
+    },
+    "profile_prepare": {
+      "status": "unavailable",
+      "detail": "No field map."
+    },
+    "applications": {
+      "status": "unavailable",
+      "detail": "No reader."
+    }
+  },
+  "verification": {
+    "migrated_on": "2026-09-14",
+    "live_reverified": false,
+    "scope": "Documentation starter only.",
+    "installed_verification": "not_run",
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "0d4cebd3008346d32807cc8622cec943caafd7be941d9230860cd734e5717fd6"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "d80af03a8ab9597c2d086e756505d63c93269666c84323aec2292164aaa689cc"
+    }
+  ]
+}

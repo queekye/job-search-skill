@@ -1,0 +1,33 @@
+name: 公司资源贡献
+description: 分享通用官网信息、字段方法或已审阅的公开资源包
+title: "[公司资源] "
+body:
+  - type: markdown
+    attributes:
+      value: "此表单是公开的。只提交公司通用方法，不要填写个人资料、账号、申请记录、短信或完整 DOM。"
+  - type: input
+    id: company
+    attributes:
+      label: 公司与招聘入口
+      description: 公司名称、招聘类型与官网公开地址
+    validations:
+      required: true
+  - type: textarea
+    id: capability
+    attributes:
+      label: 本次提供的方法
+      description: 字段含义、操作流程、保存验证或状态读取；明确不支持的步骤
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: 验证情况
+      description: 核验日期、模拟测试或真实页面测试，以及覆盖范围
+    validations:
+      required: true
+  - type: input
+    id: package
+    attributes:
+      label: 公开资源 ZIP 链接（可选）
+      description: 分享前逐文件审阅；不提供含个人资料的附件

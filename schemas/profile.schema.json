@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/job-search-skill/profile.schema.json",
+  "title": "Job Search Skill portable private profile v1",
+  "description": "Private local export or mapped import. Never include this populated document in public source or company packs. Unknown values are null; source/status/scope preserve evidence and applicability.",
+  "type": "object",
+  "required": ["schema_version", "records"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "exported_at": {"type": "string", "format": "date-time"},
+    "records": {"type": "array", "maxItems": 5000, "items": {"$ref": "#/$defs/record"}}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "short": {"type": ["string", "null"], "maxLength": 500},
+    "long": {"type": ["string", "null"], "maxLength": 12000},
+    "date": {"type": ["string", "null"], "description": "YYYY-MM or an ISO date/time, or empty text when an optional UI field is cleared.", "maxLength": 500},
+    "basic": {
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {
+        "name": {"$ref": "#/$defs/short"}, "email": {"$ref": "#/$defs/short"},
+        "phone": {"$ref": "#/$defs/short"}, "location": {"$ref": "#/$defs/short"},
+        "id_number": {"$ref": "#/$defs/short"}, "birth_date": {"$ref": "#/$defs/date"},
+        "gender": {"$ref": "#/$defs/short"}, "hometown": {"$ref": "#/$defs/short"},
+        "ethnicity": {"$ref": "#/$defs/short"}, "residence_city": {"$ref": "#/$defs/short"},
+        "summary": {"$ref": "#/$defs/long"}
+      }
+    },
+    "education": {
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {
+        "school": {"$ref": "#/$defs/short"}, "degree": {"$ref": "#/$defs/short"},
+        "major": {"$ref": "#/$defs/short"}, "department": {"$ref": "#/$defs/short"},
+        "start_date": {"$ref": "#/$defs/date"}, "end_date": {"$ref": "#/$defs/date"},
+        "description": {"$ref": "#/$defs/long"}
+      }
+    },
+    "experience": {
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {
+        "title": {"$ref": "#/$defs/short"}, "organization": {"$ref": "#/$defs/short"},
+        "role": {"$ref": "#/$defs/short"}, "start_date": {"$ref": "#/$defs/date"},
+        "end_date": {"$ref": "#/$defs/date"}, "description": {"$ref": "#/$defs/long"},
+        "category": {"enum": ["project", "work", "research", "publication", "skill", "award", null]}
+      }
+    },
+    "family": {
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {
+        "relation": {"$ref": "#/$defs/short"}, "name": {"$ref": "#/$defs/short"},
+        "organization": {"$ref": "#/$defs/short"}, "department": {"$ref": "#/$defs/short"},
+        "role": {"$ref": "#/$defs/short"}, "employment_status": {"$ref": "#/$defs/short"},
+        "confirmed_at": {"$ref": "#/$defs/date"}, "notes": {"$ref": "#/$defs/long"}
+      }
+    },
+    "preference": {
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {
+        "category": {"enum": ["cities", "roles", "industries", "excluded", "other", null]},
+        "value": {"$ref": "#/$defs/long"}, "notes": {"$ref": "#/$defs/long"}
+      }
+    },
+    "application": {
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {
+        "company": {"$ref": "#/$defs/short"}, "title": {"$ref": "#/$defs/short"},
+        "url": {"type": ["string", "null"], "maxLength": 2048, "description": "HTTP(S) link without embedded credentials; empty for unknown optional links."},
+        "city": {"$ref": "#/$defs/short"}, "program": {"$ref": "#/$defs/short"},
+        "job_id": {"$ref": "#/$defs/short"}, "application_id": {"$ref": "#/$defs/short"},
+        "recommendation_bucket": {"enum": ["recommended", "exploratory", "pending", "excluded", null], "description": "Optional AI analysis group for display. Pending requires clarification and does not establish eligibility, job selection or permission to apply."},
+        "fit_tier": {"enum": ["A", "B", "C", null], "description": "Optional AI analysis tier within recommendation_scope. Entries in the same tier are peers without a finer priority order."},
+        "recommendation_scope": {"$ref": "#/$defs/short", "description": "Direction or subdirection to which the AI analysis group and tier apply. Do not generalize a tier to other directions; null when unknown."},
+        "stage": {"enum": ["candidate", "preparing", "profile_saved", "user_reported", "submitted", "interview", "assessment", "offer", "closed", "unknown", null]},
+        "raw_status": {"$ref": "#/$defs/short"},
+        "checked_at": {"$ref": "#/$defs/date", "description": "Last successful observation of the website state within the recorded coverage; failed attempts do not advance this time."},
+        "last_attempt_at": {"$ref": "#/$defs/date", "description": "Last attempt to check the website, including a failed or blocked attempt. Does not assert a successful observation."},
+        "coverage": {"enum": ["complete", "partial", "unknown", null]},
+        "next_action": {"$ref": "#/$defs/long"}, "blocker": {"$ref": "#/$defs/long"},
+        "decision": {"$ref": "#/$defs/short", "description": "Applicant decision in their own words; descriptive only and never an automatic action or permission."},
+        "evidence_url": {"type": ["string", "null"], "minLength": 1, "maxLength": 2048, "pattern": "^[Hh][Tt][Tt][Pp][Ss]?://", "description": "HTTP(S) evidence link without embedded credentials; null when unknown."},
+        "notes": {"$ref": "#/$defs/long"}
+      }
+    },
+    "record": {
+      "type": "object", "required": ["kind", "data"], "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 300},
+        "kind": {"enum": ["basic", "education", "experience", "family", "preference", "application"]},
+        "data": {"type": "object"},
+        "revision": {"type": "integer", "minimum": 1},
+        "source": {"type": "string", "minLength": 1, "maxLength": 500},
+        "scope": {"type": "string", "minLength": 1, "maxLength": 500},
+        "status": {"enum": ["unconfirmed", "confirmed", "observed", "unknown"]},
+        "created_at": {"type": "string", "format": "date-time"},
+        "updated_at": {"type": "string", "format": "date-time"},
+        "archived": {"type": "boolean"}
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "basic"}}}, "then": {"properties": {"data": {"$ref": "#/$defs/basic"}}}},
+        {"if": {"properties": {"kind": {"const": "education"}}}, "then": {"properties": {"data": {"$ref": "#/$defs/education"}}}},
+        {"if": {"properties": {"kind": {"const": "experience"}}}, "then": {"properties": {"data": {"$ref": "#/$defs/experience"}}}},
+        {"if": {"properties": {"kind": {"const": "family"}}}, "then": {"properties": {"data": {"$ref": "#/$defs/family"}}}},
+        {"if": {"properties": {"kind": {"const": "preference"}}}, "then": {"properties": {"data": {"$ref": "#/$defs/preference"}}}},
+        {"if": {"properties": {"kind": {"const": "application"}}}, "then": {"properties": {"data": {"$ref": "#/$defs/application"}}}}
+      ]
+    }
+  }
+}

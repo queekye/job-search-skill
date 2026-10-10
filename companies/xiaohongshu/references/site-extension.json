@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "id": "xiaohongshu-campus-record",
+  "version": "0.1.1",
+  "company_pack": {
+    "id": "xiaohongshu",
+    "base_version": "0.1.0"
+  },
+  "origin": "https://job.xiaohongshu.com",
+  "purpose": "以已观察的校招记录页区段建立只读扩展方案；保留区段原文，明确REDstar草稿、保存和投递尚未实测。",
+  "mode": "read_only",
+  "authorization": {
+    "required": [
+      "readApplications"
+    ],
+    "job_scope": "none",
+    "final_submission": "user_only"
+  },
+  "entrypoints": [
+    {
+      "id": "campus-record",
+      "route": "/campus/record",
+      "query_keys": [],
+      "observed": true,
+      "evidence_ids": [
+        "xiaohongshu-site-observation-20260916"
+      ]
+    }
+  ],
+  "surfaces": [
+    {
+      "id": "not-started-section",
+      "entrypoint_ids": [
+        "campus-record"
+      ],
+      "state": "authenticated_nonempty",
+      "observed": true,
+      "positive_signals": [
+        "未开始区段可见"
+      ],
+      "negative_signals": [
+        "登录、挑战、加载或空白页面不能视为已观察记录"
+      ],
+      "visibility_rule": "只读取当前可见区段及其所属条目；区段状态和条目状态保持不同层次。",
+      "evidence_ids": [
+        "xiaohongshu-site-observation-20260916"
+      ]
+    },
+    {
+      "id": "expanded-ended-section",
+      "entrypoint_ids": [
+        "campus-record"
+      ],
+      "state": "authenticated_nonempty",
+      "observed": true,
+      "positive_signals": [
+        "纯查看动作展开后的已结束区段可见"
+      ],
+      "negative_signals": [
+        "展开前隐藏内容不构成已读证据"
+      ],
+      "visibility_rule": "只读展开后再核对实际可见条目；控件定位与可靠回读未封装，不能复用猜测selector。",
+      "evidence_ids": [
+        "xiaohongshu-site-observation-20260916"
+      ]
+    }
+  ],
+  "controls": [],
+  "read_scope": {
+    "included": [
+      "/campus/record当前可见的未开始区段",
+      "本次纯查看展开后可见的已结束区段"
+    ],
+    "excluded": [
+      "REDstar草稿保存及最终投递",
+      "普通校招配额向REDstar的推断",
+      "隐藏历史、未暴露稳定身份、登录控制、表单写入"
+    ],
+    "raw_status_rule": "未开始和已结束保留为区段原文；条目状态如有展示另行保留。不把区段名称改成已投递、拒绝或其他结局。",
+    "coverage_rule": "只确认本次可见和已展开的范围；当前区段不代表所有历史，分页及总量未知。",
+    "empty_state_rule": "加载、登录、空白和未展开内容不证明零申请；保留已有有效记录。",
+    "account_identity_rule": "依赖本人授权会话；未展示且未核实的账号身份保持未知，不在公开方案记录账号值。",
+    "record_identity_rule": "稳定申请ID或官方岗位链接只有现场明确暴露才使用；标题或区段相同不自动合并，否则身份为null。",
+    "unknown_identity": "null",
+    "source_evidence_rule": "公开方案只留路线、区段名称、可见性和状态语义；私有台账保留本轮实际条目及来源。REDstar当前规则需单独核验，不继承普通校招。"
+  },
+  "fields": [
+    {
+      "id": "record-raw-status",
+      "surface_id": "not-started-section",
+      "local_field": "application.raw_status",
+      "site_meaning": "条目实际展示的官网状态原文；区段名称另保留，不作为提交成功证明。",
+      "direction": "read",
+      "unknown_rule": "未观察条目状态则保持原有值/未知，不用区段名称补造。",
+      "source_rule": "website/observed，保留核验时间和partial覆盖；方案不包含个人值。",
+      "evidence_ids": [
+        "xiaohongshu-site-observation-20260916"
+      ]
+    },
+    {
+      "id": "section-context",
+      "surface_id": "expanded-ended-section",
+      "local_field": "application.notes",
+      "site_meaning": "保存已观察所属区段及展开读取范围的上下文，不推断结束原因。",
+      "direction": "read",
+      "unknown_rule": "未展开部分记录为未读，不认为不存在。",
+      "source_rule": "仅在私有台账记录实际条目归属；公开只保留方法。",
+      "evidence_ids": [
+        "xiaohongshu-site-observation-20260916"
+      ]
+    }
+  ],
+  "failure_recovery": [
+    {
+      "trigger": "login-expired",
+      "action": "停止并请本人恢复现有会话；不自动登录、发码或创建账号。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "loading-or-empty",
+      "action": "不清空旧记录；先辨明加载、未展开和真正空态。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "unknown-structure",
+      "action": "停止受影响区段；重新观察公共标签和控件归属后再编写执行reader。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "identity-change",
+      "action": "账号或会话上下文变化时停止本轮，不把新账号观察合并到原记录。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "navigation-race",
+      "action": "展开或读取期间导航或内容变化时弃用本轮不稳定结果并重新观察。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "readback-failure",
+      "action": "展开后未能核实对应区段和条目可见性时不登记读取成功。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "uncertain-action",
+      "action": "展开动作结果不确定先读回页面，不重复点击；保存与投递未封装且不得自动尝试。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    }
+  ],
+  "evidence": [
+    {
+      "id": "xiaohongshu-site-observation-20260916",
+      "kind": "site_observation",
+      "observed_at": "2026-09-16T11:15:07Z",
+      "plan_version": "0.1.1",
+      "adapter_version": null,
+      "artifact_id": "xiaohongshu-private-observation-batch-20260916",
+      "sha256": null,
+      "summary": "历史结构观察覆盖/campus/record的未开始与只读展开后的已结束区段。observed_at为观察批次登记时间，不是精确采集秒；原件外置且哈希尚未关联。没有REDstar保存/投递实测，也没有执行reader。"
+    }
+  ],
+  "verification": {
+    "plan": {
+      "status": "not_run",
+      "scope": "由实际区段观察起草的文档方案，待维护者审阅接受；不新增执行代码。",
+      "evidence_ids": []
+    },
+    "synthetic": {
+      "status": "not_run",
+      "scope": "未实现reader或执行网页fixture；schema/方案校验另报，不能标为浏览器合成测试通过。",
+      "evidence_ids": []
+    },
+    "live_read": {
+      "status": "not_run",
+      "scope": "本轮只有人工/浏览器结构观察，未有新执行reader的现场读取验收；site_observation不升级本层。",
+      "evidence_ids": []
+    },
+    "installed": {
+      "status": "not_run",
+      "scope": "0.1.1文档包尚未安装验证；后续验收外置并关联包版本/哈希。",
+      "evidence_ids": []
+    }
+  },
+  "test_matrix": [
+    {
+      "id": "test-wrong-origin",
+      "layer": "synthetic",
+      "scenario": "wrong-origin",
+      "expected": "未来reader须针对该场景返回明确数据或阻断；本版为文档方案，尚未执行此合成用例。",
+      "status": "not_run",
+      "evidence_ids": []
+    },
+    {
+      "id": "test-unauthorized",
+      "layer": "synthetic",
+      "scenario": "unauthorized",
+      "expected": "未来reader须针对该场景返回明确数据或阻断；本版为文档方案，尚未执行此合成用例。",
+      "status": "not_run",
+      "evidence_ids": []
+    },
+    {
+      "id": "test-loading-empty",
+      "layer": "synthetic",
+      "scenario": "loading-empty",
+      "expected": "未来reader须针对该场景返回明确数据或阻断；本版为文档方案，尚未执行此合成用例。",
+      "status": "not_run",
+      "evidence_ids": []
+    },
+    {
+      "id": "test-unknown-structure",
+      "layer": "synthetic",
+      "scenario": "unknown-structure",
+      "expected": "未来reader须针对该场景返回明确数据或阻断；本版为文档方案，尚未执行此合成用例。",
+      "status": "not_run",
+      "evidence_ids": []
+    },
+    {
+      "id": "test-hidden-duplicate",
+      "layer": "synthetic",
+      "scenario": "hidden-duplicate",
+      "expected": "未来reader须针对该场景返回明确数据或阻断；本版为文档方案，尚未执行此合成用例。",
+      "status": "not_run",
+      "evidence_ids": []
+    },
+    {
+      "id": "test-navigation-race",
+      "layer": "synthetic",
+      "scenario": "navigation-race",
+      "expected": "未来reader须针对该场景返回明确数据或阻断；本版为文档方案，尚未执行此合成用例。",
+      "status": "not_run",
+      "evidence_ids": []
+    },
+    {
+      "id": "test-identity-change",
+      "layer": "synthetic",
+      "scenario": "identity-change",
+      "expected": "账号上下文改变时停止，稳定记录ID未暴露则不猜测。",
+      "status": "not_run",
+      "evidence_ids": []
+    },
+    {
+      "id": "test-partial-pagination",
+      "layer": "synthetic",
+      "scenario": "partial-pagination",
+      "expected": "当前区段及只读展开范围始终独立于全部历史，未知分页不提高coverage。",
+      "status": "not_run",
+      "evidence_ids": []
+    },
+    {
+      "id": "test-raw-status",
+      "layer": "synthetic",
+      "scenario": "raw-status",
+      "expected": "未开始/已结束区段原文与条目状态分别保留，不推断提交或拒绝。",
+      "status": "not_run",
+      "evidence_ids": []
+    },
+    {
+      "id": "test-readback-failure",
+      "layer": "synthetic",
+      "scenario": "readback-failure",
+      "expected": "展开后必须验证对应区段可见；无法读回则不登记成功。",
+      "status": "not_run",
+      "evidence_ids": []
+    },
+    {
+      "id": "test-private-output",
+      "layer": "synthetic",
+      "scenario": "private-output",
+      "expected": "未来reader须针对该场景返回明确数据或阻断；本版为文档方案，尚未执行此合成用例。",
+      "status": "not_run",
+      "evidence_ids": []
+    },
+    {
+      "id": "test-redstar-rule-separation",
+      "layer": "synthetic",
+      "scenario": "redstar-rule-separation",
+      "expected": "REDstar草稿、保存、投递、名额与普通校招分开核验；未经实测不得继承规则或标已保存/已投递。",
+      "status": "not_run",
+      "evidence_ids": []
+    }
+  ]
+}

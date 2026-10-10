@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Company pack manifest contract 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "version", "contract_version", "origin", "description", "capabilities", "verification", "files"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,63}$"},
+    "name": {"type": "string", "minLength": 1, "maxLength": 100},
+    "version": {"type": "string", "pattern": "^(0|[1-9][0-9]{0,4})\\.(0|[1-9][0-9]{0,4})\\.(0|[1-9][0-9]{0,4})(-[a-z0-9.-]{1,32})?$"},
+    "contract_version": {"const": 1},
+    "origin": {"type": "string", "format": "uri", "pattern": "^https://"},
+    "description": {"type": "string", "minLength": 1, "maxLength": 1000},
+    "capabilities": {"type": "object", "maxProperties": 30, "propertyNames": {"pattern": "^[a-z][a-z0-9_]{0,40}$"}, "additionalProperties": {"type": "object", "required": ["status", "detail"], "properties": {"status": {"enum": ["executable", "documentation", "unavailable"]}, "detail": {"type": "string"}}}},
+    "verification": {"type": "object"},
+    "files": {"type": "array", "minItems": 2, "maxItems": 159, "items": {"type": "object", "additionalProperties": false, "required": ["path", "sha256"], "properties": {"path": {"type": "string", "maxLength": 180}, "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}}
+  }
+}

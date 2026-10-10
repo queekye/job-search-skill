@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "company": "腾讯",
+  "official_origin": "https://join.qq.com",
+  "observed_on": "2026-09-12",
+  "rules": {
+    "programs": [
+      {
+        "name": "2027校园招聘",
+        "observed_filter_code": "p_1",
+        "graduation_window": {
+          "start": "2026-01-01",
+          "end": "2027-12-31",
+          "source_url": "https://join.qq.com/",
+          "scope": "官网首页2027应届卡显示窗口，具体岗位条件另行核验"
+        }
+      },
+      {
+        "name": "青云计划-应届生",
+        "observed_filter_code": "p_14",
+        "graduation_window": null,
+        "scope": "仅确认目录筛选，不把普通应届卡条件迁移为所有青云课题条件"
+      }
+    ],
+    "application_quota_and_period": null,
+    "cross_program_and_city_quota": "unknown",
+    "active_process_limit": "unknown",
+    "post_submission_edits_and_resume_freeze": "unknown",
+    "observed_replacement_transition": {
+      "source_url": "https://join.qq.com/resumeedit.html",
+      "observed_on": "2026-09-12",
+      "evidence": "After the user authorized changing the selected role, confirming the existing-application prompt navigated to the selected postid resume form with a separate submit-resume button.",
+      "scope": "single_observed_transition_only; navigation_is_not_submission_or_confirmed_replacement"
+    },
+    "referral_changes_after_submission": "unknown",
+    "application_deadline": null
+  },
+  "migration_note": "Historical official-site observation; verify current applicable program before use."
+}

@@ -1,0 +1,75 @@
+{
+  "id": "meituan-recruiting",
+  "version": "0.1.2",
+  "contract_version": 1,
+  "name": "美团招聘",
+  "origin": "https://job.meituan.com",
+  "description": "分别读取招聘项目流程与各志愿状态。无简历写入或登录能力。",
+  "capabilities": {
+    "applications": {
+      "status": "executable",
+      "detail": "Observed project and volunteer status; current page only."
+    },
+    "login": {
+      "status": "unavailable",
+      "detail": "User login."
+    },
+    "profile_prepare": {
+      "status": "unavailable",
+      "detail": "No form writer."
+    },
+    "submit": {
+      "status": "unavailable",
+      "detail": "User submission."
+    }
+  },
+  "verification": {
+    "source_plugin": "meituan-recruiting",
+    "source_version": "0.1.0",
+    "source_observed_on": "2026-09-12/13",
+    "migrated_on": "2026-09-14",
+    "local_checks": "14 Node synthetic tests passed; structured site-extension matrix is partial because deterministic account identity-change coverage is unverified.",
+    "live_reverified": false,
+    "scope": "Historical finite current-page project and choice structures only; coverage remains partial. Live-site and installed-version verification of this release have not been run.",
+    "installed_verification": "not_run",
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "adapter.mjs",
+      "sha256": "79084ba43980732f4a3250dd28ee842e289dae5d4e0e474c3302d8d5eb4155c4"
+    },
+    {
+      "path": "applications-reader.mjs",
+      "sha256": "027a56af0adaaa638ec34e992b50f6028ad7d1e82cc3a2427daba65ebf084f32"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "4322fa48d3ea56d92595b89cc7cb900d3392dfcbe22f3607f7b0b932b3697019"
+    },
+    {
+      "path": "fixtures/applications-reader.test.mjs",
+      "sha256": "1e02422f4888cb041766b4a2d6160d02bd6a7699c81589601e43a2050094368d"
+    },
+    {
+      "path": "fixtures/dom-fixture.mjs",
+      "sha256": "7660ca85baac6eae6b06706463b128e764a5fc23aac978d3f63d2708eb0c31fc"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "8a75485ce1d877dcb920b6c6a5f9b5004d86581f0dfd25b9af73aa0bc6a5cd1e"
+    },
+    {
+      "path": "references/site-extension.json",
+      "sha256": "416922c676fae141561c66ffa09044c83e61230adf76b409071dcbc98499508a"
+    },
+    {
+      "path": "surface.mjs",
+      "sha256": "9acb7c64507e8b7c0ba0e04ecfaac5f272a52e995d6ae6345b2c5acf19d64013"
+    }
+  ]
+}

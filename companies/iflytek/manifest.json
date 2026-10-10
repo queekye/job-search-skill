@@ -1,0 +1,62 @@
+{
+  "id": "iflytek",
+  "name": "科大讯飞",
+  "version": "0.4.1",
+  "contract_version": 1,
+  "origin": "https://iflytek.zhiye.com",
+  "description": "讯飞个人与明确学历字段、现存可变数量教育及论文补填、经独立授权的实践准备；不保存或投递。",
+  "capabilities": {
+    "onboarding": {
+      "status": "documentation",
+      "detail": "Verified public entry and browser landing only."
+    },
+    "profile_prepare": {
+      "status": "executable",
+      "detail": "Observed profile/upload; generic explicit degree/current school anchor and legacy doctoral keys with explicit school identity, rechecked before each shared text write. Variable existing education cards by degree/school/month identity and scoped text, max 50 papers/cards; bounded menus and authorized practice reuse/add; no save or submit."
+    },
+    "applications": {
+      "status": "unavailable",
+      "detail": "No application reader."
+    }
+  },
+  "verification": {
+    "historical_source_version": "0.4.0",
+    "source_observed_on": "2026-10-09",
+    "historical_control_evidence": "Historical bounded profile, parsing, region, education, research and practice-control observations from the prior source package; generalized education/card counts and new aliases have not been live or installed reverified.",
+    "local_checks": "157 related synthetic Node tests passed on 2026-10-09; package integrity/release verification is reported separately.",
+    "live_reverified": false,
+    "installed_verification": "not_run",
+    "scope": "Current source supports the bounded preparation detail above. Historical observations are reference evidence only; no new real-site save, completeness or submission acceptance.",
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "adapter.mjs",
+      "sha256": "59523bdd08efabe5d7d1ce36063d9e8174b46aa8999f322d2ddb115782d1bbcf"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "ffebcf0fcfa88e8507d620162645655db3cb0b56f5d257c599f945e2865e70ed"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "143740e85bd17a6f89fe77e7bac9769ba6c0006b7ba347f423fbb271d3421404"
+    },
+    {
+      "path": "profile-practice.mjs",
+      "sha256": "2eeb64a34e61677acc1bbba13d2cb46936e28ecb011c50f7b92e8a9b45d3d8f5"
+    },
+    {
+      "path": "profile-research.mjs",
+      "sha256": "66bd2f0a031f8ecf61704f479e14829c9c056fbafdfb4459418ca4f328ead720"
+    },
+    {
+      "path": "profile-sections.mjs",
+      "sha256": "89809ff362b44ab0520b1a062ee9d64c6e6165789001483c0908f3990c56a32f"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "岗位发现与推荐"
+  short_description: "从当前求职范围和简历证据检索官方岗位，阅读完整职责并解释推荐依据"
+  default_prompt: "使用 $job-recommendation，根据本次求职范围和已确认简历事实寻找官方岗位，精筛并给出证据清楚的推荐清单。"

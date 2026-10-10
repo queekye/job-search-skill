@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "fields": [
+    {
+      "local": "basic.name",
+      "site": "基本信息/姓名",
+      "method": "text",
+      "scope": "campus-resume",
+      "code_key": "name"
+    },
+    {
+      "local": "basic.mobile",
+      "site": "基本信息/手机号码",
+      "method": "text",
+      "scope": "campus-resume",
+      "code_key": "mobile"
+    },
+    {
+      "local": "basic.email",
+      "site": "基本信息/电子邮箱",
+      "method": "text",
+      "scope": "campus-resume",
+      "code_key": "email"
+    },
+    {
+      "local": "basic.id_number",
+      "site": "基本信息/证件号码",
+      "method": "text",
+      "scope": "campus-resume",
+      "code_key": "idNumber"
+    },
+    {
+      "local": "basic.gender",
+      "site": "基本信息/性别",
+      "method": "radio",
+      "scope": "campus-resume",
+      "code_key": "gender"
+    },
+    {
+      "local": "preference.site_source_choice",
+      "site": "基本信息/招聘信息来源",
+      "method": "dropdown",
+      "scope": "campus-resume-other-only",
+      "code_key": "source"
+    },
+    {
+      "local": "attachment.resume",
+      "site": "简历解析与附件",
+      "method": "filechooser",
+      "scope": "campus-resume-confirmed-binding",
+      "code_key": "filePath"
+    },
+    {
+      "local": "education[].school,startDate,endDate",
+      "site": "教育经历/身份核验",
+      "method": "readback",
+      "scope": "variable-existing-education-cards-full-identity-max-50",
+      "code_key": "educations"
+    },
+    {
+      "local": "education[].department",
+      "site": "教育经历/学院名称",
+      "method": "text",
+      "scope": "identity-matched-existing-education-cards",
+      "code_key": "department"
+    },
+    {
+      "local": "education[].major",
+      "site": "教育经历/专业名称",
+      "method": "text",
+      "scope": "identity-matched-existing-education-cards",
+      "code_key": "major"
+    },
+    {
+      "local": "education[].laboratory",
+      "site": "教育经历/实验室",
+      "method": "text",
+      "scope": "identity-matched-existing-education-cards",
+      "code_key": "lab"
+    },
+    {
+      "local": "education[].tutor",
+      "site": "教育经历/导师",
+      "method": "text",
+      "scope": "identity-matched-existing-education-cards",
+      "code_key": "tutor"
+    },
+    {
+      "local": "education[].researchDirection",
+      "site": "教育经历/研究方向",
+      "method": "text",
+      "scope": "identity-matched-existing-education-cards",
+      "code_key": "researchDirection"
+    },
+    {
+      "local": "education[].majorCategory",
+      "site": "教育经历/专业类别",
+      "method": "cascader",
+      "scope": "observed-engineering-categories-only",
+      "code_key": "majorCategory"
+    },
+    {
+      "local": "education[].degree",
+      "site": "教育经历/学历层次",
+      "method": "dropdown",
+      "scope": "identity-matched-existing-education-cards",
+      "code_key": "degree"
+    },
+    {
+      "local": "education[].studyMode",
+      "site": "教育经历/学习形式",
+      "method": "dropdown",
+      "scope": "identity-matched-existing-education-cards-known-fact-only",
+      "code_key": "studyMode"
+    },
+    {
+      "local": "education[].highest",
+      "site": "教育经历/是否最高学历",
+      "method": "radio",
+      "scope": "identity-matched-existing-education-cards-known-fact-only",
+      "code_key": "highest"
+    },
+    {
+      "local": "education[].doubleDegree",
+      "site": "教育经历/是否双学位",
+      "method": "radio",
+      "scope": "identity-matched-existing-education-cards-known-fact-only",
+      "code_key": "doubleDegree"
+    },
+    {
+      "local": "education[].rank",
+      "site": "教育经历/专业成绩排名",
+      "method": "dropdown",
+      "scope": "identity-matched-existing-education-cards-known-fact-only",
+      "code_key": "rank"
+    },
+    {
+      "local": "experience[project].title",
+      "site": "项目经历/项目名称",
+      "method": "text",
+      "scope": "latest-index-and-title-anchored-existing-project-cards-max-50",
+      "code_key": "projects[].title"
+    },
+    {
+      "local": "experience[project].role",
+      "site": "项目经历/担任角色",
+      "method": "text",
+      "scope": "latest-index-and-title-anchored-existing-project-cards-max-50",
+      "code_key": "projects[].role"
+    },
+    {
+      "local": "experience[project].description",
+      "site": "项目经历/项目描述",
+      "method": "text",
+      "scope": "latest-index-and-title-anchored-existing-project-cards-max-50",
+      "code_key": "projects[].description"
+    },
+    {
+      "local": "experience[project].startDate",
+      "site": "项目经历/开始日期",
+      "method": "calendar-input",
+      "scope": "explicitly-authorized-day-one-placeholder-only",
+      "code_key": "projects[].startDate"
+    },
+    {
+      "local": "experience[project].endDate",
+      "site": "项目经历/结束日期",
+      "method": "calendar-input",
+      "scope": "explicitly-authorized-day-one-placeholder-only",
+      "code_key": "projects[].endDate"
+    }
+  ],
+  "note": "Campus resume only. Education subsets use exact school/start/end with max 50 cards and bounded observed menus. Projects require a page-unique nonempty expectedTitle at the specified current index, or exactly one wholly empty title/role/description/start/end card for empty expectedTitle. Five-field snapshots preserve unmodified values and all identities/counts are rechecked during writes; same-count reordering stops. Day-one dates require independent placeholder consent. Sensitive sharing, upload and parsed replacement each require separate destination authorization. No save/submit or parsed-correctness claim."
+}

@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "fields": [
+    {
+      "local": "education.description",
+      "label": "研究方向/论文",
+      "method": "fillProfessionalText",
+      "scope": "variable-existing-education-cards; unique expectedFields of all visible allowed professional fields"
+    },
+    {
+      "local": "experience.title",
+      "label": "项目名称",
+      "method": "fillProfessionalText",
+      "scope": "variable-existing-project-cards; unique expectedFields; index parameters retained"
+    },
+    {
+      "local": "experience.role",
+      "label": "项目角色",
+      "method": "fillProfessionalText",
+      "scope": "variable-existing-project-cards; unique expectedFields; index parameters retained"
+    },
+    {
+      "local": "experience.description",
+      "label": "项目描述",
+      "method": "fillProfessionalText",
+      "scope": "variable-existing-project-cards; unique expectedFields; index parameters retained"
+    },
+    {
+      "local": "basic.summary",
+      "label": "补充信息",
+      "method": "fillProfessionalText",
+      "scope": "supplement company-specific draft"
+    }
+  ],
+  "note": "Current repeated structure supports max 50 cards per section. Repeated-card writes require the selected read card's complete allowed visible expectedFields snapshot and find exactly one matching card, including after reordering; missing/duplicate/stale snapshots stop old index-only calls. No fixed degree or project count. Only allowlisted visible professional controls are writable. Selected-job authorization, original values, last-moment card-field snapshots and readback remain checked. New generalization has synthetic validation only; historical evidence does not establish current live or installed acceptance."
+}

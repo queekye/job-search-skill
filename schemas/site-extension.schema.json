@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Recruiting site extension plan contract 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "version", "company_pack", "origin", "purpose", "mode", "authorization", "entrypoints", "surfaces", "controls", "read_scope", "fields", "failure_recovery", "evidence", "verification", "test_matrix"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "id": {"$ref": "#/$defs/id"},
+    "version": {"$ref": "#/$defs/version"},
+    "company_pack": {
+      "type": "object", "additionalProperties": false, "required": ["id", "base_version"],
+      "properties": {"id": {"$ref": "#/$defs/id"}, "base_version": {"$ref": "#/$defs/version"}}
+    },
+    "origin": {"type": "string", "minLength": 9, "maxLength": 300, "pattern": "^https://"},
+    "purpose": {"$ref": "#/$defs/text"},
+    "mode": {"enum": ["read_only", "profile_preparation"]},
+    "authorization": {
+      "type": "object", "additionalProperties": false, "required": ["required", "job_scope", "final_submission"],
+      "properties": {
+        "required": {"type": "array", "minItems": 1, "maxItems": 10, "uniqueItems": true, "items": {"enum": ["readApplications", "readResume", "readCandidates", "prepareProfile"]}},
+        "job_scope": {"enum": ["none", "user_selected_job", "general_profile"]},
+        "final_submission": {"const": "user_only"}
+      }
+    },
+    "entrypoints": {"type": "array", "minItems": 1, "maxItems": 30, "items": {"$ref": "#/$defs/entrypoint"}},
+    "surfaces": {"type": "array", "minItems": 1, "maxItems": 30, "items": {"$ref": "#/$defs/surface"}},
+    "controls": {"type": "array", "maxItems": 60, "items": {"$ref": "#/$defs/control"}},
+    "read_scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["included", "excluded", "raw_status_rule", "coverage_rule", "empty_state_rule", "account_identity_rule", "record_identity_rule", "unknown_identity", "source_evidence_rule"],
+      "properties": {
+        "included": {"$ref": "#/$defs/texts"}, "excluded": {"$ref": "#/$defs/texts"},
+        "raw_status_rule": {"$ref": "#/$defs/text"}, "coverage_rule": {"$ref": "#/$defs/text"},
+        "empty_state_rule": {"$ref": "#/$defs/text"}, "account_identity_rule": {"$ref": "#/$defs/text"},
+        "record_identity_rule": {"$ref": "#/$defs/text"}, "unknown_identity": {"const": "null"},
+        "source_evidence_rule": {"$ref": "#/$defs/text"}
+      }
+    },
+    "fields": {"type": "array", "maxItems": 80, "items": {"$ref": "#/$defs/field"}},
+    "failure_recovery": {"type": "array", "minItems": 7, "maxItems": 30, "items": {"$ref": "#/$defs/recovery"}},
+    "evidence": {"type": "array", "maxItems": 100, "items": {"$ref": "#/$defs/evidence"}},
+    "verification": {
+      "type": "object", "additionalProperties": false, "required": ["plan", "synthetic", "live_read", "installed"],
+      "properties": {
+        "plan": {"$ref": "#/$defs/verification"}, "synthetic": {"$ref": "#/$defs/verification"},
+        "live_read": {"$ref": "#/$defs/verification"}, "installed": {"$ref": "#/$defs/verification"}
+      }
+    },
+    "test_matrix": {"type": "array", "minItems": 11, "maxItems": 100, "items": {"$ref": "#/$defs/test"}}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,63}$"},
+    "version": {"type": "string", "pattern": "^(0|[1-9][0-9]{0,4})\\.(0|[1-9][0-9]{0,4})\\.(0|[1-9][0-9]{0,4})(-[a-z0-9.-]{1,32})?$"},
+    "text": {"type": "string", "minLength": 1, "maxLength": 2000},
+    "texts": {"type": "array", "minItems": 1, "maxItems": 30, "items": {"$ref": "#/$defs/text"}},
+    "evidence_ids": {"type": "array", "maxItems": 30, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+    "status": {"enum": ["not_run", "passed", "partial", "failed", "blocked"]},
+    "entrypoint": {
+      "type": "object", "additionalProperties": false, "required": ["id", "route", "query_keys", "observed", "evidence_ids"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "route": {"type": "string", "minLength": 1, "maxLength": 300, "pattern": "^/"},
+        "query_keys": {"type": "array", "maxItems": 10, "uniqueItems": true, "items": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]{0,40}$"}},
+        "observed": {"type": "boolean"}, "evidence_ids": {"$ref": "#/$defs/evidence_ids"}
+      }
+    },
+    "surface": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "entrypoint_ids", "state", "observed", "positive_signals", "negative_signals", "visibility_rule", "evidence_ids"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "entrypoint_ids": {"type": "array", "minItems": 1, "maxItems": 30, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+        "state": {"enum": ["public_catalog", "authenticated_nonempty", "authenticated_empty", "profile_form", "login", "challenge", "loading", "unknown"]},
+        "observed": {"type": "boolean"},
+        "positive_signals": {"type": "array", "maxItems": 20, "items": {"$ref": "#/$defs/text"}},
+        "negative_signals": {"type": "array", "maxItems": 20, "items": {"$ref": "#/$defs/text"}},
+        "visibility_rule": {"$ref": "#/$defs/text"}, "evidence_ids": {"$ref": "#/$defs/evidence_ids"}
+      }
+    },
+    "locator": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "role", "value"],
+      "properties": {
+        "kind": {"enum": ["role", "label", "placeholder", "observed_dom"]},
+        "role": {"type": ["string", "null"], "maxLength": 80}, "value": {"$ref": "#/$defs/text"}
+      }
+    },
+    "control": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "surface_id", "action", "effect", "observed", "locator", "unique", "readback", "evidence_ids"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "surface_id": {"$ref": "#/$defs/id"},
+        "action": {"enum": ["inspect", "navigate", "fill", "select", "check", "click"]},
+        "effect": {"enum": ["read", "navigate", "prepare_field"]},
+        "observed": {"type": "boolean"}, "locator": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/locator"}]},
+        "unique": {"type": ["boolean", "null"]}, "readback": {"type": ["string", "null"], "maxLength": 2000},
+        "evidence_ids": {"$ref": "#/$defs/evidence_ids"}
+      }
+    },
+    "field": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "surface_id", "local_field", "site_meaning", "direction", "unknown_rule", "source_rule", "evidence_ids"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "surface_id": {"$ref": "#/$defs/id"},
+        "local_field": {"type": "string", "pattern": "^(basic|education|experience|family|preference|application)\\.[a-z][a-z0-9_]{0,50}$"},
+        "site_meaning": {"$ref": "#/$defs/text"}, "direction": {"enum": ["read", "prepare", "unsupported"]},
+        "unknown_rule": {"$ref": "#/$defs/text"}, "source_rule": {"$ref": "#/$defs/text"}, "evidence_ids": {"$ref": "#/$defs/evidence_ids"}
+      }
+    },
+    "recovery": {
+      "type": "object", "additionalProperties": false, "required": ["trigger", "action", "preserve_prior", "automatic_retries"],
+      "properties": {
+        "trigger": {"$ref": "#/$defs/id"}, "action": {"$ref": "#/$defs/text"},
+        "preserve_prior": {"const": true}, "automatic_retries": {"const": 0}
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "kind", "observed_at", "plan_version", "adapter_version", "artifact_id", "sha256", "summary"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"},
+        "kind": {"enum": ["plan_review", "source_history", "site_observation", "synthetic_run", "live_read", "installed_run"]},
+        "observed_at": {"type": "string", "minLength": 20, "maxLength": 35},
+        "plan_version": {"$ref": "#/$defs/version"}, "adapter_version": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/version"}]},
+        "artifact_id": {"$ref": "#/$defs/id"}, "sha256": {"anyOf": [{"type": "null"}, {"type": "string", "pattern": "^[0-9a-f]{64}$"}]},
+        "summary": {"$ref": "#/$defs/text"}
+      }
+    },
+    "verification": {
+      "type": "object", "additionalProperties": false, "required": ["status", "scope", "evidence_ids"],
+      "properties": {"status": {"$ref": "#/$defs/status"}, "scope": {"$ref": "#/$defs/text"}, "evidence_ids": {"$ref": "#/$defs/evidence_ids"}}
+    },
+    "test": {
+      "type": "object", "additionalProperties": false, "required": ["id", "layer", "scenario", "expected", "status", "evidence_ids"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "layer": {"enum": ["synthetic", "live_read", "installed"]},
+        "scenario": {"$ref": "#/$defs/id"}, "expected": {"$ref": "#/$defs/text"},
+        "status": {"$ref": "#/$defs/status"}, "evidence_ids": {"$ref": "#/$defs/evidence_ids"}
+      }
+    }
+  }
+}

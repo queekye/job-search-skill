@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "fields": [
+    {
+      "local": "basic.name",
+      "label": "姓名",
+      "method": "fillFieldText",
+      "scope": "unique field"
+    },
+    {
+      "local": "basic.phone",
+      "label": "手机号码",
+      "method": "fillFieldText",
+      "scope": "unique field"
+    },
+    {
+      "local": "basic.email",
+      "label": "邮箱",
+      "method": "fillFieldText",
+      "scope": "unique field"
+    },
+    {
+      "local": "education.school",
+      "label": "学校名称",
+      "method": "fillFieldText",
+      "scope": "observed education record"
+    },
+    {
+      "local": "education.major",
+      "label": "专业",
+      "method": "fillFieldText",
+      "scope": "observed education record"
+    },
+    {
+      "local": "education.department",
+      "label": "学院",
+      "method": "fillFieldText",
+      "scope": "observed education record"
+    },
+    {
+      "local": "education.degree",
+      "label": "学历",
+      "method": "selectDropdown",
+      "scope": "observed single-select education record"
+    },
+    {
+      "local": "education.start_date",
+      "label": "起止时间/start",
+      "method": "selectYearMonth",
+      "scope": "observed date range"
+    },
+    {
+      "local": "education.end_date",
+      "label": "起止时间/end",
+      "method": "selectYearMonth",
+      "scope": "observed date range"
+    },
+    {
+      "local": "experience.title",
+      "label": "项目名称",
+      "method": "fillFieldText",
+      "scope": "observed project record"
+    },
+    {
+      "local": "experience.role",
+      "label": "项目角色",
+      "method": "fillFieldText",
+      "scope": "observed project record"
+    },
+    {
+      "local": "experience.description",
+      "label": "描述",
+      "method": "fillFieldText",
+      "scope": "observed textarea"
+    }
+  ]
+}

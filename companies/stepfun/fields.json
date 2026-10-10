@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "fields": [
+    {
+      "local": "basic.residence_city",
+      "site": "个人信息/所在地",
+      "method": "text",
+      "scope": "stepfun-candidate-resume",
+      "code_key": "residenceCity"
+    },
+    {
+      "local": "basic.id_number",
+      "site": "个人信息/证件号码",
+      "method": "text",
+      "scope": "stepfun-candidate-resume",
+      "code_key": "idNumber"
+    }
+  ],
+  "note": "Tenant-bound observed identity text controls only; readiness depends on resume modules, not applicant school. Sensitive sharing requires this company tenant's consent. Historical control evidence did not establish persistence; generalized source has synthetic checks only, no new live or installed acceptance. No save or submit helper."
+}

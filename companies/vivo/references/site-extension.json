@@ -1,0 +1,419 @@
+{
+  "schema_version": 1,
+  "id": "vivo-delivery-records",
+  "version": "0.1.1",
+  "company_pack": {
+    "id": "vivo",
+    "base_version": "0.1.0"
+  },
+  "origin": "https://hr-campus.vivo.com",
+  "purpose": "在已接受的 0.1.0 基线上发布 0.1.1：调整合成凭据 URL 的构造方式以通过公开扫描，保留凭据拒绝覆盖；已有投递的只读范围、原始状态及 partial 覆盖不变。",
+  "mode": "read_only",
+  "authorization": {
+    "required": [
+      "readApplications"
+    ],
+    "job_scope": "none",
+    "final_submission": "user_only"
+  },
+  "entrypoints": [
+    {
+      "id": "delivery-record-entry",
+      "route": "/personal/deliveryRecord",
+      "query_keys": [],
+      "observed": true,
+      "evidence_ids": [
+        "vivo-v010-structure-20260916"
+      ]
+    }
+  ],
+  "surfaces": [
+    {
+      "id": "completed-delivery-cards",
+      "entrypoint_ids": [
+        "delivery-record-entry"
+      ],
+      "state": "authenticated_nonempty",
+      "observed": true,
+      "positive_signals": [
+        "页面横幅包含投递记录与跟进应聘进度，查询暂存投递记录。",
+        "具有唯一可见掩码账号；现场格式包含国际区号前缀，但公开方案不保存其值。",
+        "已完成的投递区域现场呈现两张非空卡片，末尾具有没有更多了~。",
+        "卡片依次为职位名、当前进度、校园招聘、可选面试站点、投递日期时间、查看/打印。"
+      ],
+      "negative_signals": [
+        "登录、验证码或人机验证控件。",
+        "加载中、无卡片、不可识别空态、缺少结束标记。",
+        "缺少或多个可见账号、重复职位标题、字段次序或缩进改变、区域计数与卡片数不同。"
+      ],
+      "visibility_rule": "仅解析当前 CUA DOM snapshot 中完成投递标题与结束标记之间、与标题同缩进的 generic 卡片文本；不读取页脚、账号原值、隐藏 DOM 或浏览器存储。Snapshot 对 CSS 隐藏内容的排除还未独立做浏览器合成验证。",
+      "evidence_ids": [
+        "vivo-v010-structure-20260916"
+      ]
+    }
+  ],
+  "controls": [],
+  "read_scope": {
+    "included": [
+      "当前授权标签页的非空已完成的投递区域；所有被读取卡片必须满足已观察顺序并与区域计数一致。",
+      "职位名、官网当前进度原文、校园招聘原文、投递日期时间、可选面试站点说明。"
+    ],
+    "excluded": [
+      "暂存投递、其他账号、未遍历历史、其他项目、未观察分页。",
+      "登录、发码、简历读写、岗位投递、撤回、查看/打印点击、任何网站私有接口及浏览器存储。"
+    ],
+    "raw_status_rule": "保留当前进度后方原始文字，不把已完成的投递区域解释为申请已结束。面试站点原文仅是站点说明，不推断面试邀约；不映射录用、拒绝或阶段结局。",
+    "coverage_rule": "成功结果固定为 partial，仅证明当前已观察完成投递区域；结束标记及区域计数不证明全账号历史完整。暂存、历史和未遍历分页保持未知。",
+    "empty_state_rule": "未实现可证明的空态。加载、空页面、零计数或缺少结束标记均 needs_discovery，不能清空旧记录。",
+    "account_identity_rule": "必须恰有一个符合已观察格式的掩码账号；支持国际区号。缺失、重复、多个或账号格式歧义均停止。读取前后与核心最终观察核对完整账号显示，值只留内存且不返回。",
+    "record_identity_rule": "官网未暴露申请编号、岗位编号及岗位链接，三者返回 null。不得从卡片位置生成长期 ID。重复标题立即停止，不自动合并或覆盖本地记录；后续关联由调用者依据已核实信息处理。",
+    "unknown_identity": "null",
+    "source_evidence_rule": "私有记录保留正式投递页来源、原始状态、真实观察时间及 partial 覆盖；只有稳定成功读取才更新 checked_at。失败可记录 last_attempt_at 与阻点，但保留上次成功时间和官网状态。公开方案不含真实记录。"
+  },
+  "fields": [
+    {
+      "id": "field-title",
+      "surface_id": "completed-delivery-cards",
+      "local_field": "application.title",
+      "site_meaning": "卡片职位名称，对应 reader 的 job_title；不从招聘项目或位置猜测职位。",
+      "direction": "read",
+      "unknown_rule": "未观察值保持 null；不猜测，不因本次未知覆盖本地已有核实值。",
+      "source_rule": "仅映射成功稳定读取的原始证据；调用者保留本地用户修正、来源与覆盖，方案本身不写数据库。",
+      "evidence_ids": [
+        "vivo-v010-structure-20260916"
+      ]
+    },
+    {
+      "id": "field-raw-status",
+      "surface_id": "completed-delivery-cards",
+      "local_field": "application.raw_status",
+      "site_meaning": "当前进度标签后方的原始状态，对应 raw_status。",
+      "direction": "read",
+      "unknown_rule": "未观察值保持 null；不猜测，不因本次未知覆盖本地已有核实值。",
+      "source_rule": "仅映射成功稳定读取的原始证据；调用者保留本地用户修正、来源与覆盖，方案本身不写数据库。",
+      "evidence_ids": [
+        "vivo-v010-structure-20260916"
+      ]
+    },
+    {
+      "id": "field-program",
+      "surface_id": "completed-delivery-cards",
+      "local_field": "application.program",
+      "site_meaning": "卡片公开招聘项目文字，对应 recruitment_program_raw。",
+      "direction": "read",
+      "unknown_rule": "未观察值保持 null；不猜测，不因本次未知覆盖本地已有核实值。",
+      "source_rule": "仅映射成功稳定读取的原始证据；调用者保留本地用户修正、来源与覆盖，方案本身不写数据库。",
+      "evidence_ids": [
+        "vivo-v010-structure-20260916"
+      ]
+    },
+    {
+      "id": "field-evidence-url",
+      "surface_id": "completed-delivery-cards",
+      "local_field": "application.evidence_url",
+      "site_meaning": "本次稳定读取的正式投递页面来源，对应 source_url；不是职位详情链接。",
+      "direction": "read",
+      "unknown_rule": "未观察值保持 null；不猜测，不因本次未知覆盖本地已有核实值。",
+      "source_rule": "仅映射成功稳定读取的原始证据；调用者保留本地用户修正、来源与覆盖，方案本身不写数据库。",
+      "evidence_ids": [
+        "vivo-v010-structure-20260916"
+      ]
+    },
+    {
+      "id": "field-observation-notes",
+      "surface_id": "completed-delivery-cards",
+      "local_field": "application.notes",
+      "site_meaning": "投递日期原文 submitted_at_text 及可选面试站点 interview_site_raw 可由调用者明确标注后保存在备注，保留既有备注；不推断面试邀约。",
+      "direction": "read",
+      "unknown_rule": "未观察值保持 null；不猜测，不因本次未知覆盖本地已有核实值。",
+      "source_rule": "仅映射成功稳定读取的原始证据；调用者保留本地用户修正、来源与覆盖，方案本身不写数据库。",
+      "evidence_ids": [
+        "vivo-v010-structure-20260916"
+      ]
+    },
+    {
+      "id": "field-job-id",
+      "surface_id": "completed-delivery-cards",
+      "local_field": "application.job_id",
+      "site_meaning": "本页面未暴露岗位编号。",
+      "direction": "unsupported",
+      "unknown_rule": "未观察值保持 null；不猜测，不因本次未知覆盖本地已有核实值。",
+      "source_rule": "仅映射成功稳定读取的原始证据；调用者保留本地用户修正、来源与覆盖，方案本身不写数据库。",
+      "evidence_ids": [
+        "vivo-v010-structure-20260916"
+      ]
+    },
+    {
+      "id": "field-application-id",
+      "surface_id": "completed-delivery-cards",
+      "local_field": "application.application_id",
+      "site_meaning": "本页面未暴露申请编号。",
+      "direction": "unsupported",
+      "unknown_rule": "未观察值保持 null；不猜测，不因本次未知覆盖本地已有核实值。",
+      "source_rule": "仅映射成功稳定读取的原始证据；调用者保留本地用户修正、来源与覆盖，方案本身不写数据库。",
+      "evidence_ids": [
+        "vivo-v010-structure-20260916"
+      ]
+    },
+    {
+      "id": "field-job-url",
+      "surface_id": "completed-delivery-cards",
+      "local_field": "application.url",
+      "site_meaning": "本页面未暴露职位详情链接。",
+      "direction": "unsupported",
+      "unknown_rule": "未观察值保持 null；不猜测，不因本次未知覆盖本地已有核实值。",
+      "source_rule": "仅映射成功稳定读取的原始证据；调用者保留本地用户修正、来源与覆盖，方案本身不写数据库。",
+      "evidence_ids": [
+        "vivo-v010-structure-20260916"
+      ]
+    }
+  ],
+  "failure_recovery": [
+    {
+      "trigger": "login-expired",
+      "action": "停止读取并保留上次成功记录；告知本人恢复登录，不自动发码或重试。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "loading-or-empty",
+      "action": "将本次检查记为受阻；保留已有申请、原始状态与成功时间，待明确可见页面重新观察。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "unknown-structure",
+      "action": "返回 needs_discovery；只调查出现变化的区域，更新方案和合成 fixture 后重新验证，不跳过缺失字段。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "identity-change",
+      "action": "丢弃本次读取结果；账号缺失、多账号、重复职位标题或账号变化时不关联本地记录，重新建立授权会话。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "navigation-race",
+      "action": "URL 或路由在读取中改变时丢弃结果，重新定位已经观察的正式投递页后建立新会话。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "readback-failure",
+      "action": "快照复核失败、关键内容变化或 reader 抛错时停止，不推进最后成功观察时间。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "uncertain-action",
+      "action": "本包没有任何网页动作；调用未知动作立即阻断。若外部流程发生效果不明的动作，交由本人确认，不能代为重复。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    }
+  ],
+  "evidence": [
+    {
+      "id": "vivo-v010-structure-20260916",
+      "kind": "site_observation",
+      "observed_at": "2026-09-16T11:27:56.379Z",
+      "plan_version": "0.1.1",
+      "adapter_version": "0.1.0",
+      "artifact_id": "vivo-v010-live-structure-20260916",
+      "sha256": null,
+      "summary": "主任务于此时间使用已安装 0.1.0 成功读取当前两张完成投递卡片；公开结构摘要保留正式路由、结束标记、唯一带国际区号的掩码账号、当前进度、校园招聘、日期及可选面试站点，不含值。该证据的源适配器是 0.1.0，只支持沿用未改变的页面结构；不是 0.1.1 live_read 或 installed 通过证明。本方案未取得外置原件摘要哈希，因此 sha256 保持 null。"
+    },
+    {
+      "id": "vivo-v011-synthetic-run-20260916",
+      "kind": "synthetic_run",
+      "observed_at": "2026-09-16T11:34:28Z",
+      "plan_version": "0.1.1",
+      "adapter_version": "0.1.1",
+      "artifact_id": "vivo-v011-20260916-tests",
+      "sha256": "11caae03e9c754e0bcbd1f9e596a72b19574535e0738712ef4319d0310372c4c",
+      "summary": "对 0.1.1 实际运行 companies/vivo/fixtures/applications-reader.test.mjs，17 项通过、0 失败；完整 Node 输出保存在仓库外的独立版本原件，包含 plan_version 和 adapter_version 0.1.1。凭据 URL 由 URL 属性构造，拒绝用例仍执行；未做真实浏览器隐藏元素与分页行为测试。"
+    }
+  ],
+  "verification": {
+    "plan": {
+      "status": "not_run",
+      "scope": "方案结构与声明关系将由本地校验器检查；尚无独立方案审阅通过证据。",
+      "evidence_ids": []
+    },
+    "synthetic": {
+      "status": "partial",
+      "scope": "0.1.1 的 17 项合成 fixture 已重新实际通过；矩阵中的浏览器隐藏元素组合与真实分页结构用例未执行，保持 not_run。",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    },
+    "live_read": {
+      "status": "not_run",
+      "scope": "0.1.1 尚未现场执行；0.1.0 的结构观察与成功读取不能替代新版本 live_read，后续验收原件外置。",
+      "evidence_ids": []
+    },
+    "installed": {
+      "status": "not_run",
+      "scope": "0.1.1 尚未首次安装验收；保留已安装 0.1.0 内容，不能由源码 fixture 推断新版本安装可用。",
+      "evidence_ids": []
+    }
+  },
+  "test_matrix": [
+    {
+      "id": "test-wrong-origin",
+      "layer": "synthetic",
+      "scenario": "wrong-origin",
+      "expected": "错误 origin、路由、query、fragment 或 URL 凭据均拒绝读取。",
+      "status": "passed",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    },
+    {
+      "id": "test-unauthorized",
+      "layer": "synthetic",
+      "scenario": "unauthorized",
+      "expected": "缺少 readApplications 或官方 origin 授权时，核心会话拒绝读取。",
+      "status": "passed",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    },
+    {
+      "id": "test-loading-empty",
+      "layer": "synthetic",
+      "scenario": "loading-empty",
+      "expected": "登录、加载、空态、零卡计数或结束标记缺失返回 needs_discovery，不返回零申请结论。",
+      "status": "passed",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    },
+    {
+      "id": "test-unknown-structure",
+      "layer": "synthetic",
+      "scenario": "unknown-structure",
+      "expected": "缺字段、字段次序/缩进或控件 role 改变、日期非法、计数不同均停止解析。",
+      "status": "passed",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    },
+    {
+      "id": "test-hidden-duplicate",
+      "layer": "synthetic",
+      "scenario": "hidden-duplicate",
+      "expected": "仍须独立核验真实浏览器/CUA snapshot 对隐藏账号与隐藏卡片的可见性过滤，及其与重复卡片组合的行为；当前仅已测重复与结构改变。",
+      "status": "not_run",
+      "evidence_ids": []
+    },
+    {
+      "id": "test-navigation-race",
+      "layer": "synthetic",
+      "scenario": "navigation-race",
+      "expected": "读取前后导航或路由变化时丢弃旧页面结果。",
+      "status": "passed",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    },
+    {
+      "id": "test-identity-change",
+      "layer": "synthetic",
+      "scenario": "identity-change",
+      "expected": "带区号掩码账号缺失、重复、多账号、格式歧义或账号/区号变化，在读取中及核心最终观察均阻断。",
+      "status": "passed",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    },
+    {
+      "id": "test-partial-pagination",
+      "layer": "synthetic",
+      "scenario": "partial-pagination",
+      "expected": "仍须独立提供分页或加载更多的合成页面，核验不会读取未遍历页面或误报完整；现有用例只断言输出 partial 和历史未知。",
+      "status": "not_run",
+      "evidence_ids": []
+    },
+    {
+      "id": "test-raw-status",
+      "layer": "synthetic",
+      "scenario": "raw-status",
+      "expected": "保留任意官网原始进度文字与投递区域名；面试站点不变成邀约，内部阶段不推断。",
+      "status": "passed",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    },
+    {
+      "id": "test-readback-failure",
+      "layer": "synthetic",
+      "scenario": "readback-failure",
+      "expected": "reader 抛错或二次及最终快照关键内容改变时返回失败；错误不回显内部内容，所有网页动作不可用。",
+      "status": "passed",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    },
+    {
+      "id": "test-private-output",
+      "layer": "synthetic",
+      "scenario": "private-output",
+      "expected": "账号显示、页脚、导航、搜索控件和原始快照不进入读取结果。",
+      "status": "passed",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    },
+    {
+      "id": "test-normal-nonempty",
+      "layer": "synthetic",
+      "scenario": "normal-nonempty",
+      "expected": "严格顺序的非空合成卡片经核心授权 session 成功读取，具有预期字段与来源。",
+      "status": "passed",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    },
+    {
+      "id": "test-duplicate-records",
+      "layer": "synthetic",
+      "scenario": "duplicate-records",
+      "expected": "同名卡片即使日期不同也需发现稳定身份；区域计数不一致同样停止。",
+      "status": "passed",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    },
+    {
+      "id": "test-partial-coverage",
+      "layer": "synthetic",
+      "scenario": "partial-coverage",
+      "expected": "成功读取固定 partial；暂存记录与历史保留未知，不从结束标记推断全账号完整。",
+      "status": "passed",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    },
+    {
+      "id": "test-site-note-semantics",
+      "layer": "synthetic",
+      "scenario": "site-note-semantics",
+      "expected": "可选面试站点仅返回原始说明，invitation 推断为 false，保留原始状态。",
+      "status": "passed",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    },
+    {
+      "id": "test-no-web-mutations",
+      "layer": "synthetic",
+      "scenario": "no-web-mutations",
+      "expected": "登录、发码、打印、保存、撤回均 unsupported_action，最终投递为 final_submission_disabled。",
+      "status": "passed",
+      "evidence_ids": [
+        "vivo-v011-synthetic-run-20260916"
+      ]
+    }
+  ]
+}

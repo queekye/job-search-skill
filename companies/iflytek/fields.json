@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "fields": [
+    {
+      "local": "basic.name",
+      "site": "个人信息/姓名",
+      "method": "text",
+      "scope": "editMyResume",
+      "code_key": "name"
+    },
+    {
+      "local": "basic.gender",
+      "site": "个人信息/性别",
+      "method": "radio",
+      "scope": "editMyResume",
+      "code_key": "gender"
+    },
+    {
+      "local": "basic.email",
+      "site": "个人信息/邮箱",
+      "method": "text",
+      "scope": "editMyResume",
+      "code_key": "email"
+    },
+    {
+      "local": "basic.mobile",
+      "site": "个人信息/手机号码",
+      "method": "text",
+      "scope": "editMyResume",
+      "code_key": "mobile"
+    },
+    {
+      "local": "basic.id_number",
+      "site": "个人信息/证件号码",
+      "method": "text",
+      "scope": "editMyResume",
+      "code_key": "idNumber"
+    },
+    {
+      "local": "education[matched].school",
+      "site": "教育经历/学校名称",
+      "method": "text",
+      "scope": "school-anchored-unique-education-controls",
+      "code_key": "educationSchool"
+    },
+    {
+      "local": "education[matched].department",
+      "site": "教育经历/学院名称",
+      "method": "text",
+      "scope": "school-anchored-unique-education-controls",
+      "code_key": "educationAcademy"
+    },
+    {
+      "local": "education[matched].major",
+      "site": "教育经历/专业名称",
+      "method": "text",
+      "scope": "school-anchored-unique-education-controls",
+      "code_key": "educationMajor"
+    },
+    {
+      "local": "education[matched].laboratory",
+      "site": "教育经历/实验室",
+      "method": "text",
+      "scope": "school-anchored-unique-education-controls",
+      "code_key": "educationLaboratory"
+    },
+    {
+      "local": "education[matched].researchField",
+      "site": "教育经历/研究方向",
+      "method": "text",
+      "scope": "school-anchored-unique-education-controls",
+      "code_key": "educationResearchField"
+    },
+    {
+      "local": "education[matched].tutor",
+      "site": "教育经历/导师",
+      "method": "text",
+      "scope": "school-anchored-unique-education-controls",
+      "code_key": "educationTutor"
+    },
+    {
+      "local": "attachment.resume",
+      "site": "顶部简历上传解析",
+      "method": "filechooser",
+      "scope": "editMyResume-auto-parse",
+      "code_key": "filePath"
+    },
+    {
+      "local": "basic.hometown",
+      "site": "个人信息/籍贯",
+      "method": "province-city-checkbox",
+      "scope": "editMyResume-city-level-only",
+      "code_key": "hometown"
+    },
+    {
+      "local": "basic.residence_city",
+      "site": "个人信息/现居住地",
+      "method": "province-city-checkbox",
+      "scope": "editMyResume-city-level-only",
+      "code_key": "residence"
+    },
+    {
+      "local": "education[].degree,school,startDate,endDate",
+      "site": "教育经历/身份核验",
+      "method": "readback",
+      "scope": "variable-existing-education-cards-full-identity-max-50",
+      "code_key": "educations"
+    },
+    {
+      "local": "education[].studyMode",
+      "site": "教育经历/学历类型",
+      "method": "dropdown",
+      "scope": "identity-checked-parsed-card-fulltime-only",
+      "code_key": "studyMode"
+    },
+    {
+      "local": "education[].highest",
+      "site": "教育经历/是否为最高学历",
+      "method": "radio",
+      "scope": "identity-checked-parsed-card-known-fact-only",
+      "code_key": "highest"
+    },
+    {
+      "local": "education[].rank",
+      "site": "教育经历/专业排名",
+      "method": "dropdown",
+      "scope": "identity-checked-parsed-card-observed-options-only",
+      "code_key": "rank"
+    },
+    {
+      "local": "preference.developmentLanguage1",
+      "site": "个人信息/擅长的开发语言1",
+      "method": "dropdown",
+      "scope": "four-observed-language-options",
+      "code_key": "developmentLanguage1"
+    },
+    {
+      "local": "experience[practice].startDate,endDate",
+      "site": "实践经历/日期身份核验",
+      "method": "readback",
+      "scope": "single-existing-practice-months-only",
+      "code_key": "practice"
+    },
+    {
+      "local": "experience[practice].title",
+      "site": "实践经历/实践名称",
+      "method": "text",
+      "scope": "single-existing-date-identified-practice",
+      "code_key": "practice.title"
+    },
+    {
+      "local": "experience[practice].role",
+      "site": "实践经历/担任角色",
+      "method": "text",
+      "scope": "single-existing-date-identified-practice",
+      "code_key": "practice.role"
+    },
+    {
+      "local": "experience[practice].description",
+      "site": "实践经历/实践描述",
+      "method": "textarea",
+      "scope": "single-existing-date-identified-practice",
+      "code_key": "practice.description"
+    },
+    {
+      "local": "experience[paper].title",
+      "site": "发表成果/名称",
+      "method": "text",
+      "scope": "variable-existing-title-anchored-paper-rows-max-50",
+      "code_key": "papers[].title"
+    },
+    {
+      "local": "experience[paper].description",
+      "site": "发表成果/成果描述",
+      "method": "text",
+      "scope": "variable-existing-title-anchored-paper-rows-max-50",
+      "code_key": "papers[].description"
+    },
+    {
+      "local": "experience[practice].title",
+      "site": "在校实践/实践名称",
+      "method": "text",
+      "scope": "ensurePracticeOnce-exact-title-or-unique-empty-or-one-authorized-add",
+      "code_key": "practice.title"
+    },
+    {
+      "local": "experience[practice].role",
+      "site": "在校实践/担任角色",
+      "method": "text",
+      "scope": "ensurePracticeOnce-same-card-all-values-preflight",
+      "code_key": "practice.role"
+    },
+    {
+      "local": "experience[practice].description",
+      "site": "在校实践/实践描述",
+      "method": "textarea",
+      "scope": "ensurePracticeOnce-same-card-max-2000-characters",
+      "code_key": "practice.desc"
+    },
+    {
+      "local": "experience[practice].start_date",
+      "site": "在校实践/开始时间",
+      "method": "monthpicker",
+      "scope": "ensurePracticeOnce-accurate-closed-months-three-observed-panels",
+      "code_key": "practice.startMonth"
+    },
+    {
+      "local": "experience[practice].end_date",
+      "site": "在校实践/结束时间",
+      "method": "monthpicker",
+      "scope": "ensurePracticeOnce-accurate-closed-months-three-observed-panels",
+      "code_key": "practice.endMonth"
+    },
+    {
+      "local": "education[matched].degree",
+      "site": "教育经历/学历",
+      "method": "dropdown",
+      "scope": "school-anchored-unique-education-controls-explicit-visible-option-only",
+      "code_key": "educationDegree"
+    },
+    {
+      "local": "education[matched].school",
+      "site": "教育经历/学校身份核验",
+      "method": "readback",
+      "scope": "school-anchored-unique-education-controls",
+      "code_key": "educationExpectedSchool"
+    },
+    {
+      "local": "education[].department",
+      "site": "教育经历/学院名称",
+      "method": "text",
+      "scope": "full-identity-matched-existing-education-card",
+      "code_key": "educations[].department"
+    },
+    {
+      "local": "education[].major",
+      "site": "教育经历/专业名称",
+      "method": "text",
+      "scope": "full-identity-matched-existing-education-card",
+      "code_key": "educations[].major"
+    },
+    {
+      "local": "education[].laboratory",
+      "site": "教育经历/实验室",
+      "method": "text",
+      "scope": "full-identity-matched-existing-education-card",
+      "code_key": "educations[].laboratory"
+    },
+    {
+      "local": "education[].researchField",
+      "site": "教育经历/研究方向",
+      "method": "text",
+      "scope": "full-identity-matched-existing-education-card",
+      "code_key": "educations[].researchField"
+    },
+    {
+      "local": "education[].tutor",
+      "site": "教育经历/导师",
+      "method": "text",
+      "scope": "full-identity-matched-existing-education-card",
+      "code_key": "educations[].tutor"
+    }
+  ],
+  "note": "Generic education controls require explicit educationDegree and exact educationExpectedSchool; doctoral* nonempty keys preserve explicit doctoral compatibility, while empty values request no education writes. Scoped education completion matches full degree/school/start/end identity across variable existing cards (max 50), including repeated degrees; observed menu options remain bounded. Papers use current title/index anchors with max 50 existing rows. Practice helpers retain their distinct one-card or explicit reuse/add scopes and observed monthpicker panels. No save/submit. Upload auto-parsing requires independent replacement authorization and does not verify parsed correctness. Generic and legacy education text both require an explicit school anchor (educationExpectedSchool or legacy doctoralSchool); degree and school are rechecked after preparation and before each shared text write. Legacy text without an anchor stops. Same-URL card identity changes are not accepted."
+}

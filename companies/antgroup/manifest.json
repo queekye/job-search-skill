@@ -1,0 +1,58 @@
+{
+  "id": "antgroup",
+  "name": "蚂蚁集团",
+  "version": "0.3.1",
+  "contract_version": 1,
+  "origin": "https://talent.antgroup.com",
+  "description": "蚂蚁校园个人与明确学历首卡字段、解析授权、已识别项目月份及现存可变论文行准备；不保存或投递。",
+  "capabilities": {
+    "onboarding": {
+      "status": "documentation",
+      "detail": "Verified public entry and browser landing only."
+    },
+    "profile_prepare": {
+      "status": "executable",
+      "detail": "Observed first education card: generic explicit degree/current school anchor; legacy doctoral keys also require an explicit school anchor. Degree/school are rechecked before each shared text write. Variable existing publications at indexes 0..49 retain title guards, bounded same-year month corrections and upload confirmation; no save or submit."
+    },
+    "applications": {
+      "status": "unavailable",
+      "detail": "No application reader."
+    }
+  },
+  "verification": {
+    "historical_source_version": "0.3.0",
+    "source_observed_on": "2026-10-09",
+    "historical_control_evidence": "Historical bounded campus profile/upload, same-year project-month and research-control observations from the prior source package; they do not verify generic education aliases or expanded existing publication indexes.",
+    "local_checks": "157 related synthetic Node tests passed on 2026-10-09; package integrity/release verification is reported separately.",
+    "live_reverified": false,
+    "installed_verification": "not_run",
+    "scope": "Current source supports the bounded preparation detail above. Historical observations are reference evidence only; no new real-site save, completeness or submission acceptance.",
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "adapter.mjs",
+      "sha256": "ca7561d9a260cd3864d9b8f6e1658dcdea0ee9b8cd27dc8a8eead529f87959a0"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "14f10707455e8231cfe4a01d58631b303a50582e7421bdbe1c813ef8ab73302a"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "386b3b0b099813e651e6b5eb7af81a0eb6a466fc8fcbb9ab9966f45291a7da38"
+    },
+    {
+      "path": "profile-research.mjs",
+      "sha256": "fb431817c8472d155a82b98c29a8dde52f989b7de0b7ba02abd83f3583c66b84"
+    },
+    {
+      "path": "profile-sections.mjs",
+      "sha256": "f0466cc05cdafe5d1600980aaffd3800b50437e7b83fa730f715178d0267eacc"
+    }
+  ]
+}

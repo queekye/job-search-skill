@@ -1,0 +1,71 @@
+{
+  "id": "alibaba-campus",
+  "version": "0.1.1",
+  "contract_version": 1,
+  "name": "阿里巴巴集团校招",
+  "origin": "https://campus-talent.alibaba.com",
+  "description": "已观察非空申请表读取，保留申请编号、职位链接和原始流程。",
+  "capabilities": {
+    "applications": {
+      "status": "executable",
+      "detail": "Observed nonempty ongoing/completed tables only."
+    },
+    "login": {
+      "status": "unavailable",
+      "detail": "User login."
+    },
+    "profile_prepare": {
+      "status": "unavailable",
+      "detail": "No resume writer."
+    },
+    "submit": {
+      "status": "unavailable",
+      "detail": "User submission."
+    }
+  },
+  "verification": {
+    "source_plugin": "alibaba-campus",
+    "source_version": "0.1.0",
+    "source_observed_on": "2026-09-12/13",
+    "migrated_on": "2026-09-14",
+    "local_checks": "Synthetic fixtures; release verification reports actual result.",
+    "live_reverified": false,
+    "scope": "Historical source evidence only; check current page before use.",
+    "installed_verification": "not_run",
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "adapter.mjs",
+      "sha256": "cc4e4e4e1bd0d87d40d07e66abb3422f5acedd7bc2bda6f9002af2b9466a8f59"
+    },
+    {
+      "path": "applications-reader.mjs",
+      "sha256": "bb942743699c1b103df41e8608e76b57830708bc66c00221e83ffe2b296d25b4"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "4322fa48d3ea56d92595b89cc7cb900d3392dfcbe22f3607f7b0b932b3697019"
+    },
+    {
+      "path": "fixtures/applications-reader.test.mjs",
+      "sha256": "af9d61c1439acafb31a1de92826abdeda00a26ef004f30a277c3aeedd6932c8b"
+    },
+    {
+      "path": "fixtures/dom-fixture.mjs",
+      "sha256": "1fc9c3dbde175c27295e4fe3673da1e218f4c4f395062159e5d9c0331e2bad99"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "bca4e841ff05a2cc7c91bd9aa3bad4d965f4094460947f75a3c9704c5df9fe6b"
+    },
+    {
+      "path": "surface.mjs",
+      "sha256": "c80191049a689aa12925119731a18cefb75b890536801d4adb881e51ab8c2705"
+    }
+  ]
+}

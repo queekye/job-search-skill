@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+.runtime/
+.local/
+dist/
+*.db
+*.db-*
+.env*
+sync.json
+sync-state.json
+!*.example
+*.log

@@ -1,0 +1,47 @@
+{
+  "id": "xiaohongshu",
+  "name": "小红书",
+  "version": "0.1.2",
+  "contract_version": 1,
+  "origin": "https://job.xiaohongshu.com",
+  "description": "基于已观察校招记录区段的文档方案；未新增执行reader或填表能力。",
+  "capabilities": {
+    "onboarding": {
+      "status": "documentation",
+      "detail": "Observed /campus/record sections and bounded extension plan; no executable reader."
+    },
+    "profile_prepare": {
+      "status": "unavailable",
+      "detail": "No field map."
+    },
+    "applications": {
+      "status": "unavailable",
+      "detail": "No reader."
+    }
+  },
+  "verification": {
+    "migrated_on": "2026-09-14",
+    "live_reverified": false,
+    "scope": "Documentation-only plan for observed delivery sections. This release has no executable reader; live-site and installed-version verification have not been run.",
+    "installed_verification": "not_run",
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "0d4cebd3008346d32807cc8622cec943caafd7be941d9230860cd734e5717fd6"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "8e59817bd653bf16e498c197c985c594bb75281f649ab1f43dd7e2e5d0a1c420"
+    },
+    {
+      "path": "references/site-extension.json",
+      "sha256": "f32e9c76748f2305705a5249af54e1bf87f01434bbb8b5cabad7e14e5e857341"
+    }
+  ]
+}

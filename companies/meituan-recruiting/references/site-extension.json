@@ -1,0 +1,307 @@
+{
+  "schema_version": 1,
+  "id": "meituan-delivery-record",
+  "version": "0.1.1",
+  "company_pack": {
+    "id": "meituan-recruiting",
+    "base_version": "0.1.0"
+  },
+  "origin": "https://job.meituan.com",
+  "purpose": "规范当前可见招聘项目与各志愿的读取；补充已观察的双项目三志愿形态，保留有限覆盖与原始状态。",
+  "mode": "read_only",
+  "authorization": {
+    "required": [
+      "readApplications"
+    ],
+    "job_scope": "none",
+    "final_submission": "user_only"
+  },
+  "entrypoints": [
+    {
+      "id": "delivery-record",
+      "route": "/web/personal-center/delivery-record",
+      "query_keys": [],
+      "observed": true,
+      "evidence_ids": [
+        "meituan-site-observation-20260916"
+      ]
+    }
+  ],
+  "surfaces": [
+    {
+      "id": "visible-delivery-records",
+      "entrypoint_ids": [
+        "delivery-record"
+      ],
+      "state": "authenticated_nonempty",
+      "observed": true,
+      "positive_signals": [
+        "投递记录页面的招聘项目及其志愿条目",
+        "项目进行中与志愿笔试或已结束分别可见"
+      ],
+      "negative_signals": [
+        "登录或人机验证页面",
+        "空白加载态、重复容器、缺失必需标题或状态"
+      ],
+      "visibility_rule": "只取受支持容器内可见项目及直接归属的志愿；折叠流程不读取，隐藏历史不计入。",
+      "evidence_ids": [
+        "meituan-site-observation-20260916"
+      ]
+    }
+  ],
+  "controls": [],
+  "read_scope": {
+    "included": [
+      "当前可见招聘项目名称与项目原始状态",
+      "每项志愿的标签、岗位和原始状态，以及确实显示的城市、部门、投递日期",
+      "当前可见分页控件状态；流程仅在可见且结构可识别时读取"
+    ],
+    "excluded": [
+      "未显示历史、其他账号、登录控制与简历修改",
+      "折叠的项目流程、换志愿、撤回、最终投递"
+    ],
+    "raw_status_rule": "项目进行中与志愿笔试或已结束分别保留；项目流程不替代志愿状态，已结束不推断拒绝。",
+    "coverage_rule": "已观察的单项目两志愿和双项目三志愿只证明这些有限可见结构；固定partial。分页disabled只记录控件状态，历史覆盖仍unknown。任意多项目结构未验证。",
+    "empty_state_rule": "空白、加载、登录或未识别列表停止读取，不能生成零申请或清空旧记录。",
+    "account_identity_rule": "仅复用用户获准会话；网站未暴露可靠账号身份时保留未知。当前reader尚未提供确定性账号切换识别，独立验收不得将此项标通过。",
+    "record_identity_rule": "项目与志愿保持父子层级；当前条目未暴露稳定项目、申请或岗位ID及链接时为null。page_ordinal仅属于本次观察，不作为跨轮去重键。",
+    "unknown_identity": "null",
+    "source_evidence_rule": "私有台账保留项目与志愿原始状态、来源路由、检查时间、折叠状态和partial覆盖；公开包只保存结构证据。schema_live_evidence是两种历史形态，不代表当前执行已经现场验收。"
+  },
+  "fields": [
+    {
+      "id": "project-program",
+      "surface_id": "visible-delivery-records",
+      "local_field": "application.program",
+      "site_meaning": "所属招聘项目名称，保持与志愿记录的关联。",
+      "direction": "read",
+      "unknown_rule": "缺少必需项目名称停止读取；不从别的项目补值。",
+      "source_rule": "website/observed；同项目多志愿独立保留。",
+      "evidence_ids": [
+        "meituan-site-observation-20260916"
+      ]
+    },
+    {
+      "id": "volunteer-raw-status",
+      "surface_id": "visible-delivery-records",
+      "local_field": "application.raw_status",
+      "site_meaning": "当前志愿自身的官网状态原文；项目状态另保留，不能替代。",
+      "direction": "read",
+      "unknown_rule": "必需志愿状态缺失停止该轮，保留上次有效记录。",
+      "source_rule": "原文+官网来源+本次检查时间；不推断终局。",
+      "evidence_ids": [
+        "meituan-site-observation-20260916"
+      ]
+    }
+  ],
+  "failure_recovery": [
+    {
+      "trigger": "login-expired",
+      "action": "停止该次读取并请本人恢复已授权会话；不登录、不发验证码。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "loading-or-empty",
+      "action": "保留旧记录与上次成功核验时间，观察局部加载完成情况；未知空态不能写成零申请。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "unknown-structure",
+      "action": "停止受影响读取，记录安全结构差异，待新版本合成验证；不临时猜测selector。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "identity-change",
+      "action": "发现账号上下文改变时结束本次会话并重新核实；无可靠身份信号时明确未知，不宣称已自动检测所有账号变化。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "navigation-race",
+      "action": "丢弃读取中导航或同URL关键内容变化产生的本轮结果，重新观察获准页面。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "readback-failure",
+      "action": "读取后的路由、页面或关键文字复核失败则保留旧状态，不登记新状态。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    },
+    {
+      "trigger": "uncertain-action",
+      "action": "导航结果不确定先检查当前页，不重复动作；本reader没有写入或提交动作。",
+      "preserve_prior": true,
+      "automatic_retries": 0
+    }
+  ],
+  "evidence": [
+    {
+      "id": "meituan-site-observation-20260916",
+      "kind": "site_observation",
+      "observed_at": "2026-09-16T11:11:54.405Z",
+      "plan_version": "0.1.1",
+      "adapter_version": "0.1.0",
+      "artifact_id": "meituan-private-read-20260916",
+      "sha256": null,
+      "summary": "旧版本读取支撑双项目三志愿结构及项目/志愿状态分别保存；流程折叠未读，分页disabled。仅作为历史结构观察，原始读取及新包验收原件外置，未关联原件哈希。"
+    },
+    {
+      "id": "meituan-synthetic-011",
+      "kind": "synthetic_run",
+      "observed_at": "2026-09-16T11:26:54Z",
+      "plan_version": "0.1.1",
+      "adapter_version": "0.1.1",
+      "artifact_id": "meituan-011-node-synthetic",
+      "sha256": "3a942599bd61d7d07304162e259b10eb67e5980bbf78d35325d4fab73be79af3",
+      "summary": "实际运行本包Node合成fixture：14测试通过、0失败；新增双项目三志愿折叠流程与混合原始状态，并补读取中URL变化阻断。合成日志在仓库外。"
+    }
+  ],
+  "verification": {
+    "plan": {
+      "status": "not_run",
+      "scope": "公开规范化方案已起草，待维护者审阅接受；不宣称自动启用。",
+      "evidence_ids": []
+    },
+    "synthetic": {
+      "status": "partial",
+      "scope": "14/14 Node合成测试通过；所列身份切换矩阵尚未完成，不能宣称所有计划用例通过。",
+      "evidence_ids": [
+        "meituan-synthetic-011"
+      ]
+    },
+    "live_read": {
+      "status": "not_run",
+      "scope": "当前包未现场验收；旧版本成功读取只支撑site_observation中的历史结构，原件外置。",
+      "evidence_ids": []
+    },
+    "installed": {
+      "status": "not_run",
+      "scope": "本子任务不安装0.1.1；后续已接受版本的安装及实际读取验收外置并关联版本/哈希。",
+      "evidence_ids": []
+    }
+  },
+  "test_matrix": [
+    {
+      "id": "test-wrong-origin",
+      "layer": "synthetic",
+      "scenario": "wrong-origin",
+      "expected": "错误域名、路由或查询在提取前阻断。",
+      "status": "passed",
+      "evidence_ids": [
+        "meituan-synthetic-011"
+      ]
+    },
+    {
+      "id": "test-unauthorized",
+      "layer": "synthetic",
+      "scenario": "unauthorized",
+      "expected": "缺readApplications授权时不调用提取。",
+      "status": "passed",
+      "evidence_ids": [
+        "meituan-synthetic-011"
+      ]
+    },
+    {
+      "id": "test-loading-empty",
+      "layer": "synthetic",
+      "scenario": "loading-empty",
+      "expected": "空态、登录和空白结构不返回零申请。",
+      "status": "passed",
+      "evidence_ids": [
+        "meituan-synthetic-011"
+      ]
+    },
+    {
+      "id": "test-unknown-structure",
+      "layer": "synthetic",
+      "scenario": "unknown-structure",
+      "expected": "缺失必需结构或未知流程样式不得猜测阶段。",
+      "status": "passed",
+      "evidence_ids": [
+        "meituan-synthetic-011"
+      ]
+    },
+    {
+      "id": "test-hidden-duplicate",
+      "layer": "synthetic",
+      "scenario": "hidden-duplicate",
+      "expected": "隐藏记录、隐藏父级和重复容器不能形成有效空态。",
+      "status": "passed",
+      "evidence_ids": [
+        "meituan-synthetic-011"
+      ]
+    },
+    {
+      "id": "test-navigation-race",
+      "layer": "synthetic",
+      "scenario": "navigation-race",
+      "expected": "读取中URL变化和同URL内容变化丢弃本轮结果。",
+      "status": "passed",
+      "evidence_ids": [
+        "meituan-synthetic-011"
+      ]
+    },
+    {
+      "id": "test-identity-change",
+      "layer": "synthetic",
+      "scenario": "identity-change",
+      "expected": "尚无确定性账号身份切换fixture；该能力保留未知，不能由一般内容变化测试替代。",
+      "status": "not_run",
+      "evidence_ids": []
+    },
+    {
+      "id": "test-partial-pagination",
+      "layer": "synthetic",
+      "scenario": "partial-pagination",
+      "expected": "按钮disabled仍为partial，历史read=false、total=null。",
+      "status": "passed",
+      "evidence_ids": [
+        "meituan-synthetic-011"
+      ]
+    },
+    {
+      "id": "test-raw-status",
+      "layer": "synthetic",
+      "scenario": "raw-status",
+      "expected": "项目与志愿原文独立；笔试不自动推导结果，已结束不推断拒绝。",
+      "status": "passed",
+      "evidence_ids": [
+        "meituan-synthetic-011"
+      ]
+    },
+    {
+      "id": "test-readback-failure",
+      "layer": "synthetic",
+      "scenario": "readback-failure",
+      "expected": "后续快照缺失原始关键文字或读取失败时返回阻断。",
+      "status": "passed",
+      "evidence_ids": [
+        "meituan-synthetic-011"
+      ]
+    },
+    {
+      "id": "test-private-output",
+      "layer": "synthetic",
+      "scenario": "private-output",
+      "expected": "无关个人区域不读取，敏感形态及异常原文不回传。",
+      "status": "passed",
+      "evidence_ids": [
+        "meituan-synthetic-011"
+      ]
+    },
+    {
+      "id": "test-two-project-three-volunteers",
+      "layer": "synthetic",
+      "scenario": "two-project-three-volunteers",
+      "expected": "两个合成项目、三志愿，笔试/已结束原文独立，两个流程折叠不读，历史仍unknown。",
+      "status": "passed",
+      "evidence_ids": [
+        "meituan-synthetic-011"
+      ]
+    }
+  ]
+}

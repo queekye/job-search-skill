@@ -1,0 +1,50 @@
+{
+  "id": "stepfun",
+  "name": "阶跃星辰",
+  "version": "0.2.1",
+  "contract_version": 1,
+  "origin": "https://app.mokahr.com",
+  "description": "阶跃 Moka 租户授权的所在地与证件文本准备；就绪不依赖申请人学校，供本人审阅后保存。",
+  "capabilities": {
+    "onboarding": {
+      "status": "documentation",
+      "detail": "Verified public entry and browser landing only."
+    },
+    "profile_prepare": {
+      "status": "executable",
+      "detail": "Exact-tenant observed identity text controls with school-independent module readiness; tenant-specific sensitive consent and protected old values; no save or submit."
+    },
+    "applications": {
+      "status": "unavailable",
+      "detail": "No application reader."
+    }
+  },
+  "verification": {
+    "historical_source_version": "0.2.0",
+    "source_observed_on": "2026-09-30",
+    "historical_control_evidence": "Historical bounded identity-control observation from the prior source package did not establish persistence; no new live acceptance.",
+    "local_checks": "157 related synthetic Node tests passed on 2026-10-09; package integrity/release verification is reported separately.",
+    "live_reverified": false,
+    "installed_verification": "not_run",
+    "scope": "Current source supports the bounded preparation detail above. Historical observations are reference evidence only; no new real-site save, completeness or submission acceptance.",
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "adapter.mjs",
+      "sha256": "d7c11e9120ae8dc5e97627631a843df30dace3ae4c9b84969243bd3ddd83b298"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "f388231f4253a87a5477f3be6b41d27961e3f0b7ad5a24a86f254cbeb53ba7b1"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "5d5ae6283fec4fe8e36b443bf2d28deb8cdb83843c16d6dc9951b71298b67bc3"
+    }
+  ]
+}

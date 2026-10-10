@@ -1,0 +1,105 @@
+{
+  "id": "tencent-campus",
+  "version": "0.1.1",
+  "contract_version": 1,
+  "name": "腾讯校招",
+  "origin": "https://join.qq.com",
+  "description": "腾讯公开岗位、非空进度读取和已选岗位专业文本准备；现存重复卡以允许字段快照匹配，不保存或投递。",
+  "capabilities": {
+    "applications": {
+      "status": "executable",
+      "detail": "Observed nonempty progress page only; partial identity/history."
+    },
+    "candidates": {
+      "status": "executable",
+      "detail": "Current public listing and ordinary/Qingyun detail layouts."
+    },
+    "profile_prepare": {
+      "status": "executable",
+      "detail": "Selected-job professional text on variable existing education/project cards, max 50 per section; repeated writes require complete allowed visible expectedFields and uniquely relocate the reviewed card after reordering; supplement unique control, no add/save/submit."
+    },
+    "login": {
+      "status": "unavailable",
+      "detail": "No login controller."
+    },
+    "save": {
+      "status": "unavailable",
+      "detail": "No save helper."
+    },
+    "submit": {
+      "status": "unavailable",
+      "detail": "User final submission."
+    }
+  },
+  "verification": {
+    "source_plugin": "tencent-campus",
+    "source_version": "0.1.0",
+    "migrated_on": "2026-09-14",
+    "historical_source_version": "0.1.0",
+    "source_observed_on": "2026-09-12/13",
+    "historical_control_evidence": "Historical source-plugin observations of bounded professional controls and public/nonempty readers only; generalized card counts and expectedFields identity matching require new live and installed acceptance.",
+    "local_checks": "157 related synthetic Node tests passed on 2026-10-09; package integrity/release verification is reported separately.",
+    "live_reverified": false,
+    "installed_verification": "not_run",
+    "scope": "Current source supports the bounded preparation detail above. Historical observations are reference evidence only; no new real-site save, completeness or submission acceptance.",
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "adapter.mjs",
+      "sha256": "84b2aa8f954eb4d2c424033c4976660481d8d567ca29d0acc41ddde1eb82a531"
+    },
+    {
+      "path": "applications-reader.mjs",
+      "sha256": "1dea35155f4daa7d0d18a1ce703258aa867a3a64a6c27419255b133fa8567be4"
+    },
+    {
+      "path": "candidate-reader.mjs",
+      "sha256": "5e22f32e1b5c5c9e65206b5496483f4c275c4fa60fa8ed3025afe335bd0c303f"
+    },
+    {
+      "path": "detail-reader.mjs",
+      "sha256": "579e241b0b94da1e0f6bb501c624f8b87a6b77d51aeb557d8d688aa94b469197"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "1ff583de9109e4e498c2a5eba1396aaf45ab2fd587c865d8a0b2644a9c93911a"
+    },
+    {
+      "path": "fixtures/applications-reader.test.mjs",
+      "sha256": "8f4cc8c0a32d4b5bf93890ca6e5f744dffb9e24ce8802d91e3c9a794247923e9"
+    },
+    {
+      "path": "fixtures/professional-fields.test.mjs",
+      "sha256": "0fc430a84e4906df952cbc294efa74fb79d17a485079e38c67028ba5b1eff443"
+    },
+    {
+      "path": "fixtures/public-readers.test.mjs",
+      "sha256": "fd450c3d5b5fbee2385cb86004a63425ae123d50ad9b082711fab05f06de304b"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "d996250f9343af571c445dc0252cf12bf18ed4a338661c8cd6eb5b32e2f7cdc3"
+    },
+    {
+      "path": "professional-fields.mjs",
+      "sha256": "cf1f3b06dd4ea7d97ac2ec0386a994c85976ea7c96e86f08a2735a6e3e081751"
+    },
+    {
+      "path": "references/company-rules.json",
+      "sha256": "6ebe596dff8042047a9393a28df862f428411c2d0c1b9d2feb682c2f95630e46"
+    },
+    {
+      "path": "references/professional-fields.md",
+      "sha256": "6b8c230689868f8b5e1c67f74ab3df30dc8eb588841f3f47d6f34d6f119183d1"
+    },
+    {
+      "path": "surface.mjs",
+      "sha256": "206c52424c3dd9b4a08aaef97afd0caf1347b38a3edfa866143bc02902e0e3c2"
+    }
+  ]
+}

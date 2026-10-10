@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 2,
+  "company": "bytedance",
+  "observedOn": "2026-09-12",
+  "sourceUrl": "https://jobs.bytedance.com/campus/page-6272Gc",
+  "evidenceSource": "live_browser_parent_task",
+  "discovery": {
+    "initialCoverage": "Only four questions were visible before expansion.",
+    "requiredAction": {
+      "kind": "text",
+      "text": "全部展开",
+      "exact": true
+    },
+    "verifiedAfterExpansion": true
+  },
+  "coverage": {
+    "ordinaryCampus2027": "verified",
+    "frontier": "pending_verification",
+    "seed": "partial_contextual_verification"
+  },
+  "ordinaryCampus2027": {
+    "applicationWindows": [
+      {
+        "from": "2026-08-03",
+        "to": "2026-12-31",
+        "maximumApplications": 2
+      },
+      {
+        "from": "2027-01-01",
+        "to": null,
+        "maximumApplications": 2,
+        "note": "Two new opportunities refresh on 2027-01-01; final end date not verified."
+      }
+    ],
+    "annualWindowsIndependent": true,
+    "totalAcrossTwoWindows": 4,
+    "twoRoleProcessesIndependent": true,
+    "earlierApplicationProcessedFirst": true,
+    "successfulApplicationCanChangeRole": false,
+    "resumeUpdateBackfillsExistingApplications": false,
+    "referralCodeCanBeAddedAfterSubmission": false,
+    "referralCodeCanBeChangedAfterSubmission": false
+  },
+  "seed": {
+    "sourceUrl": "https://seed.bytedance.com/zh/seedearlycareer",
+    "observedOn": "2026-09-12",
+    "evidenceSource": "live_browser_parent_task",
+    "topSeed": {
+      "status": "verified",
+      "integratedInto": "Seed2027"
+    },
+    "singleCandidateSingleRoleProcess": {
+      "status": "verified_in_specific_context",
+      "maximumConcurrentRoleProcesses": 1,
+      "context": "A candidate with an internship offer from another team transferring into Seed.",
+      "limitsOfInference": "This concurrent-process statement does not establish a total application quota for all Seed candidates or all recruitment programs."
+    },
+    "totalApplicationLimit": null,
+    "sharesOrdinaryCampusQuota": null,
+    "cityVariantsQuotaTreatment": null
+  },
+  "frontierDoctoral": {
+    "status": "pending_verification",
+    "totalApplicationLimit": null,
+    "sharesOrdinaryCampusQuota": null,
+    "cityVariantsQuotaTreatment": null
+  },
+  "ordinaryCampusCityVariantsQuotaTreatment": null,
+  "unknownRuleHandling": "Keep unknown. Do not assume unlimited applications, transfer ordinary-campus limits to a special program, equate one active process with one lifetime application, or infer quota sharing from display grouping.",
+  "migration_note": "Historical official-site observation; verify current applicable program before use."
+}

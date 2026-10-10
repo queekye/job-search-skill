@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "fields": [
+    {"local":"basic.residence_city","site":"个人信息/所在地","method":"text","scope":"zte-candidate-resume","code_key":"residenceCity"},
+    {"local":"basic.id_number","site":"个人信息/证件号码","method":"text","scope":"zte-candidate-resume","code_key":"idNumber"},
+    {"local":"preference.profile_summary","site":"自我描述/简介","method":"textarea-expected-before","scope":"zte-candidate-resume-summary-only","code_key":"summary"},
+    {"local":"projects[].title","site":"项目经历/项目名称","method":"existing-exact-or-unique-blank-or-explicit-add","scope":"zte-candidate-resume-one-project","code_key":"project.title"},
+    {"local":"projects[].role","site":"项目经历/职责","method":"text-empty-or-exact","scope":"zte-candidate-resume-one-project","code_key":"project.role"},
+    {"local":"projects[].description","site":"项目经历/内容","method":"textarea-empty-or-exact","scope":"zte-candidate-resume-one-project","code_key":"project.description"},
+    {"local":"projects[].responsibilities","site":"项目经历/项目中职责","method":"textarea-empty-or-exact","scope":"zte-candidate-resume-one-project","code_key":"project.responsibilities"},
+    {"local":"projects[].start_month","site":"项目经历/起始年、月","method":"observed-select-year-then-month","scope":"zte-candidate-resume-one-project","code_key":"project.startMonth"},
+    {"local":"projects[].end_month","site":"项目经历/结束年、月","method":"observed-select-year-then-month","scope":"zte-candidate-resume-one-project","code_key":"project.endMonth"}
+  ],
+  "note": "Tenant-bound identity controls, expected-before summary update, and one project ensured by exact existing identity, unique blank reuse or explicitly authorized creation. Project dates require caller-provided known YYYY-MM; protected title/role values require manual review and never count as exact. All helpers leave save/submit to the caller."
+}

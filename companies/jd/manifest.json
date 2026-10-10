@@ -1,0 +1,58 @@
+{
+  "id": "jd",
+  "name": "京东",
+  "version": "0.3.2",
+  "contract_version": 1,
+  "origin": "https://campus.jd.com",
+  "description": "京东校招个人字段、解析授权及现存可变数量教育和项目补填；不保存或投递。",
+  "capabilities": {
+    "onboarding": {
+      "status": "documentation",
+      "detail": "Verified public entry and browser landing only."
+    },
+    "profile_prepare": {
+      "status": "executable",
+      "detail": "Observed campus profile/upload; variable existing education subsets by school/start/end identity, max 50. Projects use page-unique current expectedTitle at latest index, or one uniquely wholly empty five-field card; card count and complete field snapshots remain checked during writes. Observed menus/date authorizations only; no save or submit."
+    },
+    "applications": {
+      "status": "unavailable",
+      "detail": "No application reader."
+    }
+  },
+  "verification": {
+    "historical_source_version": "0.3.1",
+    "source_observed_on": "2026-10-09",
+    "historical_control_evidence": "Historical bounded campus profile/upload, education and project-control observations from the prior source package; prior installed category limitations do not establish acceptance of this version.",
+    "local_checks": "157 related synthetic Node tests passed on 2026-10-09; package integrity/release verification is reported separately.",
+    "live_reverified": false,
+    "installed_verification": "not_run",
+    "scope": "Current source supports the bounded preparation detail above. Historical observations are reference evidence only; no new real-site save, completeness or submission acceptance.",
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "adapter.mjs",
+      "sha256": "b948223b5189a308483ffbdd4d8834c494754c973fa31edc3f8d39c13db5ff24"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "a0fec5d186447150166e80c58372cf541df6027dec39ed81718ff3496666d508"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "29a3d2d04f69f3bdd0362101aa22c240894b21ee566efeee2fcde08963a99d51"
+    },
+    {
+      "path": "profile-projects.mjs",
+      "sha256": "7cf53be466c99e49be4882afb390cd08c012dce4d9fe08ae0f0239989b2f72c0"
+    },
+    {
+      "path": "profile-sections.mjs",
+      "sha256": "aac8a1020d5c7a16d4eb6072740615dee1675a6166f001ac4e5d31cbe089abe1"
+    }
+  ]
+}

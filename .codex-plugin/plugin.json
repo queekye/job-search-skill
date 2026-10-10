@@ -1,0 +1,19 @@
+{
+  "name": "job-search-skill",
+  "version": "0.1.4",
+  "description": "Codex 桌面的本地求职档案、简历准备、投递跟进与可共建公司资源。",
+  "author": {
+    "name": "Job Search Skill contributors"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Job Search Skill",
+    "shortDescription": "本地管理求职资料，复用公司填表方法。",
+    "longDescription": "共享本地网页与 Codex 档案，准备本人已选择岗位的申请，读取已验证网站的投递进度，并按版本管理公开公司资源包。最终投递由本人完成。",
+    "developerName": "Job Search Skill contributors",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "使用 $career 读取我的本地求职档案，帮我继续准备求职。"
+  },
+  "mcpServers": "./.mcp.json"
+}

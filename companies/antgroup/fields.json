@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "fields": [
+    {
+      "local": "basic.name",
+      "site": "个人信息/姓名",
+      "method": "text",
+      "scope": "campus-resume",
+      "code_key": "name"
+    },
+    {
+      "local": "basic.mobile",
+      "site": "个人信息/手机号",
+      "method": "text",
+      "scope": "campus-resume",
+      "code_key": "mobile"
+    },
+    {
+      "local": "basic.email",
+      "site": "个人信息/邮箱",
+      "method": "text",
+      "scope": "campus-resume",
+      "code_key": "email"
+    },
+    {
+      "local": "preference.source",
+      "site": "其他/招聘信息来源",
+      "method": "dropdown",
+      "scope": "campus-resume",
+      "code_key": "source"
+    },
+    {
+      "local": "education[matched].school",
+      "site": "教育经历/学校全称",
+      "method": "autocomplete",
+      "scope": "school-anchored-first-education-card",
+      "code_key": "educationSchool"
+    },
+    {
+      "local": "education[matched].academy",
+      "site": "教育经历/所在院系",
+      "method": "text",
+      "scope": "school-anchored-first-education-card",
+      "code_key": "educationAcademy"
+    },
+    {
+      "local": "education[matched].major",
+      "site": "教育经历/专业",
+      "method": "text",
+      "scope": "school-anchored-first-education-card",
+      "code_key": "educationMajor"
+    },
+    {
+      "local": "education[matched].tutor",
+      "site": "教育经历/导师",
+      "method": "text",
+      "scope": "school-anchored-first-education-card",
+      "code_key": "educationTutor"
+    },
+    {
+      "local": "education[matched].laboratory",
+      "site": "教育经历/实验室",
+      "method": "text",
+      "scope": "school-anchored-first-education-card",
+      "code_key": "educationLaboratory"
+    },
+    {
+      "local": "education[matched].researchField",
+      "site": "教育经历/研究方向",
+      "method": "text",
+      "scope": "school-anchored-first-education-card",
+      "code_key": "educationResearchField"
+    },
+    {
+      "local": "attachment.resume",
+      "site": "简历上传与解析",
+      "method": "filechooser",
+      "scope": "campus-resume-confirmed-replacement",
+      "code_key": "filePath"
+    },
+    {
+      "local": "experience[project].startDate",
+      "site": "项目经历/开始时间",
+      "method": "month-picker",
+      "scope": "identified-existing-project-same-year-only",
+      "code_key": "dates.start"
+    },
+    {
+      "local": "experience[project].endDate",
+      "site": "项目经历/结束时间",
+      "method": "month-picker",
+      "scope": "identified-existing-project-same-year-only",
+      "code_key": "dates.end"
+    },
+    {
+      "local": "experience[paper].title",
+      "site": "论文发表/名称",
+      "method": "text",
+      "scope": "existing-publication-indices-0-to-49",
+      "code_key": "papers[].title"
+    },
+    {
+      "local": "experience[paper].description",
+      "site": "论文发表/成果描述",
+      "method": "textarea",
+      "scope": "existing-publication-indices-0-to-49",
+      "code_key": "papers[].description"
+    },
+    {
+      "local": "experience[paper].status",
+      "site": "论文发表/发表状态",
+      "method": "dropdown",
+      "scope": "existing-publications-published-only",
+      "code_key": "papers[].status"
+    },
+    {
+      "local": "preference.otherInfo",
+      "site": "其他信息",
+      "method": "textarea",
+      "scope": "campus-resume-other-information",
+      "code_key": "otherInfo"
+    },
+    {
+      "local": "education[matched].degree",
+      "site": "教育经历/学历",
+      "method": "dropdown",
+      "scope": "school-anchored-first-education-card-explicit-visible-option-only",
+      "code_key": "educationDegree"
+    },
+    {
+      "local": "education[matched].school",
+      "site": "教育经历/学校身份核验",
+      "method": "readback",
+      "scope": "school-anchored-first-education-card",
+      "code_key": "educationExpectedSchool"
+    }
+  ],
+  "note": "Generic first-card education requires explicit educationDegree and exact educationExpectedSchool; doctoral* nonempty keys retain their explicit legacy doctoral meaning. Empty compatibility values do not request education writes. Publication indexes come from current existing controls (0..49), with title rechecks before description/status writes. Unknown levels, education dates and saving remain unsupported. Upload, parsing and parsed-date correction require separate authorization. Generic and legacy education text both require an explicit school anchor (educationExpectedSchool or legacy doctoralSchool); degree and school are rechecked after preparation and before each shared text write. Legacy text without an anchor stops. Same-URL card identity changes are not accepted."
+}

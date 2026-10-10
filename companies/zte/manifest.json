@@ -1,0 +1,58 @@
+{
+  "id": "zte",
+  "name": "中兴通讯",
+  "version": "0.4.1",
+  "contract_version": 1,
+  "origin": "https://app.mokahr.com",
+  "description": "中兴 Moka 租户授权身份文本、预期旧值简介和单项目准备；就绪不依赖申请人学校，供本人审阅后保存。",
+  "capabilities": {
+    "onboarding": {
+      "status": "documentation",
+      "detail": "Verified public entry and browser landing only."
+    },
+    "profile_prepare": {
+      "status": "executable",
+      "detail": "Tenant-bound identity text with school-independent readiness, expected-before summary and exact/unique-blank/authorized-add project preparation; preserve old values, readback only, no save or submit."
+    },
+    "applications": {
+      "status": "unavailable",
+      "detail": "No application reader."
+    }
+  },
+  "verification": {
+    "historical_source_version": "0.4.0",
+    "source_observed_on": "2026-10-09",
+    "historical_control_evidence": "Historical bounded identity, summary and project-control observations from the prior source package; they do not verify this generalized version or its installation.",
+    "local_checks": "157 related synthetic Node tests passed on 2026-10-09; package integrity/release verification is reported separately.",
+    "live_reverified": false,
+    "installed_verification": "not_run",
+    "scope": "Current source supports the bounded preparation detail above. Historical observations are reference evidence only; no new real-site save, completeness or submission acceptance.",
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "adapter.mjs",
+      "sha256": "6a335557858099e43c21e4b9b35ab7119f8aa079cd4c4d7f0aa018fa2de4e207"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "607da1d33aa81bc11419f9df2ebec9c5e1335b54317c836f0dab78ffe88dc510"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "e8b5075c754e94327e67552a53faa469c1a428838428f653ca5822a840d6a7a5"
+    },
+    {
+      "path": "profile-projects.mjs",
+      "sha256": "ffdc85647224269dfdf15036101a414636f35af85db25ead098c7ff5ea9d03a1"
+    },
+    {
+      "path": "profile-summary.mjs",
+      "sha256": "7d9a09487ddebe2dae3dca4197dc4f6317c4eb6c849fd94a4d280310fb242fe5"
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "id": "bytedance-campus",
+  "version": "0.1.1",
+  "contract_version": 1,
+  "name": "字节跳动校招",
+  "origin": "https://jobs.bytedance.com",
+  "description": "校招登录、当前页进度读取、创建简历审计及部分文本、月份、学历控件。保存和最终投递未封装。",
+  "capabilities": {
+    "login": {
+      "status": "executable",
+      "detail": "Observed controls; requires site authorization and optional separate OTP source."
+    },
+    "applications": {
+      "status": "executable",
+      "detail": "Current visible cards; nonempty coverage partial; explicit supported empty marker."
+    },
+    "resume_audit": {
+      "status": "executable",
+      "detail": "Creation form labels and completion counts only."
+    },
+    "profile_prepare": {
+      "status": "executable",
+      "detail": "Observed scoped text, education dates and degree; chosen-job guard; no save/upload/submit."
+    },
+    "candidate_catalog": {
+      "status": "executable",
+      "detail": "Normalize observed public cards only."
+    },
+    "save": {
+      "status": "unavailable",
+      "detail": "No persistent save helper."
+    },
+    "submit": {
+      "status": "unavailable",
+      "detail": "User final submission."
+    }
+  },
+  "verification": {
+    "source_plugin": "bytedance-campus",
+    "source_version": "0.2.0",
+    "source_observed_on": "2026-09-12/13",
+    "migrated_on": "2026-09-14",
+    "local_checks": "Synthetic fixtures; release verification reports actual result.",
+    "live_reverified": false,
+    "scope": "Historical source evidence only; check current page before use.",
+    "installed_verification": "not_run",
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "adapter.mjs",
+      "sha256": "418f240492a2c34ff37ae0dbf996e7f3a6025893da78c5486abdce5cdcaf969a"
+    },
+    {
+      "path": "applications-reader.mjs",
+      "sha256": "88db4a741585f8c07677bb6f0fa5330335ebd8d5558d17a2aa75278e030cf82b"
+    },
+    {
+      "path": "candidate-catalog.mjs",
+      "sha256": "df467288817c22289b82e92e60ca4c20f7457d71399c9f236e41ef73a8f0d050"
+    },
+    {
+      "path": "field-map.mjs",
+      "sha256": "f24e1844a89c0f737589bb70f765e6c3f51c597fb4b7a2a5c59968595d4cab96"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "2df3e7abbacd5430bf1c89990f0f6b13442a4ac8b5c87861d5ddb7f742ac6fdc"
+    },
+    {
+      "path": "fixtures/account-readers.test.mjs",
+      "sha256": "bea2339463f2c5d9761dcde00866b3fc222d6417d6ff0e3e3e7a1af090707f84"
+    },
+    {
+      "path": "fixtures/applications-reader.test.mjs",
+      "sha256": "0760e400b911c113e7bf2029375b847d3e31d811244acf9f4bf3fed416484aea"
+    },
+    {
+      "path": "fixtures/candidate-catalog.test.mjs",
+      "sha256": "621c6936fbf46b51b4017244cbf9785395be02068c61a0a80fc2ecfae1ffd363"
+    },
+    {
+      "path": "fixtures/field-map.test.mjs",
+      "sha256": "0be41e3fa57ef9c3ad429831918ffb56fee3940a7b45e9e7391d57c5168c4bfe"
+    },
+    {
+      "path": "fixtures/form-controls.test.mjs",
+      "sha256": "e2ea624d46c3372059aa6af4c4f891d3ab5394f1318980e1ce51bf1805c2607e"
+    },
+    {
+      "path": "fixtures/session-fixture.mjs",
+      "sha256": "eac56689a4449b1c1fea82f4b78d212d71d3ab777d6634edca59770c9be6ec3c"
+    },
+    {
+      "path": "fixtures/verification-overlay.test.mjs",
+      "sha256": "a927d4a16e2e14c61f9d7f5e99e0db0589dd47f9000577ff43b43b493cd0126a"
+    },
+    {
+      "path": "form-controls.mjs",
+      "sha256": "eb852c9d9e9878ec550f7417ada7a11973baca71bd20c5748a682dc23abe2ad5"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "513911cc5e8b16e9c23994cce80cf922c484cbe1d7adf339649aaa5a85f4b4f7"
+    },
+    {
+      "path": "profile-audit.mjs",
+      "sha256": "886e4cd8742e18517d9a148afa06107bda9bbb5ff0c84c65fc24321377757013"
+    },
+    {
+      "path": "references/company-rules.json",
+      "sha256": "b51eea3de5222470a52997022faf8844e9aaa596566805aa8a5b930af963a4fd"
+    },
+    {
+      "path": "references/field-map.md",
+      "sha256": "89bd800283fc58ab452a09afa54c7d5cfc93ee54cc9f89ddff03d2d1aff1d359"
+    },
+    {
+      "path": "references/form-controls.md",
+      "sha256": "9ec3d9f2b3f5225de6198d7eeb53acc7ff923341d1b0bdba076e5a727a463b73"
+    },
+    {
+      "path": "verification-overlay.mjs",
+      "sha256": "dff0f12e82ea6a765f7fb5837faba6e9143ec36ea13636837b2719c33abce39d"
+    }
+  ]
+}

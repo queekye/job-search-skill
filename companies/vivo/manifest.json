@@ -1,0 +1,70 @@
+{
+  "id": "vivo",
+  "version": "0.1.2",
+  "contract_version": 1,
+  "name": "vivo 校园招聘",
+  "origin": "https://hr-campus.vivo.com",
+  "description": "读取已观察的非空投递卡片，保留原始进度、日期和站点说明。",
+  "capabilities": {
+    "applications": {
+      "status": "executable",
+      "detail": "Strict snapshot reader for nonempty completed delivery-record cards on the observed route only."
+    },
+    "login": {
+      "status": "unavailable",
+      "detail": "User login; no OTP handling."
+    },
+    "profile_prepare": {
+      "status": "unavailable",
+      "detail": "No resume or application writer."
+    },
+    "submit": {
+      "status": "unavailable",
+      "detail": "User submission."
+    }
+  },
+  "verification": {
+    "source": "Unchanged public page structure observed through installed source adapter 0.1.0; no applicant record values included.",
+    "source_observed_on": "2026-09-16T11:27:56.379Z",
+    "local_checks": "17 synthetic fixtures rerun for 0.1.1; plan links the external versioned output digest.",
+    "live_reverified": false,
+    "scope": "Historical nonempty completed delivery-record structure only. Live-site and installed-version verification of this release have not been run.",
+    "source_version": "0.1.0",
+    "installed_verification": "not_run",
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "adapter.mjs",
+      "sha256": "577f9c034f3c124c4a47ef64408ae5d40df4e107826ad7d7cc30ff613c3d5855"
+    },
+    {
+      "path": "applications-reader.mjs",
+      "sha256": "6bf5e532d3bb61dabe33e9e2a6aafbb13a1dd741e4ebd2f9d0e6cf42bb95098c"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "89238fbfc5ad8463c67f7273226bd044ece1d6e0627e246fa7031f96579dd296"
+    },
+    {
+      "path": "fixtures/applications-reader.test.mjs",
+      "sha256": "ba6e3863364917649a38b0650d643e09369deacd92537176c42b7f15a5cbccaa"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "533426d3daca33cdc9beb43439cabb8682e27c5392fa89b1e06371ee481a2d5c"
+    },
+    {
+      "path": "references/site-extension.json",
+      "sha256": "280a33e3e2728cb11b21b216336a04f0cf38f1243de5c2caefbbc281badff4ee"
+    },
+    {
+      "path": "surface.mjs",
+      "sha256": "6fdc105b53ceac1c07bda0a2747e13b1ef2a085b4f5cbd95d8256e2c65565722"
+    }
+  ]
+}

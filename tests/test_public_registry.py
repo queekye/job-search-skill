@@ -243,7 +243,10 @@ class PublicTransportTests(unittest.TestCase):
         return resolve, connect, https, default_context, wrap, connection, raw_socket, tls_socket
 
     def test_domain_fakeip_pins_numeric_address_and_verifies_original_tls_hostname(self):
-        for addresses in (("198.18.0.102",), ("198.19.255.254",), ("198.18.0.102", "8.8.8.8")):
+        for addresses in (("198.18.0.102",), ("198.19.255.254",), ("198.18.0.102", "8.8.8.8"),
+                          ("2001:2::5d",), ("2001:2:0:ffff:ffff:ffff:ffff:ffff",),
+                          ("198.18.0.102", "2001:2::5d"), ("2001:2::5d", "198.18.0.102"),
+                          ("2001:2::5d", "2606:4700:4700::1111")):
             with self.subTest(addresses=addresses), ExitStack() as stack:
                 resolve, connect, https, default_context, wrap, connection, raw, tls = self.network(stack, addresses)
                 self.assertEqual(b"{}", packages._fetch_public(self.URL, 1024))
@@ -258,29 +261,38 @@ class PublicTransportTests(unittest.TestCase):
                 connection.close.assert_called_once_with()
 
     def test_fakeip_certificate_failure_sends_no_http_request(self):
-        with ExitStack() as stack:
-            _, connect, _, default_context, wrap, connection, raw, _ = self.network(
-                stack, ("198.18.0.102",), certificate_error=ssl.SSLCertVerificationError("synthetic mismatch"))
-            with self.assertRaises(AppError) as caught:
-                packages._fetch_public(self.URL, 1024)
-            self.assertEqual("registry_unavailable", caught.exception.code)
-            connect.assert_called_once_with(("198.18.0.102", 443), timeout=10)
-            default_context.assert_called_once_with()
-            wrap.assert_called_once_with(raw, server_hostname="registry.example.test")
-            connection.request.assert_not_called()
-            connection.getresponse.assert_not_called()
-            connection.close.assert_called_once_with()
+        for address in ("198.18.0.102", "2001:2::5d"):
+            with self.subTest(address=address), ExitStack() as stack:
+                _, connect, _, default_context, wrap, connection, raw, _ = self.network(
+                    stack, (address,), certificate_error=ssl.SSLCertVerificationError("synthetic mismatch"))
+                with self.assertRaises(AppError) as caught:
+                    packages._fetch_public(self.URL, 1024)
+                self.assertEqual("registry_unavailable", caught.exception.code)
+                connect.assert_called_once_with((address, 443), timeout=10)
+                default_context.assert_called_once_with()
+                wrap.assert_called_once_with(raw, server_hostname="registry.example.test")
+                connection.request.assert_not_called()
+                connection.getresponse.assert_not_called()
+                connection.close.assert_called_once_with()
 
     def test_literal_fakeip_private_ipv4_ipv6_and_mixed_dns_are_rejected_before_connect(self):
         cases = [
             ("https://198.18.0.102/index.json", ("198.18.0.102",)),
             ("https://198.19.255.254/index.json", ("198.19.255.254",)),
+            ("https://[2001:2::5d]/index.json", ("2001:2::5d",)),
+            ("https://[2001:2:0:ffff:ffff:ffff:ffff:ffff]/index.json", ("2001:2:0:ffff:ffff:ffff:ffff:ffff",)),
             ("http://registry.example.test/index.json", ("198.18.0.102",)),
-            *((self.URL, (ip,)) for ip in ("10.0.0.1", "127.0.0.1", "fc00::1", "::1", "fe80::1", "::ffff:198.18.0.102")),
+            ("http://registry.example.test/index.json", ("2001:2::5d",)),
+            *((self.URL, (ip,)) for ip in ("10.0.0.1", "127.0.0.1", "fc00::1", "::1", "fe80::1", "::ffff:198.18.0.102",
+                                         "2001:2:1::1", "2001:db8::1", "2001:1:ffff:ffff:ffff:ffff:ffff:ffff")),
             (self.URL, ("198.18.0.102", "10.0.0.1")),
             (self.URL, ("8.8.8.8", "127.0.0.1")),
             (self.URL, ("198.18.0.102", "fc00::1")),
             (self.URL, ("10.0.0.1", "198.18.0.102")),
+            (self.URL, ("2001:2::5d", "fc00::1")),
+            (self.URL, ("2001:2::5d", "127.0.0.1")),
+            (self.URL, ("198.18.0.102", "2001:2::5d", "10.0.0.1")),
+            (self.URL, ("2001:db8::1", "2001:2::5d")),
         ]
         for url, addresses in cases:
             with self.subTest(url=url, addresses=addresses), ExitStack() as stack:

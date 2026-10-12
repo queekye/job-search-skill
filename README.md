@@ -1,8 +1,10 @@
 # Job Search Skill
 
-面向 **Windows** 的本地求职协作工具和 Codex 插件，当前 **0.2.0 开发预览版**。网页与 Agent 共用 SQLite 档案，自动填表可独立于 Codex 运行。用户选择岗位、审阅资料并最终投递。默认优先正式校招，也可按明确范围处理社招；实习须用户明确要求。每人独立本地使用，账号是同一可信 Windows 用户下的档案分区。
+面向 **Windows** 的本地求职协作工具和 Codex 插件，当前 **0.2.1 开发预览版**。网页与 Agent 共用 SQLite 档案，自动填表可独立于 Codex 运行。用户选择岗位、审阅资料并最终投递。默认优先正式校招，也可按明确范围处理社招；实习须用户明确要求。每人独立本地使用，账号是同一可信 Windows 用户下的档案分区。
 
 ## 开始使用
+
+从 [公开发行页](https://github.com/queekye/job-search-skill/releases/tag/v0.2.1) 下载运行包；继续开发可直接克隆公开仓库。
 
 1. 将运行 ZIP 解压到普通本地目录，双击 `Start.cmd`，打开 <http://127.0.0.1:8766/>。
 2. 选择或新建账号，填写资料或导入简历材料，保存招聘类型、城市和方向等偏好，建立 Agent 任务。
@@ -14,7 +16,7 @@
 
 更新时解压新版本，运行新目录的 `Install.cmd`，再开启新的 Codex 任务。安装器核对本项目旧入口后切换，失败时恢复旧入口；成功前保留旧解压目录，其他市场不受影响。个人数据继续使用原来的私有目录。
 
-[公共公司资源目录](https://job-search-company-resources.pages.dev/)已上线。网页“设置与跟进 → 资源与共建入口”填写 `https://job-search-company-resources.pages.dev/index.json`，即可刷新目录、下载并完整审阅所需版本，再由本人启用。公司资源更新从 [GitHub 仓库](https://github.com/queekye/job-search-skill) 的 `main` 自动构建并部署，个人数据仍在本机或私有 WebDAV。
+[公共公司资源目录](https://job-search-company-resources.pages.dev/)已上线。网页已默认填好资源目录和 GitHub 共建入口，可直接刷新目录、下载并完整审阅所需版本，再由本人启用。公司资源更新从 [GitHub 仓库](https://github.com/queekye/job-search-skill) 的 `main` 自动构建并部署，个人数据仍在本机或私有 WebDAV。
 
 ```powershell
 .\Start.cmd --data-dir D:\PrivateCareer --port 8767
@@ -65,7 +67,7 @@ portable v1 JSON 用于当前账号结构化记录互换，不含附件原件、
 
 ## 开发与发行
 
-换电脑继续开发请先阅读 [0.2.0 开发交接](references/development-handoff.md)，按交接提交或 Git bundle 恢复源码；个人档案通过独立私有备份迁移。
+换电脑继续开发请先阅读 [0.2.1 开发交接](references/development-handoff.md)。从公开仓库取得源码，个人档案通过同一 WebDAV 工作区接续；私有离线备份作为备用。
 
 源码仓库保留 `Check.cmd`、`tests/` 和开发脚本。使用 `Check.cmd`、`python scripts/check_node.py` 运行合成回归，`python scripts/check_source.py` 扫描全部允许的公开源码，`python scripts/build_release.py` 生成 `dist/` 内的运行 ZIP、公司 ZIP、静态目录、SHA-256 清单和本地市场。源码与运行快照分别扫描；运行 ZIP 不携带开发测试、CI、构建器或开发约定。贡献与维护在源码仓库进行。
 

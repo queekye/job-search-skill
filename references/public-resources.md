@@ -8,11 +8,11 @@
 
 生产目录为 [job-search-company-resources.pages.dev](https://job-search-company-resources.pages.dev/)，源码和版本由 [queekye/job-search-skill](https://github.com/queekye/job-search-skill) 管理。
 
-在网页“设置与跟进 → 资源与共建入口”填写 `https://job-search-company-resources.pages.dev/index.json`。进入“公司资源”，点击“刷新公共目录”，再选择“下载并审阅”。下载仅保存待审 ZIP；阅读显示的完整文本和脚本后，点击“确认已审阅并启用”。安装不会执行脚本，网站操作仍遵循各包的能力范围。
+网页“设置与跟进 → 资源与共建入口”默认使用 `https://job-search-company-resources.pages.dev/index.json`，已有账号的空地址也按此默认显示。进入“公司资源”，点击“刷新公共目录”，再选择“下载并审阅”。下载仅保存待审 ZIP；阅读显示的完整文本和脚本后，点击“确认已审阅并启用”。安装不会执行脚本，网站操作仍遵循各包的能力范围。
 
-目录地址未配置或用户没有点击刷新时，不自动访问远端。目录连接失败不影响内置资源、已接受资源或离线导入。网页与本地服务仍在本机运行；公共站点只负责下载公司方法。
+默认配置不会自动访问远端；仅在用户点击刷新或明确调用读取操作时读取目录。目录连接失败不影响内置资源、已接受资源或离线导入。网页与本地服务仍在本机运行；公共站点只负责下载公司方法。
 
-“共建入口”填写 `https://github.com/queekye/job-search-skill/issues/new?template=company-resource.yml`，打开仓库的公司资源建议表单。以上两个地址是本项目当前固定入口，网页默认留空，由本人保存；它们属于账号设置。提交共建内容时只提供公开公司方法和合成用例，不附个人简历、申请记录、凭据或私有备份。
+“共建入口”默认使用 `https://github.com/queekye/job-search-skill/issues/new?template=company-resource.yml`，打开仓库的公司资源建议表单。以上两个地址是本项目当前固定入口；本人仍可在账号设置中保存其他地址，清空后恢复默认。读取旧设置不会写数据库或修改修订号。提交共建内容时只提供公开公司方法和合成用例，不附个人简历、申请记录、凭据或私有备份。
 
 ## GitHub 版本与 Cloudflare 自动部署
 
@@ -77,7 +77,7 @@
 
 元数据沿用公司包契约，`download.path` 固定为 `packages/<id>-<version>.zip`，相对于索引所在目录。索引最多 1 MiB、256 个版本；同一 ID/版本不可重复。ZIP 继续遵守 [company-pack.md](company-pack.md) 的大小、成员路径、编码和资源哈希校验。修改内容时增加版本并重建索引；目录内 ZIP 的 SHA-256 和字节数必须与索引一致。
 
-URL 只支持不带账号、查询或片段的公网 HTTPS；不使用代理环境变量、浏览器 Cookie 或 WebDAV 密码。HTTP `127.0.0.1` 仅供合成测试。连接固定已检查的地址，TLS 校验原域名；兼容本机 TUN 将域名映射到标准 IPv4 Fake-IP 网段 `198.18.0.0/15`，不接受该网段的 IP 字面量 URL，其他内网与回环地址仍被拒绝。不允许索引或 ZIP 跳转到另一地址。下载使用公开 GET，不上传个人档案、申请记录或附件。
+URL 只支持不带账号、查询或片段的公网 HTTPS；不使用代理环境变量、浏览器 Cookie 或 WebDAV 密码。HTTP `127.0.0.1` 仅供合成测试。连接固定已检查的地址，TLS 校验原域名；兼容本机 TUN 将域名映射到 IPv4 `198.18.0.0/15` 或 IPv6 `2001:2::/48` 基准测试网段的 Fake-IP，包括两者混合的 DNS 结果。不接受这些网段的 IP 字面量 URL，其他内网、回环和非公网地址仍被拒绝。不允许索引或 ZIP 跳转到另一地址。下载使用公开 GET，不上传个人档案、申请记录或附件。
 
 ## 本地 API
 

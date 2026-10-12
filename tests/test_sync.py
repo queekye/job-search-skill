@@ -45,7 +45,15 @@ class DavServer:
         self.requests = []
         self.lock = threading.RLock()
         self.strong_etags = True
+        self.bare_etags = False
         self.honor_conditions = True
+        self.ignore_if_none_match = False
+        self.support_move = False
+        self.move_exists_status = 412
+        self.before_initial_move = None
+        self.wrong_conditional_body = False
+        self.accept_stale_match = False
+        self.conditional_versions = set()
         self.authorized = True
         self.redirect_url = None
         self.failure = None
@@ -74,7 +82,9 @@ class DavServer:
                     fixture.requests.append({"method": self.command, "path": path,
                         "authorization": self.headers.get("Authorization"),
                         "if_match": self.headers.get("If-Match"),
-                        "if_none_match": self.headers.get("If-None-Match"), "body": body})
+                        "if_none_match": self.headers.get("If-None-Match"),
+                        "destination": self.headers.get("Destination"),
+                        "overwrite": self.headers.get("Overwrite"), "body": body})
                     if fixture.redirect_url:
                         self.respond(307, location=fixture.redirect_url + path)
                         return
@@ -107,15 +117,39 @@ class DavServer:
                             hook(path)
                         previous = fixture.files.get(path)
                         if fixture.honor_conditions:
-                            if self.headers.get("If-None-Match") == "*" and previous is not None:
+                            if not fixture.ignore_if_none_match and self.headers.get("If-None-Match") == "*" and previous is not None:
                                 self.respond(412)
                                 return
                             expected_etag = self.headers.get("If-Match")
-                            if expected_etag is not None and (previous is None or expected_etag != fixture.etag(previous)):
+                            stale_allowed = fixture.accept_stale_match and expected_etag in fixture.conditional_versions
+                            if expected_etag is not None and not stale_allowed and (previous is None or expected_etag != fixture.etag(previous)):
                                 self.respond(412)
                                 return
+                        if self.headers.get("If-Match") and previous is not None:
+                            fixture.conditional_versions.add(fixture.etag(previous))
+                            if fixture.wrong_conditional_body:
+                                body = b'{"synthetic":"unexpected-server-write"}'
                         fixture.files[path] = body
                         self.respond(204 if previous is not None else 201, etag=fixture.etag(body))
+                        return
+                    if self.command == "MOVE":
+                        if not fixture.support_move:
+                            self.respond(405)
+                            return
+                        target = unquote(urlsplit(self.headers.get("Destination", "")).path)
+                        hook = fixture.before_initial_move
+                        if hook and target.endswith("/latest.json"):
+                            fixture.before_initial_move = None
+                            hook(path, target)
+                        if path not in fixture.files:
+                            self.respond(404)
+                            return
+                        previous = fixture.files.get(target)
+                        if previous is not None and self.headers.get("Overwrite") == "F":
+                            self.respond(fixture.move_exists_status)
+                            return
+                        fixture.files[target] = fixture.files.pop(path)
+                        self.respond(204 if previous is not None else 201, etag=fixture.etag(fixture.files[target]))
                         return
                     if self.command == "DELETE":
                         if path in fixture.files:
@@ -124,7 +158,7 @@ class DavServer:
                         return
                     self.respond(405)
 
-            do_GET = do_HEAD = do_PUT = do_MKCOL = do_DELETE = process
+            do_GET = do_HEAD = do_PUT = do_MKCOL = do_DELETE = do_MOVE = process
 
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.server.daemon_threads = True
@@ -133,9 +167,9 @@ class DavServer:
         self.thread.start()
         self.closed = False
 
-    @staticmethod
-    def etag(raw):
-        return '"' + hashlib.sha256(raw).hexdigest() + '"'
+    def etag(self, raw):
+        value = hashlib.sha256(raw).hexdigest()
+        return value if self.bare_etags else '"' + value + '"'
 
     def head(self):
         with self.lock:
@@ -245,6 +279,9 @@ class SyncTests(unittest.TestCase):
                 process.wait(timeout=3)
 
     def test_handoff_restores_personal_data_and_preserves_each_computers_company_resources(self):
+        self.assert_personal_handoff()
+
+    def assert_personal_handoff(self):
         other_id = self.a.execute("account.create", {"name": "合成账号乙"})["id"]
         other = self.a.for_user(other_id)
         doc_ids = {}
@@ -320,6 +357,31 @@ class SyncTests(unittest.TestCase):
         self.assertEqual("writer", self.status(self.a)["mode"])
         self.assertEqual(original_a_resources, self.local_resources(self.a))
         self.assertEqual(original_b_resources, self.local_resources(self.b))
+
+    def test_nutstore_wire_etags_and_move_support_complete_two_computer_handoff(self):
+        self.server.bare_etags = True
+        self.server.ignore_if_none_match = True
+        self.server.support_move = True
+        self.server.move_exists_status = 409
+        self.assert_personal_handoff()
+        for app in (self.a, self.b):
+            state = json.loads((app.base_data_dir / "sync-state.json").read_text(encoding="utf-8"))
+            self.assertEqual(2, state["capability_version"])
+            self.assertEqual("move", state["creation"])
+        before = self.rows(self.b, "records")
+        remote = self.server.head()
+        error = self.assert_error_without_secrets(lambda: self.record(self.b, "旧电脑不得继续写入"))
+        self.assertEqual("sync_not_writer", error.code)
+        self.assertEqual(before, self.rows(self.b, "records"))
+        self.assertEqual(remote, self.server.head())
+        moves = [request for request in self.server.requests if request["method"] == "MOVE"
+                 and urlsplit(request["destination"]).path.endswith("/latest.json")]
+        self.assertEqual(1, len(moves), "only first publication uses MOVE; updates remain If-Match CAS")
+        self.assertEqual("F", moves[0]["overwrite"])
+        updates = [request for request in self.server.requests if request["method"] == "PUT"
+                   and request["path"].endswith("/latest.json")]
+        self.assertTrue(updates)
+        self.assertTrue(all(request["if_match"] and '"' not in request["if_match"] for request in updates))
 
     def test_already_populated_second_computer_does_not_overwrite_remote_or_local(self):
         first = self.record(self.a, "远端原数据")
@@ -445,7 +507,7 @@ else:
                                "local-fingerprint", "computer-a-host-task", "computer-b-host-task"):
                     self.assertNotIn(secret.encode(), raw)
 
-    def test_strong_etags_and_conditional_creation_are_required(self):
+    def test_weak_etags_and_unenforced_conditional_updates_are_rejected(self):
         self.record(self.a)
         self.configure(self.a); self.run_sync(self.a)
         remote_before = self.server.head()
@@ -460,6 +522,115 @@ else:
         self.server.honor_conditions = False
         self.assert_error_without_secrets(lambda: self.run_sync(bad))
         self.assertNotEqual("writer", self.status(bad)["mode"])
+
+    def test_wire_etags_preserve_quoted_or_strict_bare_tokens_and_reject_weak_or_malformed_values(self):
+        for value in ('"quoted-opaque"', '"opaque/etag+value"', "N9j5F_uPTLdSm8w-GH1TFQ"):
+            with self.subTest(value=value):
+                self.assertEqual(value, sync.DAV.strong({"ETag": value}))
+        for value in ("", 'W/"weak"', "W/weak", "bare token", "bare/token", "bare=padding",
+                      '"quoted space"', '"unterminated', '"tag" trailing', "tag\r\nInjected: 1", '"tag\x7f"'):
+            with self.subTest(value=value):
+                error = self.assert_error_without_secrets(lambda: sync.DAV.strong({"ETag": value}))
+                self.assertEqual("sync_unsafe_server", error.code)
+
+    def test_standard_conditional_creation_remains_available_without_move(self):
+        self.configure(self.a)
+        client = sync.DAV(sync._config(self.a))
+        self.assertEqual("conditional", client.check(self.status(self.a)["device_id"]))
+        self.run_sync(self.a)
+        state = json.loads((self.a.base_data_dir / "sync-state.json").read_text(encoding="utf-8"))
+        self.assertEqual(2, state["capability_version"])
+        self.assertEqual("conditional", state["creation"])
+        self.assertEqual("writer", self.status(self.a)["mode"])
+
+    def test_missing_atomic_creation_is_rejected_before_any_personal_snapshot_is_uploaded(self):
+        original = self.record(self.a, "服务不支持安全初始化时保留本机资料")
+        self.server.bare_etags = True
+        self.server.ignore_if_none_match = True
+        self.configure(self.a)
+        error = self.assert_error_without_secrets(lambda: self.run_sync(self.a))
+        self.assertEqual("sync_unsafe_server", error.code)
+        self.assertIsNone(self.server.head())
+        self.assertEqual([], self.server.snapshots())
+        self.assertEqual([original], self.a.execute("record.list", {"kind": "basic"})["items"])
+        self.assertNotEqual("writer", self.status(self.a)["mode"])
+
+    def test_move_support_does_not_compensate_for_ignored_if_match(self):
+        self.server.bare_etags = True
+        self.server.honor_conditions = False
+        self.server.support_move = True
+        self.configure(self.a)
+        error = self.assert_error_without_secrets(lambda: self.run_sync(self.a))
+        self.assertEqual("sync_unsafe_server", error.code)
+        self.assertIsNone(self.server.head())
+        self.assertEqual([], self.server.snapshots())
+
+    def test_probe_rejects_correct_if_match_that_writes_the_wrong_content(self):
+        self.server.wrong_conditional_body = True
+        self.configure(self.a)
+        error = self.assert_error_without_secrets(lambda: self.run_sync(self.a))
+        self.assertEqual("sync_unsafe_server", error.code)
+        self.assertIsNone(self.server.head())
+        self.assertEqual([], self.server.snapshots())
+
+    def test_probe_rejects_old_etag_accepted_after_a_successful_update(self):
+        self.server.accept_stale_match = True
+        self.configure(self.a)
+        error = self.assert_error_without_secrets(lambda: self.run_sync(self.a))
+        self.assertEqual("sync_unsafe_server", error.code)
+        self.assertIsNone(self.server.head())
+        self.assertEqual([], self.server.snapshots())
+
+    def test_move_first_publication_race_preserves_the_other_publishers_head(self):
+        self.server.bare_etags = True
+        self.server.ignore_if_none_match = True
+        self.server.support_move = True
+        original = self.record(self.a, "初始化竞争中的本机分支")
+        self.configure(self.a)
+        competing = {}
+
+        def publish_another_head(source, destination):
+            other = json.loads(self.server.files[source])
+            other.update(id=uuid.uuid4().hex, owner=uuid.uuid4().hex)
+            self.server.files[destination] = json.dumps(other, separators=(",", ":")).encode()
+            competing.update(other)
+
+        self.server.before_initial_move = publish_another_head
+        error = self.assert_error_without_secrets(lambda: self.run_sync(self.a))
+        self.assertEqual("sync_conflict", error.code)
+        self.assertEqual(competing, self.server.head())
+        self.assertEqual([original], self.a.execute("record.list", {"kind": "basic"})["items"])
+        self.assertEqual("conflict", self.status(self.a)["mode"])
+        self.assertTrue(self.status(self.a)["dirty"])
+
+    def test_old_capability_cache_is_rechecked_and_new_wire_etags_are_used_for_updates(self):
+        self.record(self.a, "已有共同基线")
+        self.configure(self.a); self.run_sync(self.a)
+        state_path = self.a.base_data_dir / "sync-state.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state.update(capability_checked=True, capability_version=1)
+        state.pop("creation", None)
+        state_path.write_text(json.dumps(state), encoding="utf-8")
+        self.server.bare_etags = True
+        self.server.ignore_if_none_match = True
+        self.server.support_move = True
+        previous_requests = len(self.server.requests)
+        self.run_sync(self.a)
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        self.assertEqual(2, state["capability_version"])
+        self.assertEqual("move", state["creation"])
+        fresh = self.server.requests[previous_requests:]
+        self.assertTrue(any(item["method"] == "MOVE" for item in fresh), "old cached capability skipped revalidation")
+        addition = self.record(self.a, "用新裸tag继续发布的资料")
+        self.run_sync(self.a)
+        updates = [item for item in self.server.requests if item["method"] == "PUT"
+                   and item["path"].endswith("/latest.json") and item["if_match"]]
+        self.assertTrue(updates)
+        self.assertNotIn('"', updates[-1]["if_match"])
+        self.assertEqual("writer", self.status(self.a)["mode"])
+        self.assertFalse(self.status(self.a)["dirty"])
+        self.configure(self.b); self.run_sync(self.b)
+        self.assertIn(addition, self.b.execute("record.list", {"kind": "basic"})["items"])
 
     def test_auth_failure_and_redirect_do_not_expose_credentials_or_forward_them(self):
         self.configure(self.a)
@@ -543,6 +714,15 @@ else:
         self.assertFalse(list((self.b.data_dir / "documents").iterdir()))
 
     def test_automatic_worker_uploads_edits_and_pulls_without_reclaiming_after_handoff(self):
+        self.assert_automatic_handoff()
+
+    def test_automatic_worker_supports_nutstore_wire_etags_and_cached_move_creation(self):
+        self.server.bare_etags = True
+        self.server.ignore_if_none_match = True
+        self.server.support_move = True
+        self.assert_automatic_handoff()
+
+    def assert_automatic_handoff(self):
         self.record(self.a, "后台同步基线")
         self.configure(self.a, automatic=True)
         writer_worker = sync.start_worker(self.a, interval=0.05)

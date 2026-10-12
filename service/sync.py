@@ -33,6 +33,7 @@ ID = re.compile(r"[a-f0-9]{32}\Z")
 SHA = re.compile(r"[a-f0-9]{64}\Z")
 MACHINE = {"enabled", "host_task_id", "allow_relogin"}
 MAX_JSON = 64 * 1024
+CAPABILITY_VERSION = 2
 
 
 def _fail(message, code="sync_error"):
@@ -148,6 +149,7 @@ class _NoRedirect(HTTPRedirectHandler):
 class DAV:
     def __init__(self, config):
         self.url = config["url"] + config["workspace"] + "/"
+        self.creation = "conditional"
         try:
             secret = otp._unprotect(config["protected_password"]) if config.get("protected_password") else ""
         except AppError:
@@ -164,7 +166,7 @@ class DAV:
         except HTTPError as error:
             if error.code in allowed:
                 return error
-            code = "sync_conflict" if error.code == 412 else "sync_auth_failed" if error.code in (401, 403) else "sync_redirect_blocked" if 300 <= error.code < 400 else "sync_remote_error"
+            code = "sync_conflict" if error.code == 412 or method == "MOVE" and error.code == 409 else "sync_auth_failed" if error.code in (401, 403) else "sync_redirect_blocked" if 300 <= error.code < 400 else "sync_remote_error"
             error.close()
             messages = {"sync_conflict": "远端已改变，本机修改已保留；请同步检查冲突。",
                         "sync_auth_failed": "WebDAV 拒绝访问，请检查用户名、应用密码和目录权限。",
@@ -187,8 +189,10 @@ class DAV:
     @staticmethod
     def strong(headers):
         value = headers.get("ETag", "")
-        if not re.fullmatch(r'"[^"\r\n]{1,200}"', value):
-            _fail("此 WebDAV 缺少强 ETag，无法避免互相覆盖，请换用支持条件更新的服务。", "sync_unsafe_server")
+        # Some providers return an unquoted opaque token. Preserve its wire
+        # form; check() proves that it actually enforces conditional updates.
+        if not re.fullmatch(r'"[\x21\x23-\x7e]{1,200}"|[A-Za-z0-9_-]{1,200}', value):
+            _fail("此 WebDAV 未提供可用的文件版本标识，请确认 WebDAV 目录和服务能力。", "sync_unsafe_server")
         return value
 
     def check(self, device):
@@ -196,18 +200,55 @@ class DAV:
             self.request(name, "MKCOL", data=b"", allowed=(405,))
         # Probe a disposable object, never an application head. Failed providers
         # cannot overwrite another computer's data during this capability check.
-        name, raw = "check-" + device + ".json", b'{"test":true}'
-        self.request(name, "PUT", raw, {"If-None-Match": "*"}, allowed=(412,))
-        _, headers, _ = self.request(name)
-        etag = self.strong(headers)
-        for conditional in ({"If-None-Match": "*"}, {"If-Match": '"missing-' + uuid.uuid4().hex + '"'}):
-            code, _, _ = self.request(name, "PUT", raw, conditional, allowed=(412,))
-            if code != 412:
-                _fail("此 WebDAV 未执行条件更新，已停止同步以保留各电脑的数据。", "sync_unsafe_server")
+        key = "check-" + device + "-" + uuid.uuid4().hex
+        name, source, moved = (key + suffix for suffix in (".json", "-source.json", "-moved.json"))
+        original, updated, stale = b'{"test":1}', b'{"test":2}', b'{"test":3}'
+        def verify(path, expected):
+            _, headers, raw = self.request(path)
+            if raw != expected:
+                _fail("WebDAV 条件操作未保留预期内容，已停止同步。", "sync_unsafe_server")
+            return self.strong(headers)
+        def required(condition):
+            if not condition:
+                _fail("此 WebDAV 未执行安全的条件更新或首次创建，已停止同步以保留资料。", "sync_unsafe_server")
         try:
-            self.request(name, "DELETE", headers={"If-Match": etag})
-        except AppError:
-            pass
+            self.request(name, "PUT", original, {"If-None-Match": "*"})
+            etag = verify(name, original)
+            code, _, _ = self.request(name, "PUT", updated, {"If-Match": '"missing-' + uuid.uuid4().hex + '"'}, allowed=(412,))
+            required(code == 412)
+            verify(name, original)
+            code, _, _ = self.request(name, "PUT", updated, {"If-Match": etag}, allowed=(412,))
+            required(code in (200, 201, 204))
+            next_etag = verify(name, updated)
+            required(next_etag != etag)
+            code, _, _ = self.request(name, "PUT", stale, {"If-Match": etag}, allowed=(412,))
+            required(code == 412)
+            verify(name, updated)
+            code, _, _ = self.request(name, "PUT", stale, {"If-None-Match": "*"}, allowed=(412,))
+            if code == 412:
+                verify(name, updated)
+                return "conditional"
+            verify(name, stale)
+            # Providers ignoring If-None-Match can still create the first head
+            # atomically with MOVE/Overwrite:F. Probe both occupied and empty
+            # destinations; some providers report 409 rather than 412.
+            self.request(source, "PUT", original)
+            code, _, _ = self.request(source, "MOVE", headers={"Destination": self.url + name, "Overwrite": "F"}, allowed=(405, 409, 412, 501))
+            required(code in (409, 412))
+            verify(name, stale)
+            verify(source, original)
+            code, _, _ = self.request(source, "MOVE", headers={"Destination": self.url + moved, "Overwrite": "F"}, allowed=(405, 409, 412, 501))
+            required(code in (200, 201, 204))
+            verify(moved, original)
+            code, _, _ = self.request(source, allowed=(404,))
+            required(code == 404)
+            return "move"
+        finally:
+            for path in (name, source, moved):
+                try:
+                    self.request(path, "DELETE", allowed=(404,))
+                except AppError:
+                    pass  # Probe cleanup must not hide the capability result.
 
     def head(self):
         code, headers, raw = self.request("latest.json", allowed=(404,))
@@ -237,11 +278,25 @@ class DAV:
             _fail("远端工作区格式不兼容；本机数据未替换。", "sync_invalid_remote")
 
     def put_head(self, value, etag):
+        if etag is None and self.creation == "move":
+            temporary = "head-" + uuid.uuid4().hex + ".json"
+            try:
+                self.request(temporary, "PUT", backup._json(value), {"Content-Type": "application/json"})
+                self.request(temporary, "MOVE", headers={"Destination": self.url + "latest.json", "Overwrite": "F"})
+            finally:
+                try:
+                    self.request(temporary, "DELETE", allowed=(404,))
+                except AppError:
+                    pass
+            current, tag = self.head()
+            if current is None or current["id"] != value["id"]:
+                _fail("发布后远端已改变，请重新同步。", "sync_conflict")
+            return tag
         conditional = {"If-Match": etag} if etag else {"If-None-Match": "*"}
         _, headers, _ = self.request("latest.json", "PUT", backup._json(value), conditional)
         if not headers.get("ETag"):
             current, tag = self.head()
-            if current["id"] != value["id"]:
+            if current is None or current["id"] != value["id"]:
                 _fail("发布后远端已再次改变，请重新同步。", "sync_conflict")
             return tag
         return self.strong(headers)
@@ -405,10 +460,12 @@ def synchronize(app, action="sync.run"):
     client = DAV(config)
     changed = False
     try:
-        if not state.get("capability_checked"):
-            client.check(state["device_id"])
+        if not state.get("capability_checked") or state.get("capability_version") != CAPABILITY_VERSION:
+            state["creation"] = client.check(state["device_id"])
             state["capability_checked"] = True
+            state["capability_version"] = CAPABILITY_VERSION
             _save_state(app, state)
+        client.creation = state.get("creation", "conditional")
         head, etag = client.head()
         local_digest = backup.logical_digest(app.base_data_dir)
         local_changed = bool(state.get("base_digest") and local_digest != state["base_digest"])
@@ -483,7 +540,7 @@ def guard_write(app):
     if not config:
         return
     state = _state(app)
-    if state.get("config_identity") != config.get("identity") or not state.get("capability_checked") or state.get("resume_on_claim"):
+    if state.get("config_identity") != config.get("identity") or not state.get("capability_checked") or state.get("capability_version") != CAPABILITY_VERSION or state.get("resume_on_claim"):
         _fail("请先在网页完成首次同步，再修改资料。", "sync_required")
     head, _ = DAV(config).head()
     if not head or head["owner"] != state.get("device_id") or head["id"] != state.get("base_id") or head["workspace_id"] != state.get("workspace_id"):

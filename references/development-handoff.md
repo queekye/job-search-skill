@@ -1,10 +1,10 @@
-# 开发交接 · 0.2.0
+# 开发交接 · 0.2.1
 
 交接日期：2026-10-12。本文件只记录公开项目的开发状态；个人档案、备份路径、现场核对结果和凭据保存在仓库外的本人目录。
 
 ## 当前基线
 
-- 0.2.0 为本地开发预览版。现有公开发行版本为 0.1.5；提交代码不等于推送、发布发行包或部署 Cloudflare。
+- 0.2.1 为开发预览版，包含独立填表、默认公共入口和坚果云 WebDAV 兼容。公开源码、运行包和 Cloudflare 目录分别发布；提交代码不等于完成三者的发布。
 - 独立自动填表已经接通网页和 `career_forms` MCP：准备输入、打开专用浏览器、填写、读回、状态、取消、恢复。无需模型或 Codex 参与浏览器执行。
 - 公司包使用 `form.json` 声明输入，`inspect/fill/verify` 提供执行代码；`company-resource` Skill、模板/校验 MCP 和独立 CLI 支持制作、合成测试与导出。
 - 统一一键入口先覆盖京东 0.4.0 的六项基本信息。其他公司仍按自身 guide 提供有限读取、helper 或流程指引。教育、项目、附件、官网保存和最终投递不属于京东统一入口的已验证范围。
@@ -30,15 +30,14 @@
 
 ## 新电脑继续开发
 
-1. 从 Git 仓库取得交接提交。若该提交仅在旧机本地，先携带 Git bundle；它与个人备份分别传输。
+1. 从公开 Git 仓库取得最新代码。离线开发时可另用 Git bundle。
    ```bash
-   git clone /path/to/job-search-development.bundle job-search-skill
+   git clone https://github.com/queekye/job-search-skill.git
    cd job-search-skill
-   git remote set-url origin https://github.com/queekye/job-search-skill.git
    git log -1 --oneline
    ```
 2. Python 3.11+，优先 Codex 自带 Python；Git Bash。可设置 `JOB_SEARCH_PYTHON`。独立填表需要 Node 22+（或 `JOB_SEARCH_NODE`）与本机 Edge/Chrome；运行 `SetupBrowser.cmd` 安装固定 Playwright 1.62.1 到本机缓存。
-3. 先恢复个人备份或从兼容 WebDAV 接入空目录，再启动 `Start.cmd`。需要 Codex 原生工具时运行 `Install.cmd` 并新建 Codex 任务。不要搬运旧机插件缓存、全局配置或绑定旧路径的自动化。
+3. 新电脑运行 `Start.cmd`，在空个人数据目录配置相同 WebDAV 地址、用户名、应用密码及工作区，拉取资料后接管。旧电脑先同步并交接。需要 Codex 原生工具时运行 `Install.cmd` 并新建 Codex 任务。离线恢复须先恢复再启动服务；不要搬运旧机插件缓存、全局配置或绑定旧路径的自动化。
 4. 阅读 `AGENTS.md` 和开发契约，核对分支与工作区。测试使用合成数据、仓库外临时目录；不要对真实档案运行测试或批量重置。
 
 ## 检查与构建
@@ -66,6 +65,6 @@ git -c core.whitespace=cr-at-eol diff --check
 - 共建表单：`https://github.com/queekye/job-search-skill/issues/new?template=company-resource.yml`
 - 源码：`https://github.com/queekye/job-search-skill`
 
-网页入口默认留空，用户保存后才按需刷新。公司包可离线导入；完整私有备份也保留本机已接受版本。Cloudflare 原生连接 GitHub `main`，执行 `python scripts/check_source.py && python scripts/build_catalog.py --output dist/catalog`，只部署 `dist/catalog`。推送 `main` 会触发部署，须把它与本地 commit 分别处理。
+网页默认显示这两个公共入口，旧账号的空值也回退默认，自定义地址保留；用户点击刷新才访问远端。公司包从公共目录重新下载审阅，也可离线导入；个人同步不转移社区代码的接受权限。旧填表任务固定的包版本发生变化时重新准备，个人答案保留。Cloudflare 原生连接 GitHub `main`，执行 `python scripts/check_source.py && python scripts/build_catalog.py --output dist/catalog`，只部署 `dist/catalog`。
 
-后续优先逐家公司补充真实页面观察、适配器与合成回归，记录明确支持/不支持的字段，再做本人授权的现场填写及读回。保持独立 runner、网页和 MCP 共用一套契约，不再各自实现一份公司逻辑。WebDAV 不支持强 ETag / 条件更新时使用离线备份或更换服务，不删掉防止覆盖的校验来使界面显示成功。
+后续优先逐家公司补充真实页面观察、适配器与合成回归，记录明确支持/不支持的字段，再做本人授权的现场填写及读回。保持独立 runner、网页和 MCP 共用一套契约。WebDAV 实际探测文件版本条件更新和安全首次创建；标准服务用条件创建，坚果云式服务用 `MOVE/Overwrite:F`。不支持两种能力的服务仍拒绝覆盖，不能用无条件写入替代。

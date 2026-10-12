@@ -391,12 +391,13 @@ def _fetch_public(url, maximum):
             named_host = False
         except ValueError:
             named_host = True
-        # TUN proxies map public names to this benchmark range. TLS still
+        # TUN proxies map public names to these benchmark ranges. TLS still
         # authenticates the original domain; numeric and other private hosts fail.
-        fake_range = ipaddress.ip_network("198.18.0.0/15")
+        fake_ranges = (ipaddress.ip_network("198.18.0.0/15"), ipaddress.ip_network("2001:2::/48"))
         resolved = [ipaddress.ip_address(item[4][0]) for item in addresses]
         if not resolved or any(not (address.is_global or local and str(address) == "127.0.0.1" or
-                                  not local and named_host and address in fake_range) for address in resolved):
+                                  not local and named_host and any(address in network for network in fake_ranges))
+                               for address in resolved):
             fail("invalid_registry_url", "Public resource hosts cannot resolve to private or local addresses.")
         connection = (http.client.HTTPConnection if local else http.client.HTTPSConnection)(parsed.hostname, port, timeout=10)
         # Pin the checked address while retaining the original TLS hostname.

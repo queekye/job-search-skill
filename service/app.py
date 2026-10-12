@@ -19,7 +19,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 from .locking import gate, locked
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 MAX_DOCUMENT_BYTES = 15 * 1024 * 1024
 MAX_TEXT = 1024 * 1024
 FIELDS = {
@@ -45,7 +45,8 @@ DEFAULT_SETTINGS = {
     "schedule": {"time": "10:00", "timezone": "Asia/Shanghai", "enabled": False, "allow_relogin": False, "host_task_id": None},
     "preferences": {"cities": [], "roles": [], "industries": [], "excluded_companies": [],
                     "recruitment_types": ["campus"], "notes": ""},
-    "registry_url": "", "contribution_url": "",
+    "registry_url": "https://job-search-company-resources.pages.dev/index.json",
+    "contribution_url": "https://github.com/queekye/job-search-skill/issues/new?template=company-resource.yml",
 }
 
 
@@ -304,6 +305,8 @@ class App:
             saved = json.loads(row["data"])
             for key, value in saved.items():
                 settings[key] = dict(settings[key], **value) if key in {"schedule", "preferences"} else value
+        for key in ("registry_url", "contribution_url"):
+            settings[key] = settings[key] or DEFAULT_SETTINGS[key]
         settings["_revision"] = row["revision"] if row else 0
         return settings
 
@@ -526,7 +529,7 @@ class App:
                 elif key == "preferences":
                     settings[key] = self._validate_preferences(value, settings[key])
                 else:
-                    settings[key] = _url(value, "Resource URL")
+                    settings[key] = _url(value, "Resource URL") or DEFAULT_SETTINGS[key]
             db.execute("INSERT INTO settings(user_id,data,revision) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET data=excluded.data,revision=excluded.revision", (self.user_id, _json(settings), revision + 1))
             settings["_revision"] = revision + 1
             return settings

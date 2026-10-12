@@ -107,11 +107,24 @@ const apiError = (code, message = code) => ({failure: {code, message}});
 const localSync = () => ({configured:false,config:{url:'',username:'',workspace:'career',automatic:false,password_set:false},device_id:'synthetic-device-a',mode:'local',dirty:false,last_synced_at:null,last_error:null,remote_owner:null});
 const writerSync = () => ({...localSync(),configured:true,config:{url:'https://storage.example.test/dav/',username:'synthetic-user',workspace:'career',automatic:true,password_set:true},mode:'writer',last_synced_at:'2026-10-10T01:00:00Z',remote_owner:'synthetic-device-a'});
 const publicPack = () => ({id:'synthetic-company',name:'合成公司',version:'1.2.3',description:'合成公开方法',origin:'https://company.example.test',capabilities:{applications:{status:'documentation',detail:'合成指引'}},verification:{live_reverified:false},download:{path:'packages/synthetic-company-1.2.3.zip',sha256:'a'.repeat(64),bytes:1024}});
+const publicDefaults = {registry_url:'https://job-search-company-resources.pages.dev/index.json',contribution_url:'https://github.com/queekye/job-search-skill/issues/new?template=company-resource.yml'};
+
+test('public resource defaults appear in settings without reading the remote directory',async()=>{
+ const ui=await app({withAccounts:true});await ui.render('settings');
+ const form=ui.el('registry-form');
+ assert.equal(form.querySelector('[name=registry_url]').value,publicDefaults.registry_url);
+ assert.equal(form.querySelector('[name=contribution_url]').value,publicDefaults.contribution_url);
+ assert.equal(ui.calls.some(c=>c.operation==='resource.refresh'),false);
+ await ui.render('resources');
+ assert.match(ui.el('content').innerHTML,/https:\/\/github\.com\/queekye\/job-search-skill\/issues\/new\?template=company-resource\.yml/);
+ assert.equal(ui.el('registry-refresh').disabled,false);
+ assert.equal(ui.calls.some(c=>c.operation==='resource.refresh'),false);
+});
 
 test('public resources never fetch automatically and remain available through offline import',async()=>{
  const ui=await app({withAccounts:true});await ui.render('resources');
- assert.equal(ui.el('registry-refresh').disabled,true);assert.equal(ui.calls.length,0);
- assert.match(ui.el('content').innerHTML,/离线导入 ZIP/);
+ assert.equal(ui.el('registry-refresh').disabled,false);assert.equal(ui.calls.length,0);
+ assert.equal(ui.el('package-file').attributes.accept,'.zip');assert.notEqual(ui.el('import-package'),null);
  ui.stored.settings.registry_url='https://static.example.test/index.json';await ui.evaluate('load()');
  assert.equal(ui.el('registry-refresh').disabled,false);assert.equal(ui.calls.some(c=>c.operation==='resource.refresh'),false);
 });
@@ -306,7 +319,7 @@ async function app({withAccounts=false}={}) {
     + '<dialog id="task-editor"><h2 id="task-editor-title"></h2><form id="task-form"><div id="task-editor-fields"></div><button type="submit"></button></form></dialog>'
     + (withAccounts?'<select id="account-select"></select><button id="account-new"></button><dialog id="account-editor"><form id="account-form"><input name="name"><button type="submit"></button></form></dialog>':'');
   const calls = [], syncCalls = [], timers = [], clipboard = [];
-  const stored = {records: {}, documents: [], settings: {_revision: 4, schedule: {
+  const stored = {records: {}, documents: [], settings: {...publicDefaults, _revision: 4, schedule: {
     time: '10:00', timezone: 'Asia/Shanghai', allow_relogin: false, enabled: false, host_task_id: null,
   }}};
   const accountItems=[{id:'synthetic-user-a',name:'合成账号甲',created_at:'2026-10-09T01:00:00Z'},{id:'synthetic-user-b',name:'合成账号乙',created_at:'2026-10-09T02:00:00Z'}];

@@ -11,7 +11,7 @@ import unittest
 from unittest.mock import patch
 import zipfile
 
-from service.app import App, AppError
+from service.app import App, AppError, DEFAULT_SETTINGS
 from service.http import LocalServer
 
 
@@ -266,6 +266,30 @@ class ServiceTests(unittest.TestCase):
         settings = self.app.execute("settings.save", {"revision": 1, "settings": {"registry_url": "https://example.com/index.json"}})
         self.assertEqual("09:30", settings["schedule"]["time"])
         self.assert_error("invalid_settings", "settings.save", {"revision": 2, "settings": {"token": "private"}})
+
+    def test_public_resource_defaults_preserve_existing_accounts_and_custom_urls(self):
+        defaults = {key: DEFAULT_SETTINGS[key] for key in ("registry_url", "contribution_url")}
+        settings = self.app.execute("state")["settings"]
+        self.assertEqual(defaults, {key: settings[key] for key in defaults})
+        self.assertEqual(0, settings["_revision"])
+        with self.app._connect() as db:
+            db.execute("INSERT INTO settings(user_id,data,revision) VALUES(?,?,?)",
+                       (self.app.user_id, json.dumps({"registry_url": "", "contribution_url": ""}), 7))
+        self.assertEqual(defaults, {key: self.app.execute("state")["settings"][key] for key in defaults})
+        with self.app._connect() as db:
+            row = db.execute("SELECT data,revision FROM settings WHERE user_id=?", (self.app.user_id,)).fetchone()
+        self.assertEqual(7, row["revision"])
+        self.assertEqual({"registry_url": "", "contribution_url": ""}, json.loads(row["data"]))
+        custom = {"registry_url": "https://resources.example.test/index.json",
+                  "contribution_url": "https://example.test/contribute"}
+        saved = self.app.execute("settings.save", {"revision": 7, "settings": custom})
+        self.assertEqual(custom, {key: saved[key] for key in defaults})
+        self.assertEqual(custom, {key: self.app.execute("state")["settings"][key] for key in defaults})
+        reset = self.app.execute("settings.save", {"revision": 8,
+            "settings": {"registry_url": "", "contribution_url": ""}})
+        self.assertEqual(defaults, {key: reset[key] for key in defaults})
+        other = self.app.for_user(self.app.execute("account.create", {"name": "Synthetic New Account"})["id"])
+        self.assertEqual(defaults, {key: other.execute("state")["settings"][key] for key in defaults})
 
     def test_portable_import_idempotent_and_protects_user_edits(self):
         profile = {"schema_version": 1, "records": [{"id": "legacy:basic", "kind": "basic", "data": {"name": "导入名", "phone": None}, "source": "approved_document", "status": "confirmed"}], "vault": {"password": "synthetic-MUST_NOT_PERSIST"}}

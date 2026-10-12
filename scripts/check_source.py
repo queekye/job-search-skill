@@ -12,7 +12,7 @@ from scripts.check_release import check_release
 SOURCE_FILES = {
     '.gitignore', '.gitattributes', 'AGENTS.md', 'CONTRIBUTING.md', 'Check.cmd',
     '.github/workflows/check.yml', '.github/ISSUE_TEMPLATE/company-resource.yml',
-    'references/development-contract.md', 'references/resource-index.md', 'references/validation.md',
+    'references/development-contract.md', 'references/development-handoff.md', 'references/resource-index.md', 'references/validation.md',
     'scripts/build_release.py', 'scripts/build_catalog.py', 'scripts/check_release.py',
     'scripts/check_source.py', 'scripts/check_node.py', 'scripts/validate_site_extension.py',
 }

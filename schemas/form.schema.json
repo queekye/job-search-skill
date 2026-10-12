@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Public company form contract v1",
+  "description": "Data declaration and adapter entry point. No populated applicant inputs belong in this public document.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "title", "origin", "routes", "adapter", "input_schema", "sections", "scope"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"},
+    "title": {"type": "string", "minLength": 1, "maxLength": 100},
+    "origin": {"type": "string", "format": "uri", "description": "Canonical HTTPS origin matching manifest.origin."},
+    "routes": {"type": "array", "minItems": 1, "maxItems": 20, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 300, "description": "Exact path or path prefix ending in /*; adapter further checks tenant and fragment."}},
+    "adapter": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.-]{0,80}\\.mjs$"},
+    "input_schema": {"$ref": "#/$defs/input"},
+    "sections": {"type": "array", "minItems": 1, "maxItems": 30, "items": {
+      "type": "object", "additionalProperties": false, "required": ["id", "label", "fields"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"},
+        "label": {"type": "string", "minLength": 1, "maxLength": 100},
+        "fields": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string"}}
+      }
+    }},
+    "scope": {"type": "object", "additionalProperties": false, "required": ["supported", "unsupported", "save"], "properties": {
+      "supported": {"$ref": "#/$defs/scope"}, "unsupported": {"$ref": "#/$defs/scope"}, "save": {"type": "boolean"}
+    }}
+  },
+  "$defs": {
+    "scope": {"type": "array", "maxItems": 100, "items": {"type": "string", "minLength": 1, "maxLength": 500}},
+    "input": {
+      "type": "object", "additionalProperties": false, "required": ["type"],
+      "description": "Bounded JSON Schema subset. Root must be object, each object sets additionalProperties:false, array maxItems is required. Maximum depth 8 and 300 schema nodes.",
+      "properties": {
+        "type": {"oneOf": [{"enum": ["object", "array", "string", "boolean", "integer", "number", "null"]}, {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true, "contains": {"const": "null"}, "items": {"enum": ["object", "array", "string", "boolean", "integer", "number", "null"]}}]},
+        "title": {"type": "string", "minLength": 1, "maxLength": 2000},
+        "description": {"type": "string", "minLength": 1, "maxLength": 2000},
+        "properties": {"type": "object", "maxProperties": 100, "propertyNames": {"pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"}, "additionalProperties": {"$ref": "#/$defs/input"}},
+        "required": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "additionalProperties": {"const": false},
+        "items": {"$ref": "#/$defs/input"},
+        "enum": {"type": "array", "minItems": 1, "maxItems": 100, "items": {"type": ["string", "boolean", "integer", "number", "null"]}},
+        "minItems": {"type": "integer", "minimum": 0, "maximum": 100},
+        "maxItems": {"type": "integer", "minimum": 0, "maximum": 100},
+        "minLength": {"type": "integer", "minimum": 0, "maximum": 16000},
+        "maxLength": {"type": "integer", "minimum": 0, "maximum": 16000},
+        "minimum": {"type": "number"},
+        "maximum": {"type": "number"},
+        "pattern": {"type": "string", "minLength": 1, "maxLength": 200, "description": "Short regex without groups, alternatives, lookarounds or backreferences."},
+        "format": {"enum": ["date", "date-month", "document-id"], "description": "Nonempty document-id inputs automatically require target-company sharing consent."},
+        "x-source": {"type": "string", "minLength": 1, "maxLength": 100, "description": "Scalar basic.phone; selected collection education, family or experience:project; child fields such as school or start_date are relative to the selected record. Omit for a company-specific answer."},
+        "x-sensitive": {"type": "boolean", "description": "Value requires target-company consent before execution."}
+      }
+    }
+  }
+}

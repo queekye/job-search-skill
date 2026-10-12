@@ -12,6 +12,8 @@
 
 目录地址未配置或用户没有点击刷新时，不自动访问远端。目录连接失败不影响内置资源、已接受资源或离线导入。网页与本地服务仍在本机运行；公共站点只负责下载公司方法。
 
+“共建入口”填写 `https://github.com/queekye/job-search-skill/issues/new?template=company-resource.yml`，打开仓库的公司资源建议表单。以上两个地址是本项目当前固定入口，网页默认留空，由本人保存；它们属于账号设置。提交共建内容时只提供公开公司方法和合成用例，不附个人简历、申请记录、凭据或私有备份。
+
 ## GitHub 版本与 Cloudflare 自动部署
 
 在 GitHub 管理公开公司包的 `manifest.json`、方法和脚本；内容修改时增加包版本，通过 Git 提交和标签保留历史。Cloudflare Pages 选择原生 Git 集成并连接该仓库，开启生产分支自动部署。推送更新后由 Pages 构建并发布静态目录；其他分支可生成预览部署。[Cloudflare Git 集成](https://developers.cloudflare.com/pages/configuration/git-integration/)

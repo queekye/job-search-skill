@@ -2,6 +2,8 @@
 
 官方校园招聘入口：https://campus.jd.com/home 。集团招聘入口 https://zhaopin.jd.com/home 与校园简历属于不同站点，资料不视为自动同步。
 
+`form.json` 与 `form.mjs` 提供独立执行器和 Agent 共用的基本信息入口，覆盖姓名、手机、邮箱、证件、性别及明确选择“其他”的招聘信息来源。`mobile` 从标准本地字段 `basic.phone` 取得；联系方式与证件按本目标公司敏感授权执行。此入口不包含教育、项目、上传、解析、保存或投递，`scope.unsupported` 明确保留这些缺口。缺少可填写值返回 `no_fillable_values`；`verify` 只证明当前页面，不证明保存后的持久化。
+
 `profilePlan` 配合核心 `fillResumeOnce` 填写已观察姓名、联系方式、证件文本和性别。联系方式及证件须有本网站单独授权；保护性隐藏值需要本人核对。来源只接受明确提供的已观察选项“其他”，不推断或改写真实来源。
 
 `resumeUploadPlan` 配合 `uploadResumeOnce`。上传须有 `prepareProfile:true` 和 `shareResumeWith[origin]:true`，`parse:true` 另需 `replaceProfile:true`。附件显示只证明上传，不证明解析字段正确。`readResumeUploadStatus` 只读，`confirmResumeUploadOnce` 恢复待确认弹窗，不重复上传。

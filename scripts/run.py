@@ -17,6 +17,17 @@ def main():
     elif command == 'package':
         from scripts.build_release import main as package
         package(sys.argv[2:])
+    elif command == 'setup-browser':
+        from service.browser_setup import setup
+        import json
+        try:
+            print(json.dumps(setup(), ensure_ascii=False))
+        except (OSError, ValueError):
+            raise SystemExit('Browser setup failed. Check network access and the local cache, then retry.')
+    elif command == 'resources':
+        import runpy
+        sys.argv = [str(ROOT / 'scripts' / 'company-resource.py'), *sys.argv[2:]]
+        runpy.run_path(sys.argv[0], run_name='__main__')
     elif command in {'backup', 'restore'}:
         from service.backup import main as transfer
         raise SystemExit(transfer([command, *sys.argv[2:]]))
@@ -26,7 +37,7 @@ def main():
         result = unittest.TextTestRunner(verbosity=2).run(suite)
         raise SystemExit(0 if result.wasSuccessful() else 1)
     else:
-        raise SystemExit('Usage: run.py serve | mcp | backup | restore | check | package (use --help for command options)')
+        raise SystemExit('Usage: run.py serve | mcp | setup-browser | resources | backup | restore | check | package (use --help for command options)')
 
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-param([ValidateSet('serve','mcp','backup','restore','check','package','verify')][string]$Mode = 'serve', [Parameter(ValueFromRemainingArguments=$true)][string[]]$ForwardArgs)
+param([ValidateSet('serve','mcp','backup','restore','check','package','verify','setup-browser','resources')][string]$Mode = 'serve', [Parameter(ValueFromRemainingArguments=$true)][string[]]$ForwardArgs)
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $candidates = @(

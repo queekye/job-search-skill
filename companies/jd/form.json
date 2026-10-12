@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "id": "resume",
+  "title": "京东校招基本信息",
+  "origin": "https://campus.jd.com",
+  "routes": ["/home"],
+  "adapter": "form.mjs",
+  "input_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "name": {"type": "string", "title": "姓名", "minLength": 1, "maxLength": 100, "x-source": "basic.name"},
+      "mobile": {"type": "string", "title": "手机号码", "minLength": 1, "maxLength": 100, "x-source": "basic.phone", "x-sensitive": true},
+      "email": {"type": "string", "title": "电子邮箱", "minLength": 1, "maxLength": 200, "x-source": "basic.email", "x-sensitive": true},
+      "idNumber": {"type": "string", "title": "证件号码", "minLength": 1, "maxLength": 100, "x-source": "basic.id_number", "x-sensitive": true},
+      "gender": {"type": "string", "title": "性别", "enum": ["男", "女"], "x-source": "basic.gender"},
+      "source": {"type": "string", "title": "招聘信息来源", "enum": ["其他"], "description": "Only this observed option is implemented. Supply it explicitly when it is the truthful answer."}
+    },
+    "required": ["name"]
+  },
+  "sections": [{"id": "basic", "label": "基本信息", "fields": ["name", "mobile", "email", "idNumber", "gender", "source"]}],
+  "scope": {
+    "supported": ["姓名、手机号码、电子邮箱、证件号码", "已观察的性别单选", "本人明确提供的招聘信息来源：其他", "逐项冲突检查及页面读回"],
+    "unsupported": ["完整简历", "统一入口中的教育与项目经历", "新增或删除条目", "统一入口中的简历上传与解析", "保存及刷新后的持久化核验", "最终投递"],
+    "save": false
+  }
+}

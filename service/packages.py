@@ -180,11 +180,16 @@ def validate_files(files):
     fields = _decode_json(files["fields.json"])
     if not isinstance(fields, dict) or fields.get("schema_version") != 1 or not isinstance(fields.get("fields"), list):
         fail("invalid_package", "Unsupported field mapping schema.")
+    if "form.json" in files:
+        from service.form_contract import validate_form
+        form = validate_form(_decode_json(files["form.json"]), manifest)
+        if form["adapter"] not in files:
+            fail("invalid_form", "The declared form adapter is missing from this package.")
     digest = hashlib.sha256(_json(manifest)).hexdigest()
     return manifest, digest
 
 
-def _directory_files(directory):
+def _directory_files(directory, *, validate=True):
     directory = _no_links(directory)
     files = {}
     if not directory.is_dir():
@@ -205,7 +210,8 @@ def _directory_files(directory):
                     fail("invalid_package", "Package exceeds resource limits.")
             else:
                 fail("unsafe_package", "Non-regular resource is not supported.")
-    validate_files(files)
+    if validate:
+        validate_files(files)
     return files
 
 
@@ -478,6 +484,9 @@ def execute(app, operation, args, actor):
 
 
 def _execute(app, operation, args, actor):
+    if operation in {"resource.template", "resource.validate"}:
+        from service.form_contract import template, validate_authoring
+        return template(args) if operation == "resource.template" else validate_authoring(args)
     if operation == "resource.list":
         directory = _safe_path(app.root_dir, "companies")
         ids = set(_lock(app)["packages"])

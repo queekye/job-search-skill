@@ -1,6 +1,6 @@
 # Job Search Skill
 
-面向 **Windows + Codex Desktop** 的本地求职协作插件，当前 **0.1.5 开发预览版**。网页与 Codex 共用 SQLite 档案，用户选择岗位、审阅资料并最终投递。默认优先正式校招，也可按明确范围处理社招；实习须用户明确要求。每人独立本地使用，账号是同一可信 Windows 用户下的档案分区。
+面向 **Windows** 的本地求职协作工具和 Codex 插件，当前 **0.2.0 开发预览版**。网页与 Agent 共用 SQLite 档案，自动填表可独立于 Codex 运行。用户选择岗位、审阅资料并最终投递。默认优先正式校招，也可按明确范围处理社招；实习须用户明确要求。每人独立本地使用，账号是同一可信 Windows 用户下的档案分区。
 
 ## 开始使用
 
@@ -8,7 +8,9 @@
 2. 选择或新建账号，填写资料或导入简历材料，保存招聘类型、城市和方向等偏好，建立 Agent 任务。
 3. 需要原生工具时运行 `Install.cmd`，在新 Codex 任务中使用 `$career`。运行包自带本地市场与文件清单，安装核验后直接使用；源码仓库首次安装会先构建运行快照。
 
-启动器优先使用 Codex 自带 Python，也可通过 `JOB_SEARCH_PYTHON` 指定 Python 3.11+。核心服务只用标准库；文本型 PDF 需要可选 `pypdf`，DOCX、Markdown、文本和 JSON 无需额外依赖。公司脚本需要 Node.js，实际网页操作使用宿主提供的浏览器能力。安装需要 PATH 中支持 `plugin marketplace add` 与 `plugin add` 的 Codex CLI，缺失能力会明确报错。
+启动器优先使用 Codex 自带 Python，也可通过 `JOB_SEARCH_PYTHON` 指定 Python 3.11+。核心服务只用标准库；文本型 PDF 需要可选 `pypdf`，DOCX、Markdown、文本和 JSON 无需额外依赖。自动填表使用 Node.js 与 Playwright；旧公司 helper 也可通过宿主浏览器调用。可选的 Codex 插件安装需要 PATH 中支持 `plugin marketplace add` 与 `plugin add` 的 Codex CLI，缺失能力会明确报错。
+
+**独立自动填表**：打开“自动填表”，选择支持统一入口的公司，准备并审阅填写内容，然后点击“一键填写”。首次需要安装 Node.js，并通过网页“安装浏览器依赖”或 `SetupBrowser.cmd` 安装固定版本 Playwright；使用本机 Edge/Chrome 的专用配置目录，由本人登录。无需 Codex、模型或 npm 参与填写。当前统一入口覆盖京东六项已观察的基本信息；其余资源仍保留各自已有 helper 与范围。用 [自动填表说明](references/automation.md) 查看接口及边界。
 
 更新时解压新版本，运行新目录的 `Install.cmd`，再开启新的 Codex 任务。安装器核对本项目旧入口后切换，失败时恢复旧入口；成功前保留旧解压目录，其他市场不受影响。个人数据继续使用原来的私有目录。
 
@@ -31,7 +33,9 @@
 - **个人跨电脑同步**：网页配置 WebDAV，轮流换机时同步并交接写入权；约每 30 秒同步全部账号的业务数据和原始附件，公司资源不参与个人同步。
 - **可选取码与跟进**：用户配置自己的 Gotify，Token 由 Windows DPAPI 保护；取码窗口单次消费。每日设置生成绑定账号的宿主任务说明，保存时间不等于自动化已建立。
 
-原生工具为 `career_get`、`career_save`、`career_import`、`career_resources`、`career_otp`、`career_tasks`、`career_schedule`。执行任务先用 `career_tasks(operation="task.context",user_id="账号",args={"id":"任务编号"})`；无指定任务可省略 `id`。按 `total/next_offset` 继续分页，更新携带最新 `revision`。临时接口也可用 `scripts/run.py mcp --data-dir ... --user-id ...` 绑定同一档案。偏好、账号创建与凭据配置由用户网页完成。
+原生工具为 `career_get`、`career_save`、`career_import`、`career_resources`、`career_forms`、`career_otp`、`career_tasks`、`career_schedule`。执行任务先用 `career_tasks(operation="task.context",user_id="账号",args={"id":"任务编号"})`；无指定任务可省略 `id`。按 `total/next_offset` 继续分页，更新携带最新 `revision`。临时接口也可用 `scripts/run.py mcp --data-dir ... --user-id ...` 绑定同一档案。偏好、账号创建与凭据配置由用户网页完成。
+
+Agent 制作新的公司适配器时使用 `$company-resource`，通过 `career_resources` 的 `resource.template` 生成公共模板、`resource.validate` 校验声明和成员哈希。也可独立运行 `python scripts/run.py resources template|validate|export`；不读取个人数据库。规范、执行接口、合成用例与导出流程见 [公司资源制作](references/company-resource.md)。
 
 岗位发现规则见 [推荐 Skill](skills/job-recommendation/SKILL.md)：从本人事实构建词族，阅读完整 JD，按资格与职责依据分区、分 A/B/C 梯队，同档并列。用户新增范围、要求刷新，或当前范围内某公司已记录流程明确结束后可继续发现其他岗位；活跃、暂停决定及当期额度仍需核对，该触发不修改已有自动化。
 
@@ -60,6 +64,8 @@ portable v1 JSON 用于当前账号结构化记录互换，不含附件原件、
 首版不支持 OCR、远程多人服务、多人同时或离线合并写入、公司资源自动启用或自动最终投递。源码测试、本地网页、真实 WebDAV、真实招聘网站和安装后调用分别验收；跨公司完整填表仍需逐家验证。
 
 ## 开发与发行
+
+换电脑继续开发请先阅读 [0.2.0 开发交接](references/development-handoff.md)，按交接提交或 Git bundle 恢复源码；个人档案通过独立私有备份迁移。
 
 源码仓库保留 `Check.cmd`、`tests/` 和开发脚本。使用 `Check.cmd`、`python scripts/check_node.py` 运行合成回归，`python scripts/check_source.py` 扫描全部允许的公开源码，`python scripts/build_release.py` 生成 `dist/` 内的运行 ZIP、公司 ZIP、静态目录、SHA-256 清单和本地市场。源码与运行快照分别扫描；运行 ZIP 不携带开发测试、CI、构建器或开发约定。贡献与维护在源码仓库进行。
 

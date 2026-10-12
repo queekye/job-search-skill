@@ -10,6 +10,8 @@ The manifest's `origin` is the company's HTTPS origin, not an authority to conta
 
 `fields.json` has `{schema_version:1,fields:[...]}`. Each entry maps a local record field to a site label, method and supported scope. It is a mapping for the operator; it is not a general form language and does not execute selectors. The adapter owns the actual checked control logic. List unused mappings as unsupported instead of guessing code. Unknown user facts remain unknown.
 
+Optional `form.json` declares typed inputs and a unified `inspect/fill/verify` module. It is validated against [the form contract](company-resource.md); the declared module must be present and indexed by the manifest. Older packages continue to use their existing bounded helpers. `resource.template` creates an unimplemented public starter in memory; `resource.validate` checks public caller-supplied files, optionally returning new hashes. Neither operation reads applicant records or executes scripts.
+
 ## Local operations
 
 - `resource.list` lists bundled and selected installed versions offline.

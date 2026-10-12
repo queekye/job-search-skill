@@ -1,10 +1,10 @@
 {
   "id": "jd",
   "name": "京东",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "contract_version": 1,
   "origin": "https://campus.jd.com",
-  "description": "京东校招个人字段、解析授权及现存可变数量教育和项目补填；不保存或投递。",
+  "description": "京东校招统一基本信息填表入口及独立旧模块；不保存或投递。",
   "capabilities": {
     "onboarding": {
       "status": "documentation",
@@ -17,34 +17,50 @@
     "applications": {
       "status": "unavailable",
       "detail": "No application reader."
+    },
+    "form_fill": {
+      "status": "executable",
+      "detail": "Unified inspect/fill/verify for six observed basic fields only. Runtime-provided authorization, readback and conflicts; no education, projects, attachments, save or submit in this entry."
     }
   },
   "verification": {
     "historical_source_version": "0.3.1",
     "source_observed_on": "2026-10-09",
     "historical_control_evidence": "Historical bounded campus profile/upload, education and project-control observations from the prior source package; prior installed category limitations do not establish acceptance of this version.",
-    "local_checks": "157 related synthetic Node tests passed on 2026-10-09; package integrity/release verification is reported separately.",
+    "local_checks": "Unified basic-field synthetic fixtures; current live-site and installed-package acceptance remain separate.",
     "live_reverified": false,
     "installed_verification": "not_run",
-    "scope": "Current source supports the bounded preparation detail above. Historical observations are reference evidence only; no new real-site save, completeness or submission acceptance.",
+    "scope": "Current unified entry covers declared basic fields only; old bounded education/project/upload helpers are unchanged. No current live-site save or completeness acceptance.",
     "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
   },
   "files": [
-    {
-      "path": "LICENSE.txt",
-      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
-    },
     {
       "path": "adapter.mjs",
       "sha256": "b948223b5189a308483ffbdd4d8834c494754c973fa31edc3f8d39c13db5ff24"
     },
     {
       "path": "fields.json",
-      "sha256": "a0fec5d186447150166e80c58372cf541df6027dec39ed81718ff3496666d508"
+      "sha256": "13673d929e3f8e69ea16e80e15f7ab0e4a1b173050ff04c74c48275693cd894c"
+    },
+    {
+      "path": "fixtures/form.test.mjs",
+      "sha256": "8b04419a8c5172e733ea3d4a924e328e6c8b02a4e907d09644c2e552b8f86046"
+    },
+    {
+      "path": "form.json",
+      "sha256": "9770fea3f5e8332552204a4704e3350854d2e78fdab82fe84d467cb605c18f46"
+    },
+    {
+      "path": "form.mjs",
+      "sha256": "1828c99d1392b1537944bfbd7180a74e0fdf1f0e028f788f50bf98e493ee24a0"
     },
     {
       "path": "guide.md",
-      "sha256": "29a3d2d04f69f3bdd0362101aa22c240894b21ee566efeee2fcde08963a99d51"
+      "sha256": "ac645e594b03ea6ea757ffeb39854d8368962b96f4cfddc0a4d7b7567b13ed53"
+    },
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
     },
     {
       "path": "profile-projects.mjs",

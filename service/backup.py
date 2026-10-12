@@ -21,6 +21,7 @@ import zlib
 
 from . import otp, packages, storage
 from .app import AppError, DEFAULT_SETTINGS
+from .locking import gate
 
 MAX_TOTAL = 512 * 1024 * 1024
 MAX_MANIFEST = 4 * 1024 * 1024
@@ -327,10 +328,16 @@ def _reset_running_tasks(db):
         before["data"] = json.loads(before["data"])
         if type(before["revision"]) is not int or before["revision"] < 1:
             _fail("Backup task revision is invalid.")
-        after = dict(before, status="pending", revision=before["revision"] + 1,
+        data = dict(before["data"])
+        autofill = data.get("autofill")
+        if isinstance(autofill, dict) and autofill.get("contract_version") == 1:
+            autofill = dict(autofill, phase="interrupted", result={"ok": False, "code": "runtime_interrupted"})
+            autofill.pop("run_id", None)
+            data["autofill"] = autofill
+        after = dict(before, data=data, status="pending", revision=before["revision"] + 1,
                      updated_at=timestamp, updated_by="user")
-        db.execute("UPDATE tasks SET status='pending',revision=?,updated_at=?,updated_by='user' WHERE id=?",
-                   (after["revision"], timestamp, row["id"]))
+        db.execute("UPDATE tasks SET data=?,status='pending',revision=?,updated_at=?,updated_by='user' WHERE id=?",
+                   (_json(data).decode(), after["revision"], timestamp, row["id"]))
         db.execute("INSERT INTO task_events VALUES(?,?,?,?,?,?,?)", (uuid.uuid4().hex,
                    row["user_id"], row["id"], "user", timestamp, _json(before).decode(), _json(after).decode()))
     return len(running)
@@ -338,6 +345,11 @@ def _reset_running_tasks(db):
 
 def backup(data_dir, output, root_dir, *, for_sync=False):
     base, output = _paths(data_dir, output, root_dir)
+    with gate(base):
+        return _backup(base, output, for_sync=for_sync)
+
+
+def _backup(base, output, *, for_sync):
     excluded = EXCLUDED + ["public company resources", "machine-local OTP configuration"] if for_sync else EXCLUDED
     if output.exists():
         _fail("Backup output already exists.", "backup_exists")

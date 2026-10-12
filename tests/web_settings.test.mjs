@@ -789,6 +789,9 @@ const setApplications = (ui, records) => ui.evaluate(`state.records.application=
 const optionValues = element => element.children.map(option => option.value);
 const change = (ui, id, value) => {const element=ui.el(id);element.value=value;return element.onchange({target:element});};
 const syntheticState = records => ({records:{application:structuredClone(records)}, documents:[], settings:{}, counts:{application:records.length}});
+const exclusionFixture = (id='synthetic-exclusion', data={}) => ({id,scope:'job',company:'合成公司',title:'合成岗位',job_id:'job-1',url:'https://example.test/job-1',reason:'合成删除理由',identity:'synthetic-identity',active:true,revision:2,created_at:'2026-10-10T01:00:00Z',updated_at:'2026-10-10T01:00:00Z',record_ids:['candidate'],...data});
+const exclusionPage = (items, data={}) => ({items:structuredClone(items),total:items.length,limit:50,offset:0,next_offset:null,...data});
+const submitExclusion = ui => {const form=ui.el('recommendation-exclusion-form');return form.onsubmit({target:form,preventDefault(){}});};
 const visibleRecommendationGroups = ui => ui.document.querySelectorAll('[data-recommendation-company]').map(group=>({
   group:group.dataset.recommendationCompany,
   jobs:group.querySelectorAll('[data-prepare-recommendation]').map(button=>button.dataset.prepareRecommendation),
@@ -887,21 +890,24 @@ test('recommendations have a registered navigation entry and do not trigger any 
   assert.deepEqual(ui.calls.map(call=>call.operation),['state']);
 });
 
-test('all application views, company choices and stage filters exclude candidate records', async () => {
+test('all application views, company choices and stage filters exclude every unsubmitted record', async () => {
   const ui=await app();
   setApplications(ui,[
     applicationFixture('candidate',{company:'仅候选公司',title:'候选隔离岗位',program:'校园招聘'}),
     applicationFixture('mixed',{company:'合成公司',title:'同公司候选隔离岗位'}),
     applicationFixture('preparing',{title:'实际准备岗位',stage:'preparing'}),
+    applicationFixture('profile-saved',{company:'仅候选公司',title:'仅保存简历岗位',stage:'profile_saved'}),
+    applicationFixture('unknown-stage',{company:'仅候选公司',title:'投递证据未知岗位',stage:'unknown'}),
     applicationFixture('submitted',{title:'实际投递岗位',stage:'submitted',raw_status:'筛选中'}),
     applicationFixture('closed',{title:'实际结束岗位',stage:'closed',raw_status:'已结束'})
   ]);
-  for(const [scope,shown] of [['open',2],['all',3],['closed',1],['preparing',1]]){
+  for(const [scope,shown] of [['open',1],['all',2],['closed',1]]){
     ui.evaluate(`progressFilter=${JSON.stringify(scope)};stageFilter=''`);
     await ui.render('applications');
-    assert.match(ui.el('content').innerHTML,new RegExp(`显示 ${shown} / 3 条岗位`));
-    assert.doesNotMatch(ui.el('content').innerHTML,/候选隔离岗位|仅候选公司/);
-    assert.ok(!optionValues(ui.el('app-stage')).includes('candidate'));
+    assert.match(ui.el('content').innerHTML,new RegExp(`显示 ${shown} / 2 条岗位`));
+    assert.doesNotMatch(ui.el('content').innerHTML,/候选隔离岗位|仅候选公司|实际准备岗位|仅保存简历岗位|投递证据未知岗位/);
+    for(const stage of ['candidate','preparing','profile_saved','unknown'])assert.ok(!optionValues(ui.el('app-stage')).includes(stage));
+    assert.ok(!optionValues(ui.el('app-progress')).includes('preparing'));
     assert.ok(!optionValues(ui.el('app-company')).includes('仅候选公司'));
   }
   for(const stage of ['preparing','submitted','closed','unknown','candidate']){
@@ -941,13 +947,14 @@ test('recommendations default to explicit campus jobs, preserve full escaped not
   ];
   setApplications(ui,records);await ui.render('recommendations');
   assert.equal(ui.el('recommend-type').value,'campus');
-  assert.match(ui.el('content').innerHTML,/显示 2 \/ 2 条正式校招，1 家公司。共保留 6 条候选记录/);
+  assert.match(ui.el('content').innerHTML,/显示 3 \/ 3 条正式校招，1 家公司。共保留 7 条候选记录/);
   assert.match(ui.el('content').innerHTML,/正式校招算法岗位|正式校招研究岗位/);
-  assert.doesNotMatch(ui.el('content').innerHTML,/仅实习岗位|Research Intern|博士大模型岗位|社会招聘岗位|已进入准备岗位/);
+  assert.doesNotMatch(ui.el('content').innerHTML,/仅实习岗位|Research Intern|博士大模型岗位|社会招聘岗位/);
+  assert.match(ui.el('content').innerHTML,/已进入准备岗位/);
   assert.ok(ui.el('content').innerHTML.includes(notes.replace('<script>','&lt;script&gt;').replace('</script>','&lt;/script&gt;')));
   assert.match(ui.el('content').innerHTML,/岗位信息最后核验：[\s\S]*部分页面/);
   assert.equal(ui.document.querySelectorAll('[data-recommendation-company]').length,1);
-  assert.equal(ui.document.querySelectorAll('[data-prepare-recommendation]').length,2);
+  assert.equal(ui.document.querySelectorAll('[data-prepare-recommendation]').length,3);
   change(ui,'recommend-type','internship');
   assert.match(ui.el('content').innerHTML,/仅实习岗位|Research Intern/);
   assert.doesNotMatch(ui.el('content').innerHTML,/正式校招算法岗位|博士大模型岗位/);
@@ -985,15 +992,41 @@ test('recommendation company, split multi-city and notes search filters compose 
   assert.equal(ui.el('recommend-city').value,'');
 });
 
-test('new recommendation and application editors choose candidate and preparing defaults respectively', async () => {
+test('new recommendation and actual-application editors default to candidate and user-reported without preparation stages', async () => {
   const ui=await app();
-  for(const [target,expected] of [['recommendations','candidate'],['applications','preparing']]){
+  for(const [target,expected] of [['recommendations','candidate'],['applications','user_reported']]){
     await ui.render(target);
     const button=ui.document.querySelectorAll('[data-edit]').find(item=>item.dataset.edit==='application'&&!item.dataset.id);
     button.click();
     assert.equal(ui.el('editor-fields').querySelector('[name=stage]').value,expected);
+    for(const oldStage of ['preparing','profile_saved','unknown'])assert.ok(!optionValues(ui.el('editor-fields').querySelector('[name=stage]')).includes(oldStage));
     assert.equal(ui.el('editor').open,true);
   }
+});
+
+test('legacy preparation and unknown stages stay recommended without using login, titles or check times as submission evidence',async()=>{
+ const ui=await app(),stages=['candidate','preparing','profile_saved','unknown',null,undefined],records=stages.map((stage,i)=>{
+  const record=applicationFixture(`legacy-${i}`,{title:`未投岗位 ${i}`,program:'校招',stage,raw_status:'登录成功，简历已保存',checked_at:'2026-10-12T01:00:00Z',recommendation_bucket:'recommended',fit_tier:'A'});
+  if(stage===undefined)delete record.data.stage;return record;
+ });
+ records[3].data.title='标题写着已投却没有投递证据';records[3].data.application_id='draft-form-id';
+ setApplications(ui,records);await ui.render('recommendations');assert.equal(ui.document.querySelectorAll('[data-prepare-recommendation]').length,6);
+ assert.equal(ui.document.querySelectorAll('[data-recommendation-bucket=pending]')[0].querySelectorAll('[data-prepare-recommendation]').length,3);
+ await ui.render('applications');assert.equal(ui.document.querySelectorAll('[data-edit]').filter(b=>b.dataset.id).length,0);assert.match(ui.el('content').innerHTML,/显示 0 \/ 0 条岗位/);
+ await ui.render('overview');assert.match(ui.el('content').innerHTML,/投递记录<\/div><div class="number">0<\/div>/);assert.match(ui.el('content').innerHTML,/正式校招推荐<\/div><div class="number">6<\/div>/);
+ assert.deepEqual(JSON.parse(ui.evaluate('JSON.stringify(state.records.application)')),records);assert.equal(ui.calls.length,0);
+});
+
+test('editing old preparation or saved-resume recommendations stores candidate and preserves material references and evidence',async()=>{
+ for(const stage of ['preparing','profile_saved']){
+  const ui=await app(),legacy={...applicationFixture('legacy',{stage,company:'合成公司',program:'校招',raw_status:'本人未投，门户简历已保存',checked_at:'2026-10-12T01:00:00Z',notes:'材料已整理',resume_material:{document_id:'synthetic-local-document',projects:2,papers:3},legacy_unknown:{keep:true}}),scope:'company:synthetic',source:'official_observation',status:'observed'};let server=[legacy];
+  ui.handlers.state=()=>syntheticState(server);ui.handlers['record.save']=args=>{server=[{...legacy,data:args.data,revision:4}];return server[0];};setApplications(ui,server);await ui.render('recommendations');
+  ui.evaluate("openEdit('application','legacy')");assert.equal(ui.el('editor-fields').querySelector('[name=stage]').value,'candidate');
+  ui.el('editor-fields').querySelector('[name=notes]').value='补充准备说明';await ui.evaluate('saveEdit({target:document.querySelector("#edit-form"),preventDefault(){}})');
+  const save=ui.calls.find(c=>c.operation==='record.save');assert.equal(save.args.revision,3);assert.equal(save.args.scope,legacy.scope);assert.equal(save.args.status,legacy.status);assert.equal(server[0].data.stage,'candidate');
+  for(const key of ['resume_material','legacy_unknown','raw_status','checked_at'])assert.deepEqual(server[0].data[key],legacy.data[key]);
+  assert.equal(ui.evaluate('applicationRecords().length'),0);assert.equal(ui.document.querySelectorAll('[data-prepare-recommendation]').length,1);
+ }
 });
 
 test('editing a candidate keeps omitted metadata absent and preserves existing tiers and explicit nulls', async () => {
@@ -1018,7 +1051,7 @@ test('editing a candidate keeps omitted metadata absent and preserves existing t
   assert.equal(server[0].data.recommendation_scope,null);
 });
 
-test('choosing a recommendation saves only preparing with all existing facts and optimistic revision intact', async () => {
+test('preparing recommendation materials keeps candidate, preserves facts and opens editing without implying an application', async () => {
   const ui=await app(),record=applicationFixture('select',{company:'合成选择公司',title:'合成选定岗位',program:'校园招聘',
     raw_status:'官网原文未改',checked_at:'2026-10-09T01:00:00Z',last_attempt_at:null,coverage:'partial',
     url:'https://example.test/position',job_id:'00042',application_id:null,decision:'原有本人决定',notes:'资格限制全文',
@@ -1030,15 +1063,160 @@ test('choosing a recommendation saves only preparing with all existing facts and
   assert.equal(ui.calls.length,0);
   await ui.document.querySelector('[data-prepare-recommendation]').click();
   const save=ui.calls.find(call=>call.operation==='record.save');
-  assert.deepEqual(save.args,{kind:'application',id:record.id,revision:3,data:{...record.data,stage:'preparing'},scope:'global',status:'observed',source:'user_edit'});
+  assert.deepEqual(save.args,{kind:'application',id:record.id,revision:3,data:{...record.data,stage:'candidate',decision:'原有本人决定\n已选择整理该岗位的申请资料，等待本人审阅后决定投递。'},scope:'global',status:'observed',source:'user_edit'});
   assert.deepEqual(ui.calls.map(call=>call.operation),['record.save','state']);
-  assert.equal(ui.evaluate('page'),'applications');
+  assert.equal(ui.evaluate('page'),'recommendations');
   assert.match(ui.el('content').innerHTML,/合成选定岗位/);
-  assert.equal(ui.el('app-progress').value,'preparing');
+  assert.equal(ui.el('editor').open,true);assert.equal(ui.el('editor-fields').querySelector('[name=stage]').value,'candidate');
+  assert.equal(ui.evaluate('applicationRecords().length'),0);
   await ui.render('recommendations');
-  assert.equal(ui.document.querySelectorAll('[data-prepare-recommendation]').length,0);
+  assert.equal(ui.document.querySelectorAll('[data-prepare-recommendation]').length,1);
   assert.equal(server[0].data.application_id,null);
   assert.equal(server[0].data.raw_status,record.data.raw_status);
+});
+
+test('preparation keeps same-company recommendations until actual submission clears them without manual deletion',async()=>{
+ const ui=await app(),selected=applicationFixture('selected',{company:'合成准备公司',title:'选定岗位',program:'校招'}),sibling=applicationFixture('sibling',{company:'合成准备公司',title:'同公司其他岗位',program:'校招'}),other=applicationFixture('other',{company:'合成其他公司',title:'其他公司推荐',program:'校招'}),ended=applicationFixture('ended',{company:'合成准备公司',stage:'closed',raw_status:'历史结束原文'});
+ let server=[selected,sibling,other,ended];setApplications(ui,server);await ui.render('recommendations');
+ ui.handlers['record.save']=args=>{const saved={...selected,data:args.data,revision:server[0].revision+1};server=args.data.stage==='user_reported'?[saved,other,ended]:[saved,sibling,other,ended];return saved;};
+ ui.handlers.state=()=>({...syntheticState(server),recommendation_activity:{items:server[0].data.stage==='user_reported'?[{company:'合成准备公司',company_key:'合成准备公司',record_ids:['selected'],stages:['user_reported']}]:[],total:server[0].data.stage==='user_reported'?1:0,limit:200,offset:0,next_offset:null,suppressed_candidates:0,suppressed_recommendations:0}});
+ ui.handlers['recommendation.exclusions']=()=>exclusionPage([]);
+ await ui.document.querySelector('[data-prepare-recommendation=selected]').click();
+ assert.equal(ui.evaluate('page'),'recommendations');assert.match(ui.el('content').innerHTML,/选定岗位|同公司其他岗位/);
+ assert.deepEqual(JSON.parse(ui.evaluate('JSON.stringify(state.records.application)')),server);assert.equal(server.find(r=>r.id==='ended').data.raw_status,'历史结束原文');
+ assert.equal(ui.document.querySelectorAll('[data-prepare-recommendation]').length,3);
+ ui.el('editor-fields').querySelector('[name=stage]').value='user_reported';
+ await ui.evaluate('saveEdit({target:document.querySelector("#edit-form"),preventDefault(){}})');
+ await ui.render('recommendations');assert.deepEqual(visibleRecommendationGroups(ui),[{group:'pending|合成其他公司',jobs:['other']}]);
+ assert.match(ui.el('content').innerHTML,/实际投递后，该公司未投岗位会自动移出推荐；已结束历史继续保留/);
+ await ui.el('recommendation-exclusions').click();assert.match(ui.el('detail-content').innerHTML,/暂无删除记录/);
+ assert.match(ui.el('detail-content').innerHTML,/这里只记录你手动删除的推荐/);assert.equal(ui.calls.some(c=>c.operation==='recommendation.exclude'),false);
+ await ui.render('applications');assert.match(ui.el('content').innerHTML,/选定岗位/);assert.doesNotMatch(ui.el('content').innerHTML,/同公司其他岗位|其他公司推荐/);
+});
+
+test('read-only suppressed candidate counts use visible pagination and preserve the active application table',async()=>{
+ const ui=await app(),active=applicationFixture('active',{company:'合成在投公司',stage:'submitted',application_id:'observed-application',raw_status:'官网处理中'}),first=applicationFixture('first',{company:'合成新公司',program:'校招'}),second=applicationFixture('second',{company:'合成新公司',program:'校招'}),visible=[active,first,second];
+ ui.handlers.state=()=>({...syntheticState(visible),counts:{application:6},records:{application:[active,first]},recommendation_activity:{items:[{company:'合成在投公司',company_key:'合成在投公司',record_ids:['active'],stages:['submitted']}],total:1,limit:200,offset:0,next_offset:null,suppressed_candidates:1,suppressed_recommendations:3}});
+ ui.handlers['record.list']=args=>({items:visible.slice(args.offset,args.offset+args.limit),total:visible.length});
+ await ui.evaluate('load()');assert.deepEqual(ui.calls.find(c=>c.operation==='record.list').args,{kind:'application',limit:200,offset:2});
+ assert.deepEqual(JSON.parse(ui.evaluate('JSON.stringify(state.records.application)')),visible);assert.equal(ui.evaluate('applicationLoadInfo.complete'),true);assert.equal(ui.evaluate('applicationLoadInfo.expected'),3);
+ await ui.render('recommendations');assert.equal(ui.document.querySelectorAll('[data-prepare-recommendation]').length,2);assert.doesNotMatch(ui.el('content').innerHTML,/记录未全部读取|合成在投公司/);
+ await ui.render('applications');assert.match(ui.el('content').innerHTML,/合成在投公司|官网处理中/);assert.doesNotMatch(ui.el('content').innerHTML,/记录未全部读取/);
+ assert.equal(ui.calls.some(c=>c.operation.startsWith('recommendation.')),false);
+});
+
+test('recommendation deletion includes legacy unsubmitted preparation, stays explicit and escapes the selected job',async()=>{
+ const ui=await app(),candidate=applicationFixture('candidate',{company:'<合成公司>',title:'<script>合成标题</script>',program:'校招'}),prepared=applicationFixture('prepared',{stage:'preparing',program:'校招'}),submitted=applicationFixture('submitted',{stage:'submitted',program:'校招'});
+ setApplications(ui,[candidate,prepared,submitted]);await ui.render('applications');
+ assert.equal(ui.document.querySelectorAll('[data-exclude-recommendation]').length,0);
+ await ui.render('recommendations');assert.equal(ui.document.querySelectorAll('[data-exclude-recommendation]').length,2);
+ await ui.document.querySelector('[data-exclude-recommendation=candidate]').click();
+ assert.equal(ui.el('detail').open,true);assert.equal(ui.el('recommendation-exclusion-form').querySelector('[name=scope]').value,'job');
+ assert.match(ui.el('detail-content').innerHTML,/&lt;合成公司&gt;/);assert.match(ui.el('detail-content').innerHTML,/&lt;script&gt;合成标题&lt;\/script&gt;/);
+ assert.match(ui.el('detail-content').innerHTML,/已投递记录继续保留/);assert.equal(ui.calls.length,0);
+});
+
+test('company exclusion removes all unsubmitted recommendations while preserving actual application facts',async()=>{
+ const ui=await app({withAccounts:true}),candidate=applicationFixture('candidate',{company:'合成甲',program:'校招',raw_status:'官网原文',notes:'资格全文'}),other=applicationFixture('other',{company:'合成甲',program:'校招'}),prepared=applicationFixture('prepared',{company:'合成甲',stage:'preparing'}),submitted=applicationFixture('submitted',{company:'合成甲',stage:'submitted',application_id:'verified-1'});
+ let server=[candidate,other,prepared,submitted];ui.handlers.state=()=>({...syntheticState(server),user_id:'synthetic-user-a'});
+ ui.handlers['recommendation.exclude']=args=>{server=[submitted];return {exclusion:exclusionFixture('rule',{scope:args.scope,reason:args.reason,record_ids:['candidate','other','prepared']}),removed:[{...candidate,archived:true,revision:4},{...other,archived:true,revision:4},{...prepared,archived:true,revision:4}],already_excluded:false};};
+ setApplications(ui,server);await ui.render('recommendations');await ui.document.querySelector('[data-exclude-recommendation]').click();
+ const form=ui.el('recommendation-exclusion-form');form.querySelector('[name=scope]').value='company';form.querySelector('[name=reason]').value='  以多模态为主，暂不考虑此公司  ';
+ await submitExclusion(ui);
+ const request=ui.calls.find(c=>c.operation==='recommendation.exclude');assert.deepEqual(request,{operation:'recommendation.exclude',user_id:'synthetic-user-a',args:{id:'candidate',revision:3,scope:'company',reason:'以多模态为主，暂不考虑此公司'}});
+ assert.deepEqual(JSON.parse(ui.evaluate('JSON.stringify(state.records.application)')),[submitted]);assert.equal(ui.el('detail').open,false);
+ assert.equal(ui.document.querySelectorAll('[data-exclude-recommendation]').length,0);assert.match(ui.el('toast').textContent,/公司排除规则/);
+ assert.equal(ui.calls.some(c=>c.operation==='record.archive'||c.operation==='record.save'),false);
+});
+
+test('failed or duplicate deletion preserves the candidate, selected scope and reason for correction',async()=>{
+ const ui=await app(),pending=deferred(),candidate=applicationFixture('candidate',{program:'校招'});setApplications(ui,[candidate]);await ui.render('recommendations');
+ ui.handlers['recommendation.exclude']=()=>pending.promise;await ui.document.querySelector('[data-exclude-recommendation]').click();
+ const form=ui.el('recommendation-exclusion-form'),button=form.querySelector('[type=submit]');form.querySelector('[name=scope]').value='company';form.querySelector('[name=reason]').value='保留我的原因 <限定>';
+ const first=submitExclusion(ui);await submitExclusion(ui);assert.equal(button.disabled,true);assert.equal(ui.calls.filter(c=>c.operation==='recommendation.exclude').length,1);
+ pending.resolve(apiError('revision_conflict','合成版本冲突，请刷新'));await first;
+ assert.equal(button.disabled,false);assert.equal(ui.el('detail').open,true);assert.equal(form.querySelector('[name=scope]').value,'company');assert.equal(form.querySelector('[name=reason]').value,'保留我的原因 <限定>');
+ assert.equal(ui.el('recommendation-exclusion-error').textContent,'合成版本冲突，请刷新');assert.deepEqual(JSON.parse(ui.evaluate('JSON.stringify(state.records.application)')),[candidate]);
+});
+
+test('a successful exclusion survives failed refresh without describing its persisted rule as a failed deletion',async()=>{
+ const ui=await app(),candidate=applicationFixture('candidate',{program:'校招'}),prepared=applicationFixture('prepared',{stage:'preparing'});setApplications(ui,[candidate,prepared]);await ui.render('recommendations');
+ ui.handlers['recommendation.exclude']=()=>({exclusion:exclusionFixture(),removed:[{...candidate,archived:true,revision:4}]});ui.handlers.state=()=>apiError('unavailable','合成读取失败');
+ await ui.document.querySelector('[data-exclude-recommendation]').click();await submitExclusion(ui);
+ assert.deepEqual(JSON.parse(ui.evaluate('JSON.stringify(state.records.application)')),[prepared]);assert.equal(ui.document.querySelectorAll('[data-exclude-recommendation]').length,0);
+ change(ui,'recommend-type','unknown');assert.equal(ui.document.querySelectorAll('[data-exclude-recommendation]').length,1);
+ assert.match(ui.el('notice').textContent,/推荐已删除，排除规则已保存；列表刷新失败/);assert.equal(ui.el('detail').open,false);
+});
+
+test('an invalid exclusion response never hides an actual submitted record',async()=>{
+ const ui=await app(),candidate=applicationFixture('candidate',{program:'校招'}),prepared=applicationFixture('prepared',{stage:'submitted'});setApplications(ui,[candidate,prepared]);await ui.render('recommendations');
+ ui.handlers['recommendation.exclude']=()=>({exclusion:exclusionFixture(),removed:[{...prepared,archived:true,revision:4}]});
+ await ui.document.querySelector('[data-exclude-recommendation]').click();await submitExclusion(ui);
+ assert.deepEqual(JSON.parse(ui.evaluate('JSON.stringify(state.records.application)')),[candidate,prepared]);assert.match(ui.el('recommendation-exclusion-error').textContent,/返回结果无法确认/);
+ assert.equal(ui.calls.filter(c=>c.operation==='state').length,0);
+});
+
+test('account switches discard late exclusion success and close its editing form',async()=>{
+ const ui=await app({withAccounts:true}),pending=deferred(),candidate=applicationFixture('candidate',{program:'校招'});setApplications(ui,[candidate]);await ui.render('recommendations');
+ ui.handlers['recommendation.exclude']=()=>pending.promise;await ui.document.querySelector('[data-exclude-recommendation]').click();const saving=submitExclusion(ui);await tick();
+ await ui.evaluate("switchAccount('synthetic-user-b')");pending.resolve({exclusion:exclusionFixture(),removed:[{...candidate,archived:true,revision:4}]});await saving;
+ assert.equal(ui.evaluate('state.user_id'),'synthetic-user-b');assert.equal(ui.el('detail').open,false);assert.equal(ui.el('notice').hidden,true);assert.equal(ui.el('toast').textContent,'已切换本地账号');
+ assert.equal(ui.calls.filter(c=>c.operation==='recommendation.exclude').length,1);assert.equal(ui.calls.find(c=>c.operation==='recommendation.exclude').user_id,'synthetic-user-a');
+});
+
+test('exclusion history is paged, escaped and read-only until a restore is explicitly chosen',async()=>{
+ const ui=await app({withAccounts:true}),active=exclusionFixture('active',{scope:'company',company:'<公司>',reason:'<script>合成理由</script>\n第二行'}),inactive=exclusionFixture('inactive',{active:false});await ui.render('recommendations');
+ ui.handlers['recommendation.exclusions']=args=>args.offset===0?exclusionPage([active,inactive],{total:51,next_offset:50}):exclusionPage([inactive],{total:51,offset:50});
+ await ui.el('recommendation-exclusions').click();assert.deepEqual(ui.calls[0],{operation:'recommendation.exclusions',args:{include_inactive:true,limit:50,offset:0},user_id:'synthetic-user-a'});
+ assert.match(ui.el('detail-content').innerHTML,/&lt;公司&gt; · 整家公司/);assert.match(ui.el('detail-content').innerHTML,/&lt;script&gt;合成理由&lt;\/script&gt;\n第二行/);
+ assert.equal(ui.document.querySelectorAll('[data-restore-recommendation]').length,1);assert.equal(ui.calls.some(c=>c.operation==='recommendation.restore'),false);
+ await ui.el('recommendation-exclusions-next').click();assert.equal(ui.calls.at(-1).args.offset,50);assert.equal(ui.el('recommendation-exclusions-next').disabled,true);
+ await ui.el('recommendation-exclusions-prev').click();assert.equal(ui.calls.at(-1).args.offset,0);
+});
+
+test('restoring a rule uses its optimistic revision and preserves another exclusion and selected applications',async()=>{
+ const ui=await app({withAccounts:true}),rule=exclusionFixture('rule',{record_ids:['candidate','still-excluded']}),restored=applicationFixture('candidate',{program:'校招',notes:'资格原文',raw_status:'未申请',archived:false}),prepared=applicationFixture('prepared',{stage:'preparing'});let active=true,server=[prepared];
+ setApplications(ui,server);await ui.render('recommendations');ui.handlers.state=()=>({...syntheticState(server),user_id:'synthetic-user-a'});
+ ui.handlers['recommendation.exclusions']=()=>exclusionPage([{...rule,active}]);ui.handlers['recommendation.restore']=()=>{active=false;server=[prepared,restored];return {exclusion:{...rule,active:false,revision:3},restored:[{...restored,archived:false}],remaining_exclusions:['another-rule']};};
+ await ui.el('recommendation-exclusions').click();await ui.document.querySelector('[data-restore-recommendation]').click();
+ assert.deepEqual(ui.calls.find(c=>c.operation==='recommendation.restore'),{operation:'recommendation.restore',args:{id:'rule',revision:2},user_id:'synthetic-user-a'});
+ assert.deepEqual(JSON.parse(ui.evaluate('JSON.stringify(state.records.application)')),[prepared,restored]);assert.equal(ui.document.querySelectorAll('[data-restore-recommendation]').length,0);
+ assert.equal(ui.document.querySelector('[data-prepare-recommendation]').disabled,false);assert.match(ui.el('toast').textContent,/已恢复 1 条候选。其他记录仍受排除规则、公司已有申请或后续修改影响/);
+});
+
+test('a persisted restore closes stale management controls and reports a subsequent exclusion-list refresh failure',async()=>{
+ for(const stateRefreshFails of [false,true]){
+  const ui=await app(),rule=exclusionFixture(),restored={...applicationFixture('candidate',{program:'校招',raw_status:'未申请',notes:'资格全文'}),archived:false};let listReads=0,restoredOnServer=false;
+  await ui.render('recommendations');
+  ui.handlers['recommendation.exclusions']=()=>++listReads===1?exclusionPage([rule]):apiError('unavailable','合成管理记录读取失败');
+  ui.handlers['recommendation.restore']=()=>{restoredOnServer=true;return {exclusion:{...rule,active:false,revision:3},restored:[restored],remaining_exclusions:[]};};
+  ui.handlers.state=()=>stateRefreshFails?apiError('unavailable','合成推荐列表读取失败'):syntheticState([restored]);
+  await ui.el('recommendation-exclusions').click();await ui.document.querySelector('[data-restore-recommendation]').click();
+  assert.equal(restoredOnServer,true);assert.equal(ui.calls.filter(c=>c.operation==='recommendation.restore').length,1);assert.equal(listReads,2);
+  assert.equal(ui.el('detail').open,false);assert.equal(ui.document.querySelector('[data-prepare-recommendation]').disabled,false);
+  assert.deepEqual(JSON.parse(ui.evaluate('JSON.stringify(state.records.application)')),[restored]);
+  assert.match(ui.el('notice').textContent,/排除已撤销，已恢复 1 条候选；管理记录刷新失败/);
+  assert.equal(ui.el('notice').textContent.includes('推荐列表也未刷新'),stateRefreshFails);
+ }
+});
+
+test('duplicate or failed restore keeps the exclusion and its reason without fabricating candidates',async()=>{
+ const ui=await app(),pending=deferred(),rule=exclusionFixture();await ui.render('recommendations');ui.handlers['recommendation.exclusions']=()=>exclusionPage([rule]);ui.handlers['recommendation.restore']=()=>pending.promise;
+ await ui.el('recommendation-exclusions').click();const button=ui.document.querySelector('[data-restore-recommendation]'),first=button.onclick();await button.onclick();
+ assert.equal(button.disabled,true);assert.equal(ui.calls.filter(c=>c.operation==='recommendation.restore').length,1);pending.resolve(apiError('revision_conflict','合成排除已变化'));await first;
+ assert.equal(button.disabled,false);assert.match(ui.el('detail-content').innerHTML,/合成删除理由/);assert.equal(ui.el('recommendation-exclusion-error').textContent,'合成排除已变化');assert.equal(ui.evaluate("rows('application').length"),0);
+});
+
+test('a late exclusion list cannot open an old account dialog after account switching',async()=>{
+ const ui=await app({withAccounts:true}),pending=deferred();await ui.render('recommendations');ui.handlers['recommendation.exclusions']=()=>pending.promise;
+ const reading=ui.el('recommendation-exclusions').click();await tick();await ui.evaluate("switchAccount('synthetic-user-b')");pending.resolve(exclusionPage([exclusionFixture()]));await reading;
+ assert.equal(ui.evaluate('state.user_id'),'synthetic-user-b');assert.equal(ui.el('detail').open,undefined);assert.equal(ui.el('notice').hidden,true);
+});
+
+test('a late restore result cannot add an old account candidate or overwrite the new account notice',async()=>{
+ const ui=await app({withAccounts:true}),pending=deferred(),rule=exclusionFixture(),restored={...applicationFixture('candidate',{program:'校招'}),archived:false};await ui.render('recommendations');ui.handlers['recommendation.exclusions']=()=>exclusionPage([rule]);ui.handlers['recommendation.restore']=()=>pending.promise;
+ await ui.el('recommendation-exclusions').click();const restoring=ui.document.querySelector('[data-restore-recommendation]').click();await tick();await ui.evaluate("switchAccount('synthetic-user-b')");pending.resolve({exclusion:{...rule,active:false},restored:[restored],remaining_exclusions:[]});await restoring;
+ assert.equal(ui.evaluate('state.user_id'),'synthetic-user-b');assert.equal(ui.evaluate("rows('application').length"),0);assert.equal(ui.el('detail').open,false);assert.equal(ui.el('notice').hidden,true);
 });
 
 test('a failed or duplicate in-flight selection preserves the candidate and never fabricates an application', async () => {
@@ -1062,14 +1240,15 @@ test('a failed or duplicate in-flight selection preserves the candidate and neve
 
 test('application pagination recovers older applications behind more than 200 recent candidates', async () => {
   const ui=await app(),records=Array.from({length:400},(_,index)=>applicationFixture(`candidate-${index}`,{program:'校园招聘'}));
-  records.push(applicationFixture('older',{title:'被候选挤到后面的投递',stage:'submitted'}),applicationFixture('oldest',{title:'更早的准备记录',stage:'preparing'}));
+  records.push(applicationFixture('older',{title:'被候选挤到后面的投递',stage:'submitted'}),applicationFixture('oldest',{title:'更早的准备记录',stage:'preparing',program:'校招'}));
   ui.handlers.state=()=>({...syntheticState(records),records:{application:structuredClone(records.slice(0,200))}});
   ui.handlers['record.list']=args=>({items:structuredClone(records.slice(args.offset,args.offset+args.limit)),total:records.length});
   await ui.evaluate("page='applications';load()");
   assert.deepEqual(ui.calls.filter(call=>call.operation==='record.list').map(call=>call.args),[
     {kind:'application',limit:200,offset:200},{kind:'application',limit:200,offset:400}]);
-  assert.match(ui.el('content').innerHTML,/显示 2 \/ 2 条岗位/);
-  assert.match(ui.el('content').innerHTML,/被候选挤到后面的投递|更早的准备记录/);
+  assert.match(ui.el('content').innerHTML,/显示 1 \/ 1 条岗位/);
+  assert.match(ui.el('content').innerHTML,/被候选挤到后面的投递/);assert.doesNotMatch(ui.el('content').innerHTML,/更早的准备记录/);
+  await ui.render('recommendations');assert.match(ui.el('content').innerHTML,/更早的准备记录/);
   assert.doesNotMatch(ui.el('content').innerHTML,/未全部读取/);
   assert.equal(ui.evaluate('state.records.application.length'),402);
   assert.equal(ui.evaluate('applicationLoadInfo.complete'),true);
@@ -1097,16 +1276,17 @@ test('a saved choice survives failed list refresh and shows an explicit saved-bu
   ui.handlers['record.save']=args=>({...record,data:args.data,revision:4});
   ui.handlers.state=()=>apiError('unavailable','合成列表刷新失败');
   await ui.document.querySelector('[data-prepare-recommendation]').click();
-  assert.equal(ui.evaluate('page'),'applications');
-  assert.equal(ui.evaluate('state.records.application[0].data.stage'),'preparing');
-  assert.equal(ui.document.querySelectorAll('[data-prepare-recommendation]').length,0);
+  assert.equal(ui.evaluate('page'),'recommendations');
+  assert.equal(ui.evaluate('state.records.application[0].data.stage'),'candidate');
+  assert.equal(ui.document.querySelectorAll('[data-prepare-recommendation]').length,1);
   assert.match(ui.el('content').innerHTML,/合成保存后刷新失败岗位/);
   assert.equal(ui.el('notice').hidden,false);
-  assert.equal(ui.el('notice').textContent,'已保存，列表刷新失败，请刷新核对。');
+  assert.equal(ui.el('notice').textContent,'资料准备意图已保存，岗位仍在推荐中；列表刷新失败，请刷新核对。');
+  assert.equal(ui.el('editor').open,true);
   assert.deepEqual(ui.calls.map(call=>call.operation),['record.save','state']);
 });
 
-test('an older pending candidate page cannot overwrite a newer confirmed preparing choice', async () => {
+test('an older pending candidate page cannot overwrite a newer preparation intent that remains recommended', async () => {
   const ui=await app(),oldPage=deferred(),records=Array.from({length:201},(_,index)=>applicationFixture(`race-${index}`,{program:'校招'}));
   setApplications(ui,records.slice(0,200));await ui.render('recommendations');
   ui.handlers.state=()=>({...syntheticState(records),records:{application:structuredClone(records.slice(0,200))}});
@@ -1116,13 +1296,14 @@ test('an older pending candidate page cannot overwrite a newer confirmed prepari
   assert.equal(pageCalls,1);
   ui.handlers['record.save']=args=>{records[0]={...records[0],data:args.data,revision:4};return structuredClone(records[0]);};
   await ui.document.querySelector('[data-prepare-recommendation]').click();
-  assert.equal(ui.evaluate('state.records.application[0].data.stage'),'preparing');
-  assert.match(ui.el('content').innerHTML,/显示 1 \/ 1 条岗位/);
+  assert.equal(ui.evaluate('state.records.application[0].data.stage'),'candidate');
+  assert.match(ui.el('content').innerHTML,/显示 201 \/ 201 条正式校招/);
+  assert.match(ui.evaluate('state.records.application[0].data.decision'),/已选择整理该岗位的申请资料/);
   oldPage.resolve({items:[applicationFixture('race-200',{program:'校招'})],total:201});
   assert.equal(await oldLoading,false);
-  assert.equal(ui.evaluate('state.records.application[0].data.stage'),'preparing');
+  assert.equal(ui.evaluate('state.records.application[0].data.stage'),'candidate');
   assert.equal(ui.evaluate('applicationLoadInfo.complete'),true);
-  assert.match(ui.el('content').innerHTML,/显示 1 \/ 1 条岗位/);
+  assert.match(ui.el('content').innerHTML,/显示 201 \/ 201 条正式校招/);
   assert.equal(ui.el('notice').hidden,true);
 });
 

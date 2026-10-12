@@ -19,7 +19,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 from .locking import gate, locked
 
-VERSION = "0.1.5"
+VERSION = "0.2.0"
 MAX_DOCUMENT_BYTES = 15 * 1024 * 1024
 MAX_TEXT = 1024 * 1024
 FIELDS = {
@@ -151,6 +151,8 @@ class App:
                 self._validate_account(db, user_id)
             self.user_id = user_id
             self._set_account_dir()
+            from .recommendations import reconcile_startup
+            reconcile_startup(self)
 
     def _set_account_dir(self):
         self.data_dir = self.base_data_dir if self.user_id == "default" else self.base_data_dir / "accounts" / self.user_id
@@ -193,7 +195,7 @@ class App:
                 db.close()
 
     def execute(self, operation, args=None, actor="user", user_id=None):
-        if operation == "otp.test":
+        if operation == "otp.test" or isinstance(operation, str) and (operation.startswith("fill.") or operation.startswith("browser.")):
             # Its local capture/commit are gated separately; network waits must
             # still permit configuration changes and newer test results.
             return self._execute(operation, args, actor, user_id)
@@ -208,11 +210,32 @@ class App:
         if actor not in {"user", "codex"}:
             raise AppError("invalid_actor", "Unknown actor.")
         args = args or {}
+        if operation.startswith("fill.") or operation.startswith("browser."):
+            from . import forms
+            return forms.execute(self, operation, args, actor)
+        if operation == "task.save":
+            from .recommendations import NAMESPACE, MARKER, is_internal
+            if (isinstance(args.get("data"), dict) and NAMESPACE in args["data"]) or args.get("instructions") == MARKER:
+                raise AppError("invalid_recommendation_task", "Manage recommendation exclusions through the recommendation operations.", 409)
+            if isinstance(args.get("data"), dict) and "autofill" in args["data"]:
+                raise AppError("invalid_fill_task", "Prepare and update company fill tasks through the fill operations.", 409)
+            if args.get("id"):
+                current = self._task_get({"id": args["id"]}, actor)
+                if is_internal(current):
+                    raise AppError("invalid_recommendation_task", "Manage recommendation exclusions through the recommendation operations.", 409)
+                if "autofill" in current["data"]:
+                    raise AppError("invalid_fill_task", "Update or cancel this company form through the fill operations.", 409)
         if operation.startswith("sync."):
             from . import sync
-            return sync.execute(self, operation, args, actor)
+            result = sync.execute(self, operation, args, actor)
+            if operation in {"sync.run", "sync.takeover", "sync.handoff", "sync.disable"}:
+                from .recommendations import reconcile_startup
+                reconcile_startup(self)
+                result.update(sync.status(self))
+            return result
         if operation in {"account.create", "record.save", "record.archive", "history.undo", "settings.save",
-                         "document.import", "document.archive", "profile.import", "task.save"}:
+                         "document.import", "document.archive", "profile.import", "task.save",
+                         "recommendation.exclude", "recommendation.restore", "recommendation.reconcile"}:
             incoming = args.get("settings", {})
             machine_only = operation == "settings.save" and isinstance(incoming, dict) and set(incoming) == {"schedule"} and isinstance(incoming["schedule"], dict) and set(incoming["schedule"]) <= {"enabled", "host_task_id", "allow_relogin"}
             if not machine_only:
@@ -224,6 +247,14 @@ class App:
         if operation.startswith("otp."):
             from . import otp
             return otp.execute(self, operation, args, actor)
+        if operation.startswith("recommendation."):
+            from . import recommendations
+            try:
+                return recommendations.execute(self, operation, args, actor)
+            except sqlite3.Error:
+                raise AppError("storage_error", "The local database could not complete this operation.", 500) from None
+            except OSError:
+                raise AppError("storage_error", "The local data directory could not complete this operation.", 500) from None
         if operation == "schedule.prepare":
             if args:
                 raise AppError("invalid_request", "Schedule preparation does not accept settings or other arguments.")
@@ -312,9 +343,18 @@ class App:
             counts = {}
             for kind in FIELDS:
                 counts[kind] = db.execute("SELECT COUNT(*) FROM records WHERE user_id=? AND archived=0 AND kind=?", (self.user_id, kind)).fetchone()[0]
-                records[kind] = [self._record(row) for row in db.execute("SELECT * FROM records WHERE user_id=? AND archived=0 AND kind=? ORDER BY updated_at DESC,id LIMIT 200", (self.user_id, kind))]
+                query = "SELECT * FROM records WHERE user_id=? AND archived=0 AND kind=? ORDER BY updated_at DESC,id"
+                if kind != "application":
+                    query += " LIMIT 200"
+                values = [self._record(row) for row in db.execute(query, (self.user_id, kind))]
+                if kind == "application":
+                    from .recommendations import visible_records
+                    values = visible_records(self, db, values)[:200]
+                records[kind] = values
             documents = self._documents(db)
             return {"records": records, "documents": documents, "settings": self._settings(db), "counts": counts,
+                    "recommendation_exclusions": self._recommendation_exclusions(db),
+                    "recommendation_activity": self._recommendation_activity(db),
                     "version": VERSION, "data_dir": str(self.data_dir), "user_id": self.user_id,
                     "base_data_dir": str(self.base_data_dir), "root_dir": str(self.root_dir),
                     "account": self._validate_account(db, self.user_id), "database": self._database_meta(), "sync": self._sync_meta()}
@@ -335,9 +375,11 @@ class App:
             values.append("%" + query + "%")
         where = " AND ".join(clauses)
         with self._connect() as db:
-            total = db.execute("SELECT COUNT(*) FROM records WHERE " + where, values).fetchone()[0]
-            rows = db.execute("SELECT * FROM records WHERE " + where + " ORDER BY updated_at DESC,id LIMIT ? OFFSET ?", values + [limit, offset])
-            return {"items": [self._record(row) for row in rows], "total": total}
+            db.execute("BEGIN")
+            rows = db.execute("SELECT * FROM records WHERE " + where + " ORDER BY updated_at DESC,id", values)
+            from .recommendations import visible_records
+            items = visible_records(self, db, [self._record(row) for row in rows])
+            return {"items": items[offset:offset + limit], "total": len(items)}
 
     def _audit(self, db, before, after, action, actor):
         record = after or before
@@ -369,6 +411,9 @@ class App:
                 raise AppError("record_archived", "Restore this archived record before editing.", 409)
             if kind != before["kind"]:
                 raise AppError("invalid_kind", "A record's kind cannot change.")
+        if kind == "application":
+            from .recommendations import check_candidate
+            check_candidate(self, db, data, before["id"] if before else None)
         source, scope, status = self._metadata(args, actor, before)
         created = before["created_at"] if before else now()
         record_id = before["id"] if before else uuid.uuid4().hex
@@ -378,6 +423,10 @@ class App:
                    (record_id, kind, _json(data), before["revision"] + 1 if before else 1, source, scope, status, created, now(), self.user_id))
         after = self._get_record(db, record_id)
         self._audit(db, before, after, action, actor)
+        if kind == "application":
+            from .recommendations import ACTIVE_STAGES, reconcile
+            if data.get("stage") in ACTIVE_STAGES:
+                reconcile(self, db, actor)
         return after
 
     def _record_save(self, args, actor):
@@ -431,11 +480,18 @@ class App:
                 raise AppError("revision_conflict", "This record changed. Reload it before restoring.", 409)
             target = json.loads(row["before_json"]) if row["before_json"] else None
             if target:
+                if target["kind"] == "application" and not target["archived"]:
+                    from .recommendations import check_candidate
+                    check_candidate(self, db, target["data"], current["id"])
                 db.execute("UPDATE records SET data=?,source=?,scope=?,status=?,archived=?,revision=revision+1,updated_at=? WHERE id=? AND user_id=?", (_json(target["data"]), target["source"], target["scope"], target["status"], int(target["archived"]), now(), current["id"], self.user_id))
             else:
                 db.execute("UPDATE records SET archived=1,revision=revision+1,updated_at=? WHERE id=? AND user_id=?", (now(), current["id"], self.user_id))
             after = self._get_record(db, current["id"])
             self._audit(db, current, after, "undo", actor)
+            if after["kind"] == "application" and not after["archived"]:
+                from .recommendations import ACTIVE_STAGES, reconcile
+                if after["data"].get("stage") in ACTIVE_STAGES:
+                    reconcile(self, db, actor)
             return after
 
     def _settings_save(self, args, actor):
@@ -511,7 +567,8 @@ class App:
     def _task_list(self, args, actor):
         limit = _integer(args.get("limit", 100), "Limit", 1, 200)
         offset = _integer(args.get("offset", 0), "Offset")
-        where, values = "user_id=?", [self.user_id]
+        from .recommendations import MARKER
+        where, values = "user_id=? AND NOT (kind='custom' AND instructions=?)", [self.user_id, MARKER]
         if args.get("status") is not None:
             status = args["status"]
             if not isinstance(status, str) or status not in {"pending", "running", "completed", "cancelled"}:
@@ -603,17 +660,31 @@ class App:
 
             def page(clause, limit, offset):
                 where = "user_id=? AND archived=0 AND " + clause
-                total = db.execute("SELECT COUNT(*) FROM records WHERE " + where, (self.user_id,)).fetchone()[0]
-                items = [self._record(row) for row in db.execute("SELECT * FROM records WHERE " + where + " ORDER BY created_at,id LIMIT ? OFFSET ?", (self.user_id, limit, offset))]
+                rows = [self._record(row) for row in db.execute("SELECT * FROM records WHERE " + where + " ORDER BY created_at,id", (self.user_id,))]
+                if clause == "kind='application'":
+                    from .recommendations import visible_records
+                    rows = visible_records(self, db, rows)
+                total = len(rows)
+                items = rows[offset:offset + limit]
                 return {"items": items, "total": total, "limit": limit, "offset": offset,
                         "next_offset": offset + len(items) if offset + len(items) < total else None}
 
             return {"account": self._validate_account(db, self.user_id), "user_id": self.user_id,
+                    "recommendation_exclusions": self._recommendation_exclusions(db),
+                    "recommendation_activity": self._recommendation_activity(db),
                     "settings": self._settings(db), "task": self._get_task(db, args["id"]) if args.get("id") else None,
                     "profile": page("kind!='application'", profile_limit, profile_offset),
                     "applications": page("kind='application'", application_limit, application_offset),
                     "read_at": now(), "database": self._database_meta(), "data_dir": str(self.data_dir),
                     "base_data_dir": str(self.base_data_dir), "root_dir": str(self.root_dir), "sync": self._sync_meta()}
+
+    def _recommendation_exclusions(self, db):
+        from .recommendations import page
+        return page(self, db)
+
+    def _recommendation_activity(self, db):
+        from .recommendations import activity_page
+        return activity_page(self, db)
 
     @staticmethod
     def _document_meta(row):
@@ -821,9 +892,28 @@ class App:
             self._metadata(record, actor)
             import_id = hashlib.sha256(_json([source_label, kind, identity]).encode()).hexdigest()
             mapped.append((import_id, identity, record))
-        imported, skipped = [], 0
+        imported, skipped, excluded, suppressed = [], 0, 0, 0
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
+            from .recommendations import ACTIVE_STAGES, activity_company_key, active_blocked, is_recommendation
+            incoming_active = set()
+            incoming_identities = set()
+            for import_id, source_identity, record in mapped:
+                # Imports keep the first eligible source identity. A later
+                # duplicate active snapshot must not suppress another job when
+                # an earlier closed snapshot will consume this same identity.
+                if import_id in incoming_identities:
+                    continue
+                incoming_identities.add(import_id)
+                if record["kind"] != "application" or record["data"].get("stage") not in ACTIVE_STAGES:
+                    continue
+                if db.execute("SELECT 1 FROM imports WHERE identity=? AND user_id=?", (import_id, self.user_id)).fetchone():
+                    continue
+                if db.execute("SELECT 1 FROM records WHERE id=? AND kind=? AND user_id=?", (source_identity, record["kind"], self.user_id)).fetchone():
+                    continue
+                company_key = activity_company_key(record["data"].get("company"))
+                if company_key:
+                    incoming_active.add(company_key)
             for import_id, source_identity, record in mapped:
                 if db.execute("SELECT 1 FROM imports WHERE identity=? AND user_id=?", (import_id, self.user_id)).fetchone():
                     skipped += 1
@@ -835,7 +925,18 @@ class App:
                     db.execute("INSERT INTO imports(user_id,identity,record_id,imported_at) VALUES(?,?,?,?)", (self.user_id, import_id, existing["id"], now()))
                     skipped += 1
                     continue
+                if record["kind"] == "application":
+                    from .recommendations import blocked
+                    if blocked(self, db, record["data"]):
+                        skipped += 1
+                        excluded += 1
+                        continue
+                    if is_recommendation(record["data"]) and (active_blocked(self, db, record["data"]) or activity_company_key(record["data"].get("company")) in incoming_active):
+                        skipped += 1
+                        suppressed += 1
+                        continue
                 created = self._save_in_transaction(db, record, actor, "import")
                 db.execute("INSERT INTO imports(user_id,identity,record_id,imported_at) VALUES(?,?,?,?)", (self.user_id, import_id, created["id"], now()))
                 imported.append(created["id"])
-        return {"imported": len(imported), "skipped": skipped, "record_ids": imported, "source_label": source_label}
+        return {"imported": len(imported), "skipped": skipped, "excluded": excluded, "suppressed": suppressed,
+                "record_ids": imported, "source_label": source_label}

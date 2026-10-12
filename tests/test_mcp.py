@@ -39,7 +39,7 @@ class MCPTests(unittest.TestCase):
         self.initialize()
         response = self.server.handle({"jsonrpc": "2.0", "id": 3, "method": "tools/list"})
         tools = response["result"]["tools"]
-        self.assertEqual({"career_get", "career_save", "career_import", "career_resources", "career_otp", "career_schedule", "career_tasks"}, {tool["name"] for tool in tools})
+        self.assertEqual({"career_get", "career_save", "career_import", "career_resources", "career_otp", "career_schedule", "career_tasks", "career_forms"}, {tool["name"] for tool in tools})
         for tool in tools:
             self.assertFalse(tool["inputSchema"]["additionalProperties"])
             self.assertIn("readOnlyHint", tool["annotations"])
@@ -93,6 +93,40 @@ class MCPTests(unittest.TestCase):
         response, content = self.call("career_save", {"operation": "record.save", "args": {"kind": "basic", "id": record["id"], "revision": 2, "data": {"name": "冲突值"}}})
         self.assertTrue(response["result"]["isError"])
         self.assertEqual("revision_conflict", content["error"]["code"])
+
+    def test_active_company_recommendation_reads_and_reconcile_are_available(self):
+        self.initialize()
+        candidate = self.app.execute("record.save", {"kind": "application", "data": {
+            "company": "Synthetic Company", "title": "Vision Research", "stage": "candidate"}}, actor="codex")
+        self.app.execute("record.save", {"kind": "application", "data": {
+            "company": "Synthetic Company", "title": "Selected Role", "stage": "submitted"}}, actor="codex")
+        response, content = self.call("career_get", {"operation": "recommendation.activity", "args": {"limit": 1}})
+        self.assertFalse(response["result"]["isError"])
+        self.assertEqual(1, content["data"]["total"])
+        response, content = self.call("career_save", {"operation": "recommendation.reconcile", "args": {}})
+        self.assertFalse(response["result"]["isError"])
+        self.assertEqual(0, content["data"]["total_removed"])
+        visible = self.app.execute("record.list", {"kind": "application"}, actor="codex")["items"]
+        self.assertNotIn(candidate["id"], {record["id"] for record in visible})
+        self.assertEqual(0, self.app.execute("recommendation.exclusions", {}, actor="codex")["total"])
+
+    def test_legacy_resume_preparation_does_not_establish_application_activity(self):
+        self.initialize()
+        response, content = self.call("career_save", {"operation": "record.save", "args": {
+            "kind": "application", "data": {"company": "Synthetic Prepared Employer",
+            "title": "Resume Draft", "stage": "profile_saved", "raw_status": "Saved draft"}}})
+        self.assertFalse(response["result"]["isError"])
+        draft = content["data"]
+        response, content = self.call("career_get", {"operation": "recommendation.activity"})
+        self.assertFalse(response["result"]["isError"])
+        self.assertEqual(0, content["data"]["total"])
+        response, content = self.call("career_save", {"operation": "record.save", "args": {
+            "kind": "application", "data": {"company": "Synthetic Prepared Employer",
+            "title": "Another Recommended Role", "stage": "candidate"}}})
+        self.assertFalse(response["result"]["isError"])
+        visible = self.app.execute("record.list", {"kind": "application"}, actor="codex")["items"]
+        self.assertIn(draft["id"], {record["id"] for record in visible})
+        self.assertEqual("Saved draft", next(record for record in visible if record["id"] == draft["id"])["data"]["raw_status"])
 
     def test_explicit_user_binding_isolates_records_and_default_stays_bound(self):
         other = self.app.execute("account.create", {"name": "合成第二账号"})

@@ -21,6 +21,7 @@ COOKIE_NAME = "career_session"
 ASSETS = {"/": ("index.html", "text/html; charset=utf-8"),
           "/index.html": ("index.html", "text/html; charset=utf-8"),
           "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+          "/forms.js": ("forms.js", "text/javascript; charset=utf-8"),
           "/styles.css": ("styles.css", "text/css; charset=utf-8"),
           "/catalog.html": ("catalog.html", "text/html; charset=utf-8"),
           "/catalog.js": ("catalog.js", "text/javascript; charset=utf-8")}

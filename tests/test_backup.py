@@ -1,6 +1,6 @@
 """Whole-workspace migration using only disposable synthetic local data."""
 import base64
-from contextlib import closing, redirect_stderr, redirect_stdout
+from contextlib import closing, contextmanager, redirect_stderr, redirect_stdout
 import hashlib
 import io
 import json
@@ -10,13 +10,14 @@ import sqlite3
 import stat
 import struct
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 import zipfile
 import zlib
 
 from service.app import App, AppError
-from service import backup, otp, packages
+from service import backup, locking, otp, packages
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -129,6 +130,149 @@ class BackupTests(unittest.TestCase):
         self.output = self.base / "new-backup-folder" / "private.zip"
         self.make_backup(); self.restore()
         self.assertEqual(settings["_revision"], App(self.target, ROOT).execute("state")["settings"]["_revision"])
+
+    def autofill_tasks(self):
+        record = self.app.execute("record.save", {"kind": "basic", "data": {"name": "合成用户"},
+                                                "status": "confirmed"})
+        tasks = []
+        for status, phase in (("running", "queued"), ("running", "running"),
+                              ("pending", "prepared"), ("completed", "completed"), ("cancelled", "cancelled")):
+            prepared = self.app.execute("fill.prepare", {"company_id": "jd", "inputs": {"source": "其他"},
+                                   "selection": {"basic": [record["id"]]}})
+            task = self.app.execute("task.get", {"id": prepared["id"]})
+            data = task["data"]
+            data["autofill"].update(phase=phase, run_id=f"synthetic-{status}-{phase}",
+                                   progress=[{"key": "name", "status": "filled"}],
+                                   result={"ok": True} if status == "completed" else None)
+            data["continuity"] = {"note": "本人审阅后的准备", "record_id": record["id"]}
+            # Model persisted runtime state without launching a browser; public task.save
+            # correctly rejects edits to the reserved autofill namespace.
+            tasks.append(self.app._task_save({"id": task["id"], "revision": task["revision"],
+                                              "status": status, "data": data}, "user"))
+        return tasks
+
+    def assert_autofill_tasks_released(self, app, original):
+        for task in original:
+            current = app.execute("task.get", {"id": task["id"]})
+            if task["status"] != "running":
+                self.assertEqual(task, current)
+                continue
+            self.assertEqual("pending", current["status"])
+            self.assertEqual(task["revision"] + 1, current["revision"])
+            expected = json.loads(json.dumps(task["data"]))
+            expected["autofill"].update(phase="interrupted", result={"ok": False, "code": "runtime_interrupted"})
+            expected["autofill"].pop("run_id")
+            self.assertEqual(expected, current["data"])
+            status = app.execute("fill.status", {"id": task["id"]})
+            self.assertEqual("interrupted", status["phase"])
+            self.assertEqual(current["revision"], status["revision"])
+            with app._connect() as db:
+                event = db.execute("SELECT before_json,after_json FROM task_events WHERE task_id=? ORDER BY at DESC,rowid DESC LIMIT 1",
+                                   (task["id"],)).fetchone()
+            self.assertEqual(task, json.loads(event["before_json"]))
+            self.assertEqual(current, json.loads(event["after_json"]))
+
+    def test_restored_running_autofill_keeps_preparation_and_stops_polling(self):
+        tasks = self.autofill_tasks()
+        source_rows = self.rows(self.source, "tasks")
+        old_events = self.rows(self.source, "task_events")
+        self.make_backup()
+        self.assertEqual(2, self.restore()["running_tasks_reset"])
+        self.assertEqual(source_rows, self.rows(self.source, "tasks"))
+        self.assertEqual(old_events, self.rows(self.source, "task_events"))
+        self.assertEqual(len(old_events) + 2, len(self.rows(self.target, "task_events")))
+        self.assert_autofill_tasks_released(App(self.target, ROOT), tasks)
+
+    def test_writer_takeover_releases_running_autofill_once(self):
+        tasks = self.autofill_tasks()
+        settings = self.rows(self.source, "settings")
+        old_events = self.rows(self.source, "task_events")
+        with self.app._connect() as db:
+            self.assertEqual(2, backup._reset_running_tasks(db))
+        self.assert_autofill_tasks_released(self.app, tasks)
+        self.assertEqual(settings, self.rows(self.source, "settings"))
+        self.assertEqual(len(old_events) + 2, len(self.rows(self.source, "task_events")))
+        after = self.rows(self.source, "tasks")
+        with self.app._connect() as db:
+            self.assertEqual(0, backup._reset_running_tasks(db))
+        self.assertEqual(after, self.rows(self.source, "tasks"))
+        self.assertEqual(len(old_events) + 2, len(self.rows(self.source, "task_events")))
+
+    def test_online_backup_blocks_writers_through_inventory_and_zip(self):
+        for stage in ("inventory", "zip"):
+            with self.subTest(stage=stage):
+                record = self.app.execute("record.save", {"kind": "basic", "data": {"name": "合成旧资料"}})
+                self.app.execute("document.import", {"filename": "before.txt", "content_base64":
+                    base64.b64encode(f"synthetic-before-{stage}".encode()).decode()})
+                expected = {table: self.rows(self.source, table) for table in ("records", "documents")}
+                attempted, entered, finished = threading.Event(), threading.Event(), threading.Event()
+                errors, imported = [], []
+
+                def write():
+                    try:
+                        self.app.execute("record.save", {"id": record["id"], "revision": record["revision"],
+                            "kind": "basic", "data": {"name": "合成新资料"}})
+                        imported.append(self.app.execute("document.import", {"filename": "after.txt", "content_base64":
+                            base64.b64encode(f"synthetic-after-{stage}".encode()).decode()}))
+                    except Exception as error:
+                        errors.append(error)
+                    finally:
+                        finished.set()
+
+                writer = threading.Thread(target=write)
+
+                @contextmanager
+                def observed_gate(base):
+                    if threading.current_thread() is writer:
+                        attempted.set()
+                    with locking.gate(base):
+                        if threading.current_thread() is writer:
+                            entered.set()
+                        yield
+
+                def pause():
+                    writer.start()
+                    self.assertTrue(attempted.wait(2), "writer did not reach the database gate")
+                    self.assertFalse(entered.wait(0.1), "writer entered during backup")
+                    self.assertFalse(finished.is_set())
+
+                inventory, zip_open = backup._inventory, zipfile.ZipFile.open
+
+                def paused_inventory(*args, **kwargs):
+                    if stage == "inventory":
+                        pause()
+                    return inventory(*args, **kwargs)
+
+                def paused_zip(archive, name, mode="r", *args, **kwargs):
+                    if stage == "zip" and name == "career.db" and mode == "w":
+                        pause()
+                    return zip_open(archive, name, mode, *args, **kwargs)
+
+                output = self.base / f"online-{stage}.zip"
+                try:
+                    with patch("service.app.gate", observed_gate), patch.object(backup, "_inventory", paused_inventory), \
+                            patch.object(zipfile.ZipFile, "open", paused_zip):
+                        self.assertTrue(backup.backup(self.source, output, ROOT)["ok"])
+                finally:
+                    if writer.ident is not None:
+                        writer.join(5)
+                self.assertFalse(writer.is_alive())
+                self.assertTrue(finished.is_set())
+                self.assertEqual([], errors)
+                self.assertEqual(1, len(imported))
+                incoming = self.base / f"online-{stage}-snapshot"
+                backup.unpack(output, incoming)
+                for table, rows in expected.items():
+                    self.assertEqual(rows, self.rows(incoming, table))
+                with backup._connect(incoming / "career.db") as db:
+                    for document in db.execute("SELECT stored_name,size,sha256 FROM documents"):
+                        raw = (incoming / "documents" / document["stored_name"]).read_bytes()
+                        self.assertEqual(document["size"], len(raw))
+                        self.assertEqual(document["sha256"], hashlib.sha256(raw).hexdigest())
+                current = next(item for item in self.app.execute("record.list", {"kind": "basic"})["items"]
+                               if item["id"] == record["id"])
+                self.assertEqual("合成新资料", current["data"]["name"])
+                self.assertEqual(len(expected["documents"]) + 1, len(self.rows(self.source, "documents")))
 
     def test_otp_ciphertext_windows_connection_cache_and_unmanaged_files_are_not_carried(self):
         protected = "SYNTHETIC_OLD_PC_DPAPI_CIPHERTEXT"

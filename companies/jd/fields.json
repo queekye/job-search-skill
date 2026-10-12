@@ -9,7 +9,7 @@
       "code_key": "name"
     },
     {
-      "local": "basic.mobile",
+      "local": "basic.phone",
       "site": "基本信息/手机号码",
       "method": "text",
       "scope": "campus-resume",

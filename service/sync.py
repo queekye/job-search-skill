@@ -26,7 +26,7 @@ import zipfile
 import zlib
 
 from .app import AppError, DEFAULT_SETTINGS
-from . import backup, otp
+from . import backup, otp, storage
 from .locking import gate, paths
 
 ID = re.compile(r"[a-f0-9]{32}\Z")
@@ -322,7 +322,7 @@ def _pristine(app):
     with app._connect() as db:
         if db.execute("SELECT COUNT(*) FROM accounts").fetchone()[0] != 1:
             return False
-        for table in ("records", "events", "documents", "imports", "tasks", "task_events"):
+        for table in ("records", "events", "documents", "imports", "tasks", "task_events") + storage.PROFILE_TABLES:
             if db.execute(f"SELECT 1 FROM {table} LIMIT 1").fetchone():
                 return False
         settings = app._settings(db)

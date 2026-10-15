@@ -11,12 +11,13 @@ from scripts.validate_site_extension import MAX_BYTES as MAX_PLAN_BYTES, validat
 from scripts.verify_release import MANIFEST as INSTALL_MANIFEST, verify as verify_snapshot
 
 CORE_FILES=['.codex-plugin/plugin.json','.mcp.json','README.md','LICENSE','Start.cmd','Install.cmd','SetupBrowser.cmd',
-            'scripts/run.py','scripts/start.ps1','scripts/install.ps1','scripts/verify_release.py',
+            'scripts/run.py','scripts/start.ps1','scripts/install.ps1','scripts/verify_release.py','scripts/career-call.py',
             'scripts/browser-session.mjs','scripts/profile-fill.mjs','scripts/profile-upload.mjs',
             'scripts/browser-driver.mjs','scripts/form-runner.mjs','scripts/company-resource.py',
             'references/company-pack.md','references/workflow.md','references/otp.md',
             'references/profile-fill-coverage.md','references/site-extension.md','references/migration.md',
-            'references/sync.md','references/public-resources.md','references/automation.md','references/company-resource.md']
+            'references/sync.md','references/public-resources.md','references/automation.md','references/company-resource.md',
+            'references/agent-recipes.md']
 TREES={'service':{'.py'},'skills':{'.md','.yaml'},'schemas':{'.json'},'web':{'.html','.js','.css'}}
 
 def public_paths(root=ROOT):

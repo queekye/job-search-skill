@@ -45,7 +45,8 @@ class AccountTaskTests(unittest.TestCase):
         state = self.other.execute("state")
         self.assertEqual(self.account["id"], state["user_id"])
         self.assertEqual("sqlite", state["database"]["engine"])
-        self.assertEqual(2, state["database"]["schema_version"])
+        from service.storage import SCHEMA_VERSION
+        self.assertEqual(SCHEMA_VERSION, state["database"]["schema_version"])
         self.assertEqual(str(self.app.base_data_dir), state["base_data_dir"])
         self.assertEqual(2, self.app.execute("account.list")["total"])
         self.assert_error("invalid_account", self.app, "state", {}, user_id="../other")
@@ -223,7 +224,8 @@ class DatabaseMigrationTests(unittest.TestCase):
             self.assertEqual((private / "documents" / "document.txt").resolve(), app.document_download("old-document")[0])
             with closing(sqlite3.connect(app.db_path)) as db, db:
                 self.assertEqual(("default", "old-import", "old-record", "2026-01-01"), db.execute("SELECT * FROM imports").fetchone())
-                self.assertEqual(2, db.execute("PRAGMA user_version").fetchone()[0])
+                from service.storage import SCHEMA_VERSION
+                self.assertEqual(SCHEMA_VERSION, db.execute("PRAGMA user_version").fetchone()[0])
                 self.assertEqual('{"name":"旧示例","phone":null}', db.execute("SELECT data FROM records").fetchone()[0])
             reopened = App(private, root)
             self.assertEqual(7, reopened.execute("record.list")["items"][0]["revision"])

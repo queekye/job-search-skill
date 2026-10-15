@@ -6,6 +6,7 @@ The packager owns the allowlist and passes exactly the files it will publish.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -32,6 +33,8 @@ WINDOWS_HOME = re.compile(r"(?i)\b[A-Z]:[\\/]+Users[\\/]+([A-Za-z0-9_.-]+)[\\/]"
 POSIX_HOME = re.compile(r"(?<![\w])/(?:home|Users)/([A-Za-z0-9_.-]+)/")
 KNOWN_SECRET = re.compile(r"(?:\bsk-[A-Za-z0-9_-]{24,}|\bgh[pousr]_[A-Za-z0-9]{24,}|\bglpat-[A-Za-z0-9_-]{20,}|\bAKIA[A-Z0-9]{16}\b)")
 POPULATED_SECRET = re.compile(r'''(?ix)["'](?:api[_-]?key|access[_-]?token|client[_-]?secret|password|private[_-]?key)["']\s*:\s*["']([^"'\s]{12,})["']''')
+INSTALL_MANIFEST = "INSTALL-MANIFEST.json"
+SHA_VALUE = re.compile(r'("sha256"\s*:\s*")([0-9a-f]{64})(")')
 
 
 def _issue(issues, path, code, message):
@@ -55,14 +58,59 @@ def _links(path):
     return False
 
 
-def _scan_text(path, text, forbidden, issues):
+def _install_shape_text(root, name, text, allowlisted):
+    """Exclude genuine generated hashes only from phone/identity heuristics."""
+    if name != INSTALL_MANIFEST:
+        return text
+    try:
+        def pairs(items):
+            result = {}
+            for key, value in items:
+                if key in result:
+                    raise ValueError()
+                result[key] = value
+            return result
+        def invalid_constant(value):
+            raise ValueError()
+        manifest = json.loads(text, object_pairs_hook=pairs, parse_constant=invalid_constant)
+        if not isinstance(manifest, dict) or set(manifest) != {"schema_version", "version", "files"} or type(manifest["schema_version"]) is not int or manifest["schema_version"] != 1 or not isinstance(manifest["version"], str) or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:[-+][A-Za-z0-9.-]+)?", manifest["version"]) or not isinstance(manifest["files"], list) or not manifest["files"]:
+            return text
+        seen = set()
+        for entry in manifest["files"]:
+            if not isinstance(entry, dict) or set(entry) != {"path", "sha256", "bytes"}:
+                return text
+            member = entry["path"]
+            if not isinstance(member, str) or member not in allowlisted or member == INSTALL_MANIFEST or "\\" in member or ":" in member or len(member) > 240:
+                return text
+            parts = PurePosixPath(member).parts
+            if not parts or member.startswith("/") or "/".join(parts) != member or any(part in {".", ".."} for part in parts) or member.casefold() in seen:
+                return text
+            seen.add(member.casefold())
+            if not isinstance(entry["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", entry["sha256"]) or type(entry["bytes"]) is not int or not 0 <= entry["bytes"] <= MAX_FILE:
+                return text
+            target = root.joinpath(*parts)
+            if any(part.casefold() in PRIVATE_COMPONENTS for part in parts) or target.name.casefold() in PRIVATE_NAMES or target.name.casefold().startswith(".env.") or (target.suffix.lower() not in ALLOWED_SUFFIXES and target.name not in ALLOWED_EXTENSIONLESS):
+                return text
+            if _links(target) or not target.resolve().is_relative_to(root.resolve()) or not target.is_file() or target.stat().st_size != entry["bytes"]:
+                return text
+            with target.open("rb") as handle:
+                raw = handle.read(MAX_FILE + 1)
+            if len(raw) != entry["bytes"] or hashlib.sha256(raw).hexdigest() != entry["sha256"]:
+                return text
+        return SHA_VALUE.sub(lambda match: match[1] + "x" * 64 + match[3], text)
+    except (OSError, UnicodeError, ValueError, TypeError, RecursionError):
+        return text
+
+
+def _scan_text(path, text, forbidden, issues, *, shape_text=None):
     checks = (("personal_phone", PHONE, "A personal-phone-shaped value requires removal or explicit synthetic review."),
               ("identity_number", IDENTITY, "An identity-number-shaped value is not allowed in public files."),
               ("credential_value", KNOWN_SECRET, "A recognizable credential value is not allowed."),
               ("absolute_user_path", WINDOWS_HOME, "A hardcoded Windows user path is not portable."),
               ("absolute_user_path", POSIX_HOME, "A hardcoded user-home path is not portable."))
     for code, pattern, message in checks:
-        if pattern.search(text):
+        value = shape_text if shape_text is not None and code in {"personal_phone", "identity_number"} else text
+        if pattern.search(value):
             _issue(issues, path, code, message)
     def private_email(match):
         if _example(match.group(1)):
@@ -114,6 +162,8 @@ def check_release(root, relative_paths, forbidden_values=(), *, require_files=Tr
     issues, seen, selected = [], set(), set()
     checked, total = 0, 0
     forbidden = [str(value) for value in forbidden_values if isinstance(value, str) and len(value.strip()) >= 2]
+    allowlisted = {name for item in relative_paths
+                   if isinstance(name := item.get("path") if isinstance(item, dict) else item, str)}
     for item in relative_paths:
         name = item.get("path") if isinstance(item, dict) else item
         if not isinstance(name, str) or "\\" in name or ":" in name or len(name) > 240:
@@ -156,7 +206,8 @@ def check_release(root, relative_paths, forbidden_values=(), *, require_files=Tr
                 continue
             checked += 1
             total += len(raw)
-            _scan_text(name, text, forbidden, issues)
+            _scan_text(name, text, forbidden, issues,
+                       shape_text=_install_shape_text(root, name, text, allowlisted))
         except (OSError, UnicodeError):
             _issue(issues, name, "unreadable_file", "A source file cannot be safely read as UTF-8 text.")
     if require_files:

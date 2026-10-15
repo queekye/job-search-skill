@@ -1,0 +1,464 @@
+{
+  "schema_version": 1,
+  "description": "公共源码能力目录；实现状态不代表当前招聘网站或已安装插件已验收。",
+  "statuses": {
+    "implemented": "已有本地服务实现",
+    "workflow": "由 Skill 编排，依赖 Agent 的分析或浏览能力",
+    "company_scoped": "按已接受公司包版本和已观察页面限定",
+    "configuration": "配置、迁移或宿主集成；本目录不启动外部动作"
+  },
+  "items": [
+    {
+      "id": "profile",
+      "name": "个人事实与材料",
+      "description": "读取类型化事实、来源、资料关联与材料；按修订保存草稿。",
+      "status": "implemented",
+      "entry": {
+        "skill": "career",
+        "tool": "career_get",
+        "operation": "profile.schema"
+      },
+      "requires": [
+        "核对资料库与显式 user_id",
+        "仅读取本轮必要资料；更新前读取最新 revision"
+      ],
+      "limitations": [
+        "导入文本不自动成为本人确认事实",
+        "意向、账号与凭据由本人网页维护"
+      ],
+      "recipes": [
+        {
+          "tool": "career_get",
+          "operation": "profile.schema",
+          "args": {},
+          "purpose": "发现字段、类型与限制"
+        },
+        {
+          "tool": "career_get",
+          "operation": "profile.get",
+          "args": {
+            "limit": 20,
+            "offset": 0
+          },
+          "purpose": "分页读取个人事实"
+        },
+        {
+          "tool": "career_get",
+          "operation": "document.list",
+          "args": {
+            "limit": 20,
+            "offset": 0
+          },
+          "purpose": "发现授权材料；按需 document.read"
+        }
+      ],
+      "evidence": {
+        "scope": "source_contract",
+        "browser_acceptance": "not_asserted",
+        "real_site": "not_asserted",
+        "installed_plugin": "not_asserted"
+      }
+    },
+    {
+      "id": "resume",
+      "name": "简历方案与公司答案",
+      "description": "从明确选择的事实组合独立文案，保留来源修订与审阅问题。",
+      "status": "implemented",
+      "entry": {
+        "skill": "career",
+        "tool": "career_get",
+        "operation": "resume.list"
+      },
+      "requires": [
+        "使用本人指定方案与明确事实 ID",
+        "原事实变化后重新核对引用"
+      ],
+      "limitations": [
+        "Agent 修改仍为未确认草稿",
+        "company_form 仅检查包声明范围；未实现完整网站输入映射"
+      ],
+      "recipes": [
+        {
+          "tool": "career_get",
+          "operation": "resume.list",
+          "args": {
+            "limit": 20,
+            "offset": 0
+          },
+          "purpose": "读取已有简历方案"
+        },
+        {
+          "tool": "career_get",
+          "operation": "resume.compose",
+          "args": {
+            "id": "<resume-id>"
+          },
+          "purpose": "组合正文与独立审阅信息"
+        },
+        {
+          "tool": "career_get",
+          "operation": "answer.list",
+          "args": {
+            "company_id": "<company-id>",
+            "limit": 20,
+            "offset": 0
+          },
+          "purpose": "读取该公司的范围化答案"
+        }
+      ],
+      "evidence": {
+        "scope": "source_contract",
+        "browser_acceptance": "not_asserted",
+        "real_site": "not_asserted",
+        "installed_plugin": "not_asserted"
+      }
+    },
+    {
+      "id": "recommendation",
+      "name": "岗位发现与比较",
+      "description": "按当前正式校招范围、完整官方 JD 与个人事实形成独立推荐，并保存可接续的 JD 来源。",
+      "status": "workflow",
+      "entry": {
+        "skill": "job-recommendation",
+        "tool": "career_tasks",
+        "operation": "task.context"
+      },
+      "requires": [
+        "先读取当前意向与全部相关排除/活跃申请页",
+        "岗位目录与资格需当期官方来源",
+        "保存岗位时同时保留 JD 原文、来源时间、覆盖与身份匹配，不只存推荐摘要；更新 JD 用 application.jd.save"
+      ],
+      "limitations": [
+        "本地服务不提供通用全网搜索器",
+        "实习须本轮明确请求；推荐不建立选择或投递事实"
+      ],
+      "recipes": [
+        {
+          "tool": "career_get",
+          "operation": "intention.get",
+          "args": {},
+          "purpose": "读取当前意向"
+        },
+        {
+          "tool": "career_get",
+          "operation": "recommendation.exclusions",
+          "args": {
+            "limit": 200,
+            "offset": 0
+          },
+          "purpose": "读取并继续分页排除规则"
+        },
+        {
+          "tool": "career_get",
+          "operation": "recommendation.activity",
+          "args": {
+            "limit": 200,
+            "offset": 0
+          },
+          "purpose": "读取实际活跃申请公司"
+        }
+      ],
+      "evidence": {
+        "scope": "source_contract",
+        "browser_acceptance": "not_asserted",
+        "real_site": "not_asserted",
+        "installed_plugin": "not_asserted"
+      }
+    },
+    {
+      "id": "application_followup",
+      "name": "申请检索与官网跟进",
+      "description": "检索本地申请，并在公司包覆盖内核验官网状态、来源与覆盖。",
+      "status": "company_scoped",
+      "entry": {
+        "skill": "career",
+        "tool": "career_get",
+        "operation": "record.list"
+      },
+      "requires": [
+        "先检索本地记录；仅缺失或冲突时询问",
+        "官网核验使用当前获准登录和已接受公司包"
+      ],
+      "limitations": [
+        "query 是 JSON 文本匹配，不是结构化公司关联",
+        "JD 补齐独立保存 jd_* 来源字段，不推进官网状态观察时间或申请阶段",
+        "失败只记尝试与阻点，不覆盖原有效状态；本人报告与官网核验分开"
+      ],
+      "recipes": [
+        {
+          "tool": "career_get",
+          "operation": "record.list",
+          "args": {
+            "kind": "application",
+            "query": "<company-name>",
+            "limit": 20,
+            "offset": 0
+          },
+          "purpose": "按公司关键词读取已有申请；不是新增 API"
+        },
+        {
+          "tool": "career_get",
+          "operation": "resource.list",
+          "args": {},
+          "purpose": "读取公司包能力与版本，再 resource.read 查看指引"
+        }
+      ],
+      "evidence": {
+        "scope": "source_contract",
+        "browser_acceptance": "not_asserted",
+        "real_site": "not_asserted",
+        "installed_plugin": "not_asserted"
+      }
+    },
+    {
+      "id": "form_filling",
+      "name": "公司资料准备与填写",
+      "description": "在已声明范围准备、审阅并执行公司表单；网页和 MCP 共用本地执行器。",
+      "status": "company_scoped",
+      "entry": {
+        "skill": "career",
+        "tool": "career_forms",
+        "operation": "fill.describe"
+      },
+      "requires": [
+        "已接受包声明 form.json；具备独立浏览器运行时",
+        "本人登录并授权本轮填写；敏感信息共享按来源授权"
+      ],
+      "limitations": [
+        "统一入口当前仅覆盖京东部分基本字段；其余按各包指引",
+        "不执行登录、验证码输入、岗位选择或最终投递；保存须独立核验"
+      ],
+      "recipes": [
+        {
+          "tool": "career_forms",
+          "operation": "fill.describe",
+          "args": {
+            "company_id": "<company-id>"
+          },
+          "purpose": "先发现正式输入及支持范围"
+        },
+        {
+          "tool": "career_forms",
+          "operation": "fill.prepare",
+          "args": {
+            "company_id": "<company-id>"
+          },
+          "purpose": "从当前资料准备待审阅版本"
+        },
+        {
+          "tool": "career_forms",
+          "operation": "fill.status",
+          "args": {
+            "id": "<prepare-task-id>"
+          },
+          "purpose": "读取执行进度与结果"
+        }
+      ],
+      "evidence": {
+        "scope": "source_contract",
+        "browser_acceptance": "not_asserted",
+        "real_site": "not_asserted",
+        "installed_plugin": "not_asserted"
+      }
+    },
+    {
+      "id": "resource_authoring",
+      "name": "公司资源制作",
+      "description": "依据已观察控件制作公共包，声明输入，构造合成夹具并校验成员。",
+      "status": "workflow",
+      "entry": {
+        "skill": "company-resource",
+        "tool": "career_resources",
+        "operation": "resource.template"
+      },
+      "requires": [
+        "依据当前获准页面观察，不猜未见控件",
+        "资源只含公共方法与从零构造的合成数据"
+      ],
+      "limitations": [
+        "schema/哈希校验不会执行包或证明官网可用",
+        "启用社区可执行包由本人审阅；发布须另有明确指令"
+      ],
+      "recipes": [
+        {
+          "tool": "career_resources",
+          "operation": "resource.template",
+          "args": {
+            "id": "synthetic-company",
+            "name": "Synthetic Company",
+            "origin": "https://careers.example.com"
+          },
+          "purpose": "生成公共模板与制作契约"
+        },
+        {
+          "tool": "career_resources",
+          "operation": "resource.validate",
+          "args": {
+            "files": {
+              "manifest.json": "<public-manifest-json>"
+            }
+          },
+          "purpose": "校验完整公共文件集；示例占位文本需替换"
+        }
+      ],
+      "evidence": {
+        "scope": "source_contract",
+        "browser_acceptance": "not_asserted",
+        "real_site": "not_asserted",
+        "installed_plugin": "not_asserted"
+      }
+    },
+    {
+      "id": "interview_preparation",
+      "name": "面试准备与复测",
+      "description": "恢复岗位与研究材料，主动补齐缺失官方 JD，诊断基础、深挖项目并记录真实回答和复测。",
+      "status": "workflow",
+      "entry": {
+        "skill": "interview-preparation",
+        "tool": "career_get",
+        "operation": "interview.schema"
+      },
+      "requires": [
+        "先读取相关申请、指定简历与研究来源；缺 JD 先读对应官方链接再询问",
+        "使用 custom 任务，data.workflow=interview_preparation，schema_version=1"
+      ],
+      "limitations": [
+        "JD 未取得或身份不符时报告实际缺口后继续通用练习；不凭岗位名推断团队",
+        "无公司真实题库承诺；近期技术需官方来源核验",
+        "助手讲解不等于用户掌握；面试讲法不写回已确认个人事实"
+      ],
+      "recipes": [
+        {
+          "tool": "career_get",
+          "operation": "record.list",
+          "args": {
+            "kind": "application",
+            "query": "<company-name>",
+            "limit": 20,
+            "offset": 0
+          },
+          "purpose": "先查已有岗位与 job_description/jd_* 来源，缺失时按官方身份补齐"
+        },
+        {
+          "tool": "career_get",
+          "operation": "application.jd.read",
+          "args": {
+            "id": "<application-record-id>",
+            "offset": 0,
+            "limit": 2000
+          },
+          "purpose": "按 next_offset 读取完整 JD，首读后固定返回的 revision"
+        },
+        {
+          "tool": "career_save",
+          "operation": "application.jd.save",
+          "args": {
+            "id": "<application-record-id>",
+            "revision": 1,
+            "changes": {
+              "jd_last_attempt_at": "2027-03-08T10:00:00+08:00",
+              "jd_blocker": "<observed-reading-blocker>"
+            }
+          },
+          "purpose": "仅示范字段形状，使用实际修订、时间与观察；只补 JD，不改申请状态"
+        },
+        {
+          "tool": "career_get",
+          "operation": "interview.schema",
+          "args": {},
+          "purpose": "读取面试任务 data 的结构约定"
+        },
+        {
+          "tool": "career_tasks",
+          "operation": "task.context",
+          "args": {
+            "id": "<interview-task-id>",
+            "profile_limit": 20,
+            "application_limit": 20
+          },
+          "purpose": "开始或继续前恢复当前上下文"
+        }
+      ],
+      "evidence": {
+        "scope": "source_contract",
+        "browser_acceptance": "not_asserted",
+        "real_site": "not_asserted",
+        "installed_plugin": "not_asserted"
+      }
+    },
+    {
+      "id": "schedule",
+      "name": "每日跟进配置",
+      "description": "生成绑定资料库与账号的宿主自动化说明，并记录真实宿主任务 ID。",
+      "status": "configuration",
+      "entry": {
+        "skill": "career",
+        "tool": "career_schedule",
+        "command": "action=prepare"
+      },
+      "requires": [
+        "本人明确请求定期跟进",
+        "由当前宿主正式自动化工具创建或更新任务"
+      ],
+      "limitations": [
+        "保存时间或生成说明不会创建、启动或核验自动化",
+        "状态无变化保持安静；不会变更现有自动化"
+      ],
+      "recipes": [
+        {
+          "tool": "career_schedule",
+          "action": "get",
+          "purpose": "读取绑定账号的配置"
+        },
+        {
+          "tool": "career_schedule",
+          "action": "prepare",
+          "purpose": "获得一次检查用提示词；本操作不建立自动化"
+        }
+      ],
+      "evidence": {
+        "scope": "source_contract",
+        "browser_acceptance": "not_asserted",
+        "real_site": "not_asserted",
+        "installed_plugin": "not_asserted"
+      }
+    },
+    {
+      "id": "migration_sync",
+      "name": "迁移与个人同步",
+      "description": "区分结构化交换、完整离线备份与私有 WebDAV 单写者交接。",
+      "status": "configuration",
+      "entry": {
+        "skill": "career",
+        "tool": "career_get",
+        "operation": "sync.status"
+      },
+      "requires": [
+        "私人数据目录位于源码、运行包及云同步目录之外",
+        "完整恢复前停止旧服务；写入遵循同步所有权"
+      ],
+      "limitations": [
+        "portable 不含任务、原始附件、意向与完整历史",
+        "同步配置/交接由本人网页完成；无多人并行或离线合并写入"
+      ],
+      "recipes": [
+        {
+          "tool": "career_get",
+          "operation": "sync.status",
+          "args": {},
+          "purpose": "只读当前同步模式"
+        },
+        {
+          "command": "python scripts/run.py backup --output <private-backup.zip> --data-dir <private-data-dir>",
+          "purpose": "停止服务后完整备份；不是 MCP 写操作"
+        }
+      ],
+      "evidence": {
+        "scope": "source_contract",
+        "browser_acceptance": "not_asserted",
+        "real_site": "not_asserted",
+        "installed_plugin": "not_asserted"
+      }
+    }
+  ]
+}

@@ -28,7 +28,11 @@ MAX_MANIFEST = 4 * 1024 * 1024
 MAX_FILES = 20000
 CHUNK = 1024 * 1024
 MACHINE_SCHEDULE_FIELDS = {"enabled", "host_task_id", "allow_relogin"}
-BUSINESS_TABLES = ("accounts", "documents", "events", "imports", "records", "settings", "task_events", "tasks")
+# Schema 3 digest normalization supplied exactly these intention defaults.
+# Additional empty defaults must not turn an unchanged handoff into a conflict.
+LEGACY_PREFERENCE_FIELDS = {"cities", "roles", "industries", "excluded_companies", "recruitment_types", "notes"}
+BUSINESS_TABLES = ("accounts", "documents", "events", "imports", "records", "settings", "task_events", "tasks") + storage.PROFILE_TABLES
+SUPPORTED_SCHEMAS = (2, 3, storage.SCHEMA_VERSION)
 HEX_ID = re.compile(r"[a-f0-9]{32}\Z")
 DOCUMENT = re.compile(r"[a-f0-9]{32}\.(?:txt|md|json|docx|pdf)\Z")
 EXCLUDED = ["OTP tokens and verification windows", "active machine task bindings on restore",
@@ -121,12 +125,15 @@ def _connect(path, readonly=True):
 
 
 def _database(db):
-    if db.execute("PRAGMA user_version").fetchone()[0] != storage.SCHEMA_VERSION:
+    version = db.execute("PRAGMA user_version").fetchone()[0]
+    if version not in SUPPORTED_SCHEMAS:
         _fail("Backup database schema is not supported.")
     expected = sqlite3.connect(":memory:")
     try:
         storage.initialize(expected, "schema-check")
         tables = {row[0] for row in expected.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if version == 2:
+            tables.difference_update(storage.PROFILE_TABLES)
         actual = list(db.execute("SELECT name,type FROM sqlite_master WHERE type IN ('table','view','trigger')"))
         if any(row[1] != "table" or row[0] not in tables | {"otp_windows", "otp_connection_tests"} for row in actual):
             _fail("Backup database has unsupported schema objects.")
@@ -144,7 +151,43 @@ def _database(db):
     for table in tables - {"accounts"}:
         if db.execute(f"SELECT 1 FROM {table} WHERE user_id NOT IN (SELECT id FROM accounts) LIMIT 1").fetchone():
             _fail("Backup contains orphaned account data.")
+    if version >= 3:
+        if db.execute("""SELECT 1 FROM profile_sources AS source
+                LEFT JOIN records AS record ON record.id=source.record_id AND record.user_id=source.user_id
+                WHERE record.id IS NULL LIMIT 1""").fetchone():
+            _fail("Backup profile sources do not belong to their account records.")
+        if db.execute("""SELECT 1 FROM profile_relations AS relation
+                LEFT JOIN records AS origin ON origin.id=relation.from_id AND origin.user_id=relation.user_id
+                LEFT JOIN records AS target ON target.id=relation.to_id AND target.user_id=relation.user_id
+                WHERE origin.id IS NULL OR target.id IS NULL LIMIT 1""").fetchone():
+            _fail("Backup profile relations do not belong to their account records.")
+        if db.execute("""SELECT 1 FROM profile_relation_events AS event
+                LEFT JOIN profile_relations AS relation ON relation.id=event.relation_id AND relation.user_id=event.user_id
+                WHERE relation.id IS NULL LIMIT 1""").fetchone():
+            _fail("Backup profile relation history does not belong to its account relations.")
+        for row in db.execute("SELECT field_path,value_json FROM profile_sources"):
+            # Historical field evidence can outlive a field in the current form.
+            # Validate the stored path itself, without consulting today's catalog.
+            field_path = row["field_path"]
+            if not isinstance(field_path, str) or not field_path.strip() or len(field_path) > 500 or any(ord(char) < 32 for char in field_path):
+                _fail("Backup profile source field path is invalid.")
+            _profile_json(row["value_json"])
+        for row in db.execute("SELECT result_json FROM profile_migrations"):
+            if not isinstance(_profile_json(row["result_json"]), dict):
+                _fail("Backup profile migration result is invalid.")
+        for row in db.execute("SELECT before_json,after_json FROM profile_relation_events"):
+            if not isinstance(_profile_json(row["after_json"]), dict) or (row["before_json"] is not None and not isinstance(_profile_json(row["before_json"]), dict)):
+                _fail("Backup profile relation history JSON is invalid.")
     return ids
+
+
+def _profile_json(value):
+    if not isinstance(value, str):
+        _fail("Backup profile metadata JSON is invalid.")
+    try:
+        return _decode(value.encode("utf-8"))
+    except AppError:
+        _fail("Backup profile metadata JSON is invalid.")
 
 
 def _otp_config(base):
@@ -263,6 +306,10 @@ def _sync_settings(data, *, defaults=False):
                 result[key].update(value)
             else:
                 result[key] = value
+        preferences = result.get("preferences", {})
+        for key, default in DEFAULT_SETTINGS.get("preferences", {}).items():
+            if key not in LEGACY_PREFERENCE_FIELDS and _json(preferences.get(key)) == _json(default):
+                preferences.pop(key, None)
     else:
         result = copy.deepcopy(data)
     if "schedule" in result:
@@ -286,6 +333,10 @@ def logical_digest(base, db_path=None):
         ids, files, _ = _inventory(base, db, include_otp=False, include_packages=False)
         for table in BUSINESS_TABLES:
             columns = [row["name"] for row in db.execute(f"PRAGMA table_info({table})")]
+            # The additive upgrade carries no new business values until first use.
+            # Keep its digest equal to older snapshots so WebDAV can adopt them.
+            if table in storage.PROFILE_TABLES and (not columns or not db.execute(f"SELECT 1 FROM {table} LIMIT 1").fetchone()):
+                continue
             if table == "settings":
                 columns = [name for name in columns if name != "revision"]
             digest.update(_json({"table": table, "columns": columns}) + b"\n")
@@ -296,7 +347,7 @@ def logical_digest(base, db_path=None):
                 continue
             names = ",".join('"' + name + '"' for name in columns)
             for row in db.execute(f"SELECT {names} FROM {table} ORDER BY {names}"):
-                values = [json.loads(row[name]) if name in {"data", "before_json", "after_json"} and row[name] is not None
+                values = [json.loads(row[name]) if name in {"data", "before_json", "after_json", "value_json", "result_json"} and row[name] is not None
                           else row[name] for name in columns]
                 digest.update(_json(values) + b"\n")
         for name, path in sorted(files.items()):
@@ -368,6 +419,7 @@ def _backup(base, output, *, for_sync):
                 source.backup(destination)
             with _connect(snapshot, False) as db:
                 ids, files, generated = _inventory(base, db, include_otp=not for_sync, include_packages=not for_sync)
+                schema_version = db.execute("PRAGMA user_version").fetchone()[0]
                 # Private ZIP does not carry OTP windows or test fingerprints.
                 _clear_otp(db)
                 if for_sync:
@@ -385,7 +437,7 @@ def _backup(base, output, *, for_sync):
             total = sum(item["size"] for item in entries)
             manifest = _json({"format": "job-search-private-backup", "version": 1,
                               "scope": "personal-sync" if for_sync else "offline-migration",
-                              "database_schema": storage.SCHEMA_VERSION,
+                              "database_schema": schema_version,
                               "created_at": datetime.now(timezone.utc).isoformat(),
                               "files": entries, "excluded": excluded})
             if total + len(manifest) > MAX_TOTAL or len(manifest) > MAX_MANIFEST or len(entries) > MAX_FILES:
@@ -452,7 +504,7 @@ def unpack(archive_path, stage):
         if "manifest.json" not in infos or infos["manifest.json"].file_size > MAX_MANIFEST:
             _fail("Backup manifest is missing or exceeds the size limit.")
         manifest = _decode(archive.read("manifest.json"))
-        if not isinstance(manifest, dict) or manifest.get("format") != "job-search-private-backup" or manifest.get("version") != 1 or manifest.get("database_schema") != storage.SCHEMA_VERSION or not isinstance(manifest.get("files"), list) or manifest.get("scope", "offline-migration") not in ("offline-migration", "personal-sync"):
+        if not isinstance(manifest, dict) or manifest.get("format") != "job-search-private-backup" or manifest.get("version") != 1 or type(manifest.get("database_schema")) is not int or manifest.get("database_schema") not in SUPPORTED_SCHEMAS or not isinstance(manifest.get("files"), list) or manifest.get("scope", "offline-migration") not in ("offline-migration", "personal-sync"):
             _fail("Backup manifest format is unsupported.")
         entries = {}
         for entry in manifest["files"]:
@@ -479,10 +531,14 @@ def unpack(archive_path, stage):
             if size != entry["size"] or digest.hexdigest() != entry["sha256"]:
                 _fail("Backup file hash differs from its index.")
     with _connect(stage / "career.db", False) as db:
+        if db.execute("PRAGMA user_version").fetchone()[0] != manifest["database_schema"]:
+            _fail("Backup database schema differs from its manifest.")
         personal = manifest.get("scope") == "personal-sync"
         ids, files, generated = _inventory(stage, db, include_otp=not personal, include_packages=not personal)
         if set(files) | set(generated) | {"career.db"} != set(entries):
             _fail("Backup contains files that do not belong to its accounts or managed state.")
+        if manifest["database_schema"] < storage.SCHEMA_VERSION:
+            storage.initialize(db, datetime.now(timezone.utc).isoformat())
     return {"manifest": manifest, "ids": ids, "generated": generated}
 
 

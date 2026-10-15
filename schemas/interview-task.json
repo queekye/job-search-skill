@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:job-search-skill:interview-task:data:1",
+  "title": "面试准备任务 data v1",
+  "description": "用于 kind=custom 的私有任务。事实引用、建议讲法和练习记录分开；该约定不授予登录、消息、选择岗位或投递权限。日期使用 ISO 8601 且含时区，未知用 null。整个 data 仍受通用任务 64KB/复杂度限制。",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "workflow",
+    "schema_version",
+    "application_id",
+    "scheduled_at",
+    "round",
+    "selected_record_ids",
+    "source_versions",
+    "plan",
+    "project_cards",
+    "practice",
+    "summary"
+  ],
+  "properties": {
+    "workflow": {
+      "const": "interview_preparation"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "application_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "本地 application 记录 ID，非官网申请编号；未知时 null。"
+    },
+    "scheduled_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "pattern": "(?:Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "round": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 100
+    },
+    "selected_record_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "uniqueItems": true,
+      "maxItems": 100,
+      "description": "本轮选用的项目、研究、论文等本地事实 ID。"
+    },
+    "source_versions": {
+      "type": "object",
+      "propertyNames": {
+        "minLength": 1,
+        "maxLength": 100
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "description": "读到的事实修订；文案和复测不能自动确认事实。"
+    },
+    "plan": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "topic",
+          "priority",
+          "status"
+        ],
+        "properties": {
+          "topic": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "priority": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed"
+            ]
+          }
+        }
+      }
+    },
+    "project_cards": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "record_id",
+          "narrative",
+          "contribution",
+          "evidence",
+          "limitations",
+          "questions"
+        ],
+        "properties": {
+          "record_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "narrative": {
+            "type": "string",
+            "maxLength": 12000
+          },
+          "contribution": {
+            "type": "string",
+            "maxLength": 12000
+          },
+          "evidence": {
+            "type": "string",
+            "maxLength": 12000
+          },
+          "limitations": {
+            "type": "string",
+            "maxLength": 12000
+          },
+          "questions": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          }
+        }
+      }
+    },
+    "practice": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "question",
+          "answer_summary",
+          "feedback",
+          "misconceptions",
+          "status",
+          "retested_at"
+        ],
+        "properties": {
+          "question": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "answer_summary": {
+            "type": "string",
+            "maxLength": 12000
+          },
+          "feedback": {
+            "type": "string",
+            "maxLength": 12000
+          },
+          "misconceptions": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "maxLength": 2000
+            }
+          },
+          "status": {
+            "enum": [
+              "unassessed",
+              "needs_review",
+              "passed"
+            ],
+            "description": "仅据用户实际回答或复测评估，不因助手已讲解标记 passed。"
+          },
+          "retested_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "pattern": "(?:Z|[+-]\\d{2}:\\d{2})$"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 12000
+    }
+  }
+}

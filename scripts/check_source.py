@@ -10,6 +10,8 @@ from scripts.build_release import public_paths
 from scripts.check_release import check_release
 
 SOURCE_FILES = {
+    'scripts/generate_profile_schema.py',
+    'references/profile-redesign.md', 'references/profile-fields-v2.md',
     '.gitignore', '.gitattributes', 'AGENTS.md', 'CONTRIBUTING.md', 'Check.cmd',
     '.github/workflows/check.yml', '.github/ISSUE_TEMPLATE/company-resource.yml',
     'references/development-contract.md', 'references/development-handoff.md', 'references/resource-index.md', 'references/validation.md',

@@ -19,18 +19,16 @@ import zipfile
 import xml.etree.ElementTree as ET
 from .locking import gate, locked
 
-VERSION = "0.2.1"
+VERSION = "0.4.1"
 MAX_DOCUMENT_BYTES = 15 * 1024 * 1024
 MAX_TEXT = 1024 * 1024
+JD_FIELDS = {"job_description", "jd_url", "jd_checked_at", "jd_coverage", "jd_identity_status", "jd_last_attempt_at", "jd_blocker"}
+_PROFILE_CATALOG = json.loads((Path(__file__).resolve().parents[1] / "schemas" / "profile-fields.json").read_text(encoding="utf-8"))
 FIELDS = {
-    "basic": {"name", "email", "phone", "location", "summary", "id_number", "birth_date", "gender", "hometown", "ethnicity", "residence_city"},
-    "education": {"school", "degree", "major", "department", "start_date", "end_date", "description"},
-    "experience": {"title", "organization", "role", "start_date", "end_date", "description", "category"},
-    "family": {"relation", "name", "organization", "department", "role", "employment_status", "confirmed_at", "notes"},
-    "preference": {"category", "value", "notes"},
+    **{kind: {field["key"] for field in definition["fields"]} for kind, definition in _PROFILE_CATALOG["records"].items()},
     "application": {"company", "title", "url", "city", "program", "stage", "raw_status", "checked_at", "coverage", "notes",
                     "job_id", "application_id", "next_action", "blocker", "decision", "evidence_url", "last_attempt_at",
-                    "recommendation_bucket", "fit_tier", "recommendation_scope"},
+                    "recommendation_bucket", "fit_tier", "recommendation_scope"} | JD_FIELDS,
 }
 ENUMS = {
     ("basic", "gender"): {"男", "女"},
@@ -40,6 +38,8 @@ ENUMS = {
     ("application", "coverage"): {"complete", "partial", "unknown"},
     ("application", "recommendation_bucket"): {"recommended", "exploratory", "pending", "excluded"},
     ("application", "fit_tier"): {"A", "B", "C"},
+    ("application", "jd_coverage"): {"complete", "partial", "unknown"},
+    ("application", "jd_identity_status"): {"exact", "related", "unknown"},
 }
 DEFAULT_SETTINGS = {
     "schedule": {"time": "10:00", "timezone": "Asia/Shanghai", "enabled": False, "allow_relogin": False, "host_task_id": None},
@@ -48,6 +48,10 @@ DEFAULT_SETTINGS = {
     "registry_url": "https://job-search-company-resources.pages.dev/index.json",
     "contribution_url": "https://github.com/queekye/job-search-skill/issues/new?template=company-resource.yml",
 }
+
+
+from .intention import DEFAULTS as _INTENTION_DEFAULTS
+DEFAULT_SETTINGS['preferences'] = copy.deepcopy(_INTENTION_DEFAULTS)
 
 
 class AppError(Exception):
@@ -98,19 +102,40 @@ def validate_data(kind, data):
         raise AppError("invalid_kind", "Unknown record kind.")
     if not isinstance(data, dict) or not data or set(data) - FIELDS[kind]:
         raise AppError("invalid_fields", "Record data contains unknown fields or is empty.")
+    catalog_kind = kind in _PROFILE_CATALOG["records"]
+    if catalog_kind:
+        from .profile import validate_record_fields
+        validate_record_fields(kind, data)
+        if kind in {'company_answer', 'resume_variant', 'company_decision'}:
+            from .resumes import validate
+            validate(kind, data)
+    from .resume_content import ensure_resume_content
+    ensure_resume_content(kind, data)
     result = {}
     for key, value in data.items():
         if value is None:
             result[key] = None
             continue
-        limit = 12000 if key in {"summary", "description", "notes", "value", "next_action", "blocker"} else 2048 if key in {"url", "evidence_url"} else 500
+        from .profile import fields as profile_fields
+        definition = next((field for field in profile_fields(kind) if field['key'] == key), None)
+        if catalog_kind and not isinstance(value, str):
+            result[key] = copy.deepcopy(value)
+            continue
+        limit = definition.get('max_length', 500) if definition else 60000 if key == "job_description" else 12000 if key in {"summary", "description", "notes", "value", "next_action", "blocker", "jd_blocker"} else 2048 if key in {"url", "evidence_url", "jd_url"} else 500
         _text(value, "Record field", limit)
-        if (kind, key) in ENUMS and value not in ENUMS[(kind, key)]:
+        if not catalog_kind and (kind, key) in ENUMS and value not in ENUMS[(kind, key)]:
             raise AppError("invalid_choice", "Record field is not an allowed choice.")
         if key == "url":
             _url(value)
-        if key == "evidence_url":
+        if key in {"evidence_url", "jd_url"}:
             _url(value, allow_empty=False)
+        if key in {"jd_checked_at", "jd_last_attempt_at"}:
+            try:
+                if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})", value):
+                    raise ValueError()
+                datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                raise AppError("invalid_date", "JD observation dates must use an ISO date/time with a time zone.") from None
         if key == "id_number" and value:
             if not re.fullmatch(r"\d{17}[\dX]", value):
                 raise AppError("invalid_identifier", "Identity number format is invalid.")
@@ -118,7 +143,7 @@ def validate_data(kind, data):
             expected = "10X98765432"[sum(int(digit) * weight for digit, weight in zip(value[:17], weights)) % 11]
             if value[-1] != expected:
                 raise AppError("invalid_identifier", "Identity number checksum is invalid.")
-        if key in {"start_date", "end_date", "confirmed_at", "checked_at", "last_attempt_at", "birth_date"} and value:
+        if (not definition or definition.get('format') != 'partial_date') and key in {"start_date", "end_date", "confirmed_at", "checked_at", "last_attempt_at", "birth_date"} and value:
             try:
                 if key == "birth_date":
                     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
@@ -211,6 +236,11 @@ class App:
         if actor not in {"user", "codex"}:
             raise AppError("invalid_actor", "Unknown actor.")
         args = args or {}
+        if operation.startswith("capability.") or operation == "interview.schema":
+            from . import capabilities
+            return capabilities.execute(operation, args)
+        if operation == "profile.migration.apply" and actor != "user":
+            raise AppError("user_action_required", "Only the applicant can apply a reviewed profile migration.", 403)
         if operation.startswith("fill.") or operation.startswith("browser."):
             from . import forms
             return forms.execute(self, operation, args, actor)
@@ -234,8 +264,10 @@ class App:
                 reconcile_startup(self)
                 result.update(sync.status(self))
             return result
-        if operation in {"account.create", "record.save", "record.archive", "history.undo", "settings.save",
+        if operation in {"account.create", "record.save", "application.jd.save", "record.archive", "history.undo", "settings.save",
                          "document.import", "document.archive", "profile.import", "task.save",
+                         "profile.relation.save", "profile.relation.archive", "profile.migration.apply",
+                         "legacy.apply", "resume.save", "resume.archive", "answer.save", "answer.archive", "decision.save", "decision.archive",
                          "recommendation.exclude", "recommendation.restore", "recommendation.reconcile"}:
             incoming = args.get("settings", {})
             machine_only = operation == "settings.save" and isinstance(incoming, dict) and set(incoming) == {"schedule"} and isinstance(incoming["schedule"], dict) and set(incoming["schedule"]) <= {"enabled", "host_task_id", "allow_relogin"}
@@ -262,10 +294,31 @@ class App:
             from .schedule import prepare
             with self._connect() as db:
                 return prepare(self, self._settings(db), setup=True)
+        if operation == 'family.evaluate':
+            from . import family
+            return family.execute(self, operation, args, actor)
+        if operation.startswith('intention.') or operation.startswith('legacy.'):
+            from . import intention
+            return intention.execute(self, operation, args, actor)
+        if operation.startswith('resume.') or operation.startswith('answer.') or operation.startswith('decision.'):
+            from . import resumes
+            return resumes.execute(self, operation, args, actor)
+        if operation in {'profile.schema', 'profile.get', 'profile.patch', 'profile.migration.preview',
+                         'profile.migration.apply', 'profile.relation.list', 'profile.relation.save', 'profile.relation.archive',
+                         'intention.get', 'intention.patch'}:
+            from . import profile
+            try:
+                return profile.execute(self, operation, args, actor)
+            except sqlite3.Error:
+                raise AppError('storage_error', 'The local database could not complete this operation.', 500) from None
+            except OSError:
+                raise AppError('storage_error', 'The local data directory could not complete this operation.', 500) from None
         routes = {
             "account.list": self._account_list, "account.create": self._account_create,
             "account.get": self._account_get,
             "state": self._state, "record.list": self._record_list,
+            "application.jd.read": self._application_jd_read,
+            "application.jd.save": self._application_jd_save,
             "record.save": self._record_save, "record.archive": self._record_archive,
             "history.list": self._history_list, "history.undo": self._history_undo,
             "settings.save": self._settings_save, "document.import": self._document_import,
@@ -304,7 +357,11 @@ class App:
         if row:
             saved = json.loads(row["data"])
             for key, value in saved.items():
-                settings[key] = dict(settings[key], **value) if key in {"schedule", "preferences"} else value
+                if key == 'preferences':
+                    from .intention import effective
+                    settings[key] = effective(value)
+                else:
+                    settings[key] = dict(settings[key], **value) if key == 'schedule' else value
         for key in ("registry_url", "contribution_url"):
             settings[key] = settings[key] or DEFAULT_SETTINGS[key]
         settings["_revision"] = row["revision"] if row else 0
@@ -414,9 +471,30 @@ class App:
                 raise AppError("record_archived", "Restore this archived record before editing.", 409)
             if kind != before["kind"]:
                 raise AppError("invalid_kind", "A record's kind cannot change.")
+            from .profile import check_record_relations
+            check_record_relations(db, before, data)
+            from .resumes import check_fact_change
+            check_fact_change(self, db, before, data)
         if kind == "application":
             from .recommendations import check_candidate
             check_candidate(self, db, data, before["id"] if before else None)
+        if kind in {'company_answer', 'resume_variant', 'company_decision'}:
+            from .resumes import check_references, check_source_versions
+            check_references(self, db, kind, data)
+            check_source_versions(self, db, args)
+            if kind == 'resume_variant':
+                from .resumes import prepare_sources
+                prepare_sources(self, db, data, before, args, actor, action)
+            elif kind == 'company_answer':
+                from .resumes import prepare_answer_source
+                prepare_answer_source(self, db, data, before, args, actor, action)
+            if actor == 'codex' and args.get('status') == 'confirmed':
+                raise AppError('user_action_required', 'AI 编写的方案及公司答案须由本人确认。', 403)
+        if kind == 'company_decision' and actor != 'user':
+            raise AppError('user_action_required', '公司决定由本人编辑。', 403)
+        if kind == 'company_decision':
+            from .resumes import check_decision_unique
+            check_decision_unique(self, db, data, before['id'] if before else None)
         source, scope, status = self._metadata(args, actor, before)
         created = before["created_at"] if before else now()
         record_id = before["id"] if before else uuid.uuid4().hex
@@ -426,6 +504,9 @@ class App:
                    (record_id, kind, _json(data), before["revision"] + 1 if before else 1, source, scope, status, created, now(), self.user_id))
         after = self._get_record(db, record_id)
         self._audit(db, before, after, action, actor)
+        if kind in _PROFILE_CATALOG['records']:
+            from .profile import capture_sources
+            capture_sources(db, after, before)
         if kind == "application":
             from .recommendations import ACTIVE_STAGES, reconcile
             if data.get("stage") in ACTIVE_STAGES:
@@ -437,6 +518,47 @@ class App:
             db.execute("BEGIN IMMEDIATE")
             return self._save_in_transaction(db, args, actor)
 
+    def _application_jd_read(self, args, actor):
+        """Read an exact revision-pinned JD slice, including a minimal identity/source."""
+        if set(args) - {"id", "revision", "offset", "limit"}:
+            raise AppError("invalid_request", "JD reading contains unknown arguments.")
+        offset = _integer(args.get("offset", 0), "Offset")
+        limit = _integer(args.get("limit", 2000), "Limit", 1, 4000)
+        revision = _integer(args["revision"], "Revision", 1) if "revision" in args else None
+        with self._connect() as db:
+            record = self._get_record(db, args.get("id"))
+            if record["kind"] != "application" or record["archived"]:
+                raise AppError("not_found", "Active application record was not found.", 404)
+            if revision is not None and record["revision"] != revision:
+                raise AppError("revision_conflict", "This application changed. Restart reading the JD from its current revision.", 409)
+            data = record["data"]
+            text = data.get("job_description") or ""
+            end = min(offset + limit, len(text))
+            return {"id": record["id"], "revision": record["revision"],
+                    **{key: data.get(key) for key in ("company", "title", "program", "job_id")},
+                    "source": {"url": data.get("jd_url"), "checked_at": data.get("jd_checked_at"),
+                               "coverage": data.get("jd_coverage"), "identity_status": data.get("jd_identity_status")},
+                    "text": text[offset:end], "total": len(text), "offset": offset,
+                    "next_offset": end if end < len(text) else None}
+
+    def _application_jd_save(self, args, actor):
+        """Patch only JD evidence without requiring a possibly truncated record round trip."""
+        if set(args) - {"id", "revision", "changes"}:
+            raise AppError("invalid_request", "JD saving contains unknown arguments.")
+        changes = args.get("changes")
+        if not isinstance(changes, dict) or not changes or set(changes) - JD_FIELDS:
+            raise AppError("invalid_fields", "JD changes must contain only supported JD fields.")
+        revision = _integer(args.get("revision"), "Revision", 1)
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            before = self._get_record(db, args.get("id"))
+            if before["kind"] != "application" or before["archived"]:
+                raise AppError("not_found", "Active application record was not found.", 404)
+            return self._save_in_transaction(db, {
+                "id": before["id"], "revision": revision, "kind": "application",
+                "data": {**before["data"], **changes},
+                **{key: before[key] for key in ("source", "scope", "status")}}, actor, "application.jd.save")
+
     def _record_archive(self, args, actor):
         revision = _integer(args.get("revision"), "Revision", 1)
         with self._connect() as db:
@@ -446,6 +568,10 @@ class App:
                 raise AppError("revision_conflict", "This record changed. Reload it before archiving.", 409)
             if before["archived"]:
                 raise AppError("record_archived", "This record is already archived.", 409)
+            if before["kind"] == "company_decision" and actor != "user":
+                raise AppError("user_action_required", "公司决定由本人编辑。", 403)
+            from .resumes import check_fact_change
+            check_fact_change(self, db, before, archiving=True)
             db.execute("UPDATE records SET archived=1,revision=revision+1,updated_at=? WHERE id=? AND user_id=?", (now(), before["id"], self.user_id))
             after = self._get_record(db, before["id"])
             self._audit(db, before, after, "archive", actor)
@@ -481,16 +607,36 @@ class App:
             current = self._get_record(db, row["record_id"])
             if current["revision"] != revision:
                 raise AppError("revision_conflict", "This record changed. Reload it before restoring.", 409)
+            if current["kind"] == "company_decision" and actor != "user":
+                raise AppError("user_action_required", "公司决定由本人编辑。", 403)
             target = json.loads(row["before_json"]) if row["before_json"] else None
             if target:
+                from .resumes import check_fact_change
+                check_fact_change(self, db, current, target['data'], archiving=target['archived'])
+                if not target['archived'] and target['kind'] in {'resume_variant', 'company_answer', 'company_decision'}:
+                    from .resumes import check_references
+                    check_references(self, db, target['kind'], target['data'])
+                    if target['kind'] == 'company_decision':
+                        from .resumes import check_decision_unique
+                        check_decision_unique(self, db, target['data'], current['id'])
+                    if actor == 'codex':
+                        target['status'] = 'unconfirmed'
+                if not target['archived']:
+                    from .profile import check_record_relations
+                    check_record_relations(db, current, target['data'])
                 if target["kind"] == "application" and not target["archived"]:
                     from .recommendations import check_candidate
                     check_candidate(self, db, target["data"], current["id"])
                 db.execute("UPDATE records SET data=?,source=?,scope=?,status=?,archived=?,revision=revision+1,updated_at=? WHERE id=? AND user_id=?", (_json(target["data"]), target["source"], target["scope"], target["status"], int(target["archived"]), now(), current["id"], self.user_id))
             else:
+                from .resumes import check_fact_change
+                check_fact_change(self, db, current, archiving=True)
                 db.execute("UPDATE records SET archived=1,revision=revision+1,updated_at=? WHERE id=? AND user_id=?", (now(), current["id"], self.user_id))
             after = self._get_record(db, current["id"])
             self._audit(db, current, after, "undo", actor)
+            if after['kind'] in _PROFILE_CATALOG['records'] and not after['archived']:
+                from .profile import capture_sources
+                capture_sources(db, after, current)
             if after["kind"] == "application" and not after["archived"]:
                 from .recommendations import ACTIVE_STAGES, reconcile
                 if after["data"].get("stage") in ACTIVE_STAGES:
@@ -536,20 +682,8 @@ class App:
 
     @staticmethod
     def _validate_preferences(incoming, current):
-        if not isinstance(incoming, dict) or set(incoming) - set(DEFAULT_SETTINGS["preferences"]):
-            raise AppError("invalid_settings", "Preferences contain unknown fields.")
-        preferences = copy.deepcopy(current)
-        for key, value in incoming.items():
-            if key == "notes":
-                preferences[key] = _text(value, "Preference notes", 12000)
-                continue
-            if not isinstance(value, list) or len(value) > 100:
-                raise AppError("invalid_settings", "Preference lists must contain no more than 100 entries.")
-            entries = [_text(item, "Preference entry", 200, False).strip() for item in value]
-            if key == "recruitment_types" and (not entries or any(item not in {"campus", "internship", "social"} for item in entries)):
-                raise AppError("invalid_settings", "Select at least one supported recruitment type.")
-            preferences[key] = list(dict.fromkeys(entries))
-        return preferences
+        from .intention import validate
+        return validate(incoming, current)
 
     @staticmethod
     def _task(row):
@@ -672,14 +806,24 @@ class App:
                 return {"items": items, "total": total, "limit": limit, "offset": offset,
                         "next_offset": offset + len(items) if offset + len(items) < total else None}
 
-            return {"account": self._validate_account(db, self.user_id), "user_id": self.user_id,
+            result = {"account": self._validate_account(db, self.user_id), "user_id": self.user_id,
                     "recommendation_exclusions": self._recommendation_exclusions(db),
                     "recommendation_activity": self._recommendation_activity(db),
                     "settings": self._settings(db), "task": self._get_task(db, args["id"]) if args.get("id") else None,
-                    "profile": page("kind!='application'", profile_limit, profile_offset),
+                    "profile": page("kind NOT IN ('application','preference','company_answer','resume_variant','company_decision')", profile_limit, profile_offset),
+                    "intention": {'data': self._settings(db)['preferences'], 'revision': self._settings(db)['_revision'], 'authority': 'settings.preferences'},
+                    "legacy_pending": db.execute("SELECT COUNT(*) FROM records WHERE user_id=? AND kind='preference' AND archived=0", (self.user_id,)).fetchone()[0],
+                    "company_decisions": page("kind='company_decision'", profile_limit, profile_offset),
+                    "company_answers": page("kind='company_answer'", profile_limit, profile_offset),
+                    "resume_variants": page("kind='resume_variant'", profile_limit, profile_offset),
                     "applications": page("kind='application'", application_limit, application_offset),
                     "read_at": now(), "database": self._database_meta(), "data_dir": str(self.data_dir),
                     "base_data_dir": str(self.base_data_dir), "root_dir": str(self.root_dir), "sync": self._sync_meta()}
+            from .interviews import context
+            interview_context = context(self, db, result["task"])
+            if interview_context is not None:
+                result["interview_context"] = interview_context
+            return result
 
     def _recommendation_exclusions(self, db):
         from .recommendations import page
@@ -859,31 +1003,49 @@ class App:
 
     def _profile_export(self, args, actor):
         with self._connect() as db:
+            db.execute("BEGIN")
             records = [self._record(row) for row in db.execute("SELECT * FROM records WHERE user_id=? AND archived=0 ORDER BY kind,id", (self.user_id,))]
+            from .profile import export_extras
+            extras = export_extras(self, db)
         for record in records:
             record.pop("user_id", None)
-        return {"schema_version": 1, "exported_at": now(), "records": records}
+        return {"schema_version": 3, "exported_at": now(), "records": records, **extras}
 
     def _profile_import(self, args, actor):
         profile = args.get("profile")
-        if not isinstance(profile, dict) or profile.get("schema_version") != 1 or not isinstance(profile.get("records"), list):
-            raise AppError("unsupported_profile", "Import requires portable schema_version 1 with mapped records.")
+        if not isinstance(profile, dict) or type(profile.get("schema_version")) is not int or profile["schema_version"] not in {1, 2, 3} or not isinstance(profile.get("records"), list):
+            raise AppError("unsupported_profile", "Import requires portable schema_version 1, 2 or 3 with mapped records.")
+        if profile['schema_version'] >= 2:
+            if set(profile) - {'schema_version', 'exported_at', 'records', 'profile_relations', 'profile_sources'}:
+                raise AppError('invalid_profile', 'Portable schema_version 2 or 3 contains unknown fields.')
+            if any(not isinstance(profile.get(key, []), list) for key in ('profile_relations', 'profile_sources')):
+                raise AppError('invalid_profile', 'Portable sources and relations must be arrays.')
         source_label = _text(args.get("source_label", "portable-import"), "Source label", 300, False)
         records = list(profile["records"])
         if args.get("applications") is not None:
             applications = args["applications"]
-            if not isinstance(applications, dict) or applications.get("schema_version") != 1 or not isinstance(applications.get("records"), list):
-                raise AppError("unsupported_profile", "Applications must use portable schema_version 1.")
+            if not isinstance(applications, dict) or type(applications.get("schema_version")) is not int or applications['schema_version'] not in {1, 2, 3} or not isinstance(applications.get("records"), list):
+                raise AppError("unsupported_profile", "Applications must use portable schema_version 1, 2 or 3.")
+            if applications['schema_version'] >= 2 and (set(applications) - {'schema_version', 'exported_at', 'records', 'profile_relations', 'profile_sources'} or any(applications.get(key, []) != [] for key in ('profile_relations', 'profile_sources'))):
+                raise AppError('invalid_profile', 'Additional application import cannot contain profile sources or relations.')
             if any(not isinstance(record, dict) or record.get("kind") != "application" for record in applications["records"]):
                 raise AppError("invalid_kind", "Additional application import contains another record kind.")
             records.extend(applications["records"])
         if len(records) > 5000:
             raise AppError("import_too_large", "Import is limited to 5000 records.", 413)
         mapped = []
+        explicit_ids = set()
         for item in records:
             if not isinstance(item, dict):
                 raise AppError("invalid_profile", "Imported records must be objects.")
+            if profile['schema_version'] >= 2 and item.get('id') is not None:
+                _text(item['id'], 'Import identifier', 300, False)
+                if item['id'] in explicit_ids:
+                    raise AppError('invalid_profile', 'Portable record identifiers must be unique.')
+                explicit_ids.add(item['id'])
             kind = item.get("kind")
+            if kind in {'resume_variant', 'company_answer', 'company_decision'} and profile['schema_version'] < 3:
+                raise AppError('unsupported_profile', '简历方案、公司答案与公司决定需要 portable v3。')
             data = validate_data(kind, item.get("data"))
             identity = item.get("id")
             if identity is None:
@@ -896,12 +1058,13 @@ class App:
             import_id = hashlib.sha256(_json([source_label, kind, identity]).encode()).hexdigest()
             mapped.append((import_id, identity, record))
         imported, skipped, excluded, suppressed = [], 0, 0, 0
+        id_map = {}
         with self._connect() as db:
             db.execute("BEGIN IMMEDIATE")
             from .recommendations import ACTIVE_STAGES, activity_company_key, active_blocked, is_recommendation
             incoming_active = set()
             incoming_identities = set()
-            for import_id, source_identity, record in mapped:
+            for import_id, source_identity, record in sorted(mapped, key=lambda item: item[2]['kind'] in {'resume_variant', 'company_answer', 'company_decision'}):
                 # Imports keep the first eligible source identity. A later
                 # duplicate active snapshot must not suppress another job when
                 # an earlier closed snapshot will consume this same identity.
@@ -917,8 +1080,10 @@ class App:
                 company_key = activity_company_key(record["data"].get("company"))
                 if company_key:
                     incoming_active.add(company_key)
-            for import_id, source_identity, record in mapped:
-                if db.execute("SELECT 1 FROM imports WHERE identity=? AND user_id=?", (import_id, self.user_id)).fetchone():
+            for import_id, source_identity, record in sorted(mapped, key=lambda item: item[2]['kind'] in {'resume_variant', 'company_answer', 'company_decision'}):
+                imported_identity = db.execute("SELECT record_id FROM imports WHERE identity=? AND user_id=?", (import_id, self.user_id)).fetchone()
+                if imported_identity:
+                    id_map[source_identity] = imported_identity['record_id']
                     skipped += 1
                     continue
                 # Exporting and reimporting this same local database must not
@@ -926,6 +1091,7 @@ class App:
                 existing = db.execute("SELECT id FROM records WHERE id=? AND kind=? AND user_id=?", (source_identity, record["kind"], self.user_id)).fetchone()
                 if existing:
                     db.execute("INSERT INTO imports(user_id,identity,record_id,imported_at) VALUES(?,?,?,?)", (self.user_id, import_id, existing["id"], now()))
+                    id_map[source_identity] = existing['id']
                     skipped += 1
                     continue
                 if record["kind"] == "application":
@@ -938,8 +1104,15 @@ class App:
                         skipped += 1
                         suppressed += 1
                         continue
+                if record['kind'] in {'resume_variant', 'company_answer', 'company_decision'}:
+                    from .resumes import remap_references
+                    record = dict(record, data=remap_references(record['kind'], record['data'], id_map))
                 created = self._save_in_transaction(db, record, actor, "import")
                 db.execute("INSERT INTO imports(user_id,identity,record_id,imported_at) VALUES(?,?,?,?)", (self.user_id, import_id, created["id"], now()))
+                id_map[source_identity] = created['id']
                 imported.append(created["id"])
+            if profile['schema_version'] >= 2:
+                from .profile import import_extras
+                import_extras(self, db, profile, id_map, actor)
         return {"imported": len(imported), "skipped": skipped, "excluded": excluded, "suppressed": suppressed,
                 "record_ids": imported, "source_label": source_label}

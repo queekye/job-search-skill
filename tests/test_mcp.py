@@ -255,6 +255,59 @@ class MCPTests(unittest.TestCase):
         self.assertLess(len(pages[0]), 16000)
         self.assertEqual(original, "".join(pages))
 
+    def test_long_jd_pages_reassemble_exactly_and_pin_source_revision(self):
+        self.initialize()
+        original = ('合成岗位职责与要求"\\\n' * 3000) + '原文结束'
+        application = self.app.execute('record.save', {'kind': 'application', 'data': {
+            'company': 'Synthetic Employer', 'title': 'Synthetic Role', 'stage': 'interview',
+            'job_description': original, 'jd_url': 'https://example.com/jobs/synthetic',
+            'jd_checked_at': '2026-10-16T10:00:00+08:00', 'jd_coverage': 'complete',
+            'jd_identity_status': 'exact'}})
+        offset, pages = 0, []
+        while offset is not None:
+            response, content = self.call('career_get', {'operation': 'application.jd.read', 'args': {
+                'id': application['id'], 'revision': application['revision'], 'offset': offset, 'limit': 4000}})
+            self.assertFalse(response['result']['isError'])
+            self.assertNotIn('truncated', content)
+            self.assertLessEqual(len((json.dumps(response, ensure_ascii=False, separators=(',', ':')) + '\n').encode()), MAX_OUTPUT_BYTES)
+            page = content['data']
+            self.assertEqual(original[offset:offset + len(page['text'])], page['text'])
+            self.assertEqual(application['revision'], page['revision'])
+            self.assertTrue(page['text'])
+            pages.append(page['text'])
+            offset = page['next_offset']
+            self.assertLess(len(pages), 100)
+        self.assertEqual(original, ''.join(pages))
+        self.app.execute('record.save', {**application, 'revision': application['revision'],
+            'data': {**application['data'], 'job_description': 'Synthetic changed JD'}})
+        _, content = self.call('career_get', {'operation': 'application.jd.read', 'args': {
+            'id': application['id'], 'revision': application['revision'], 'offset': 1}})
+        self.assertFalse(content['ok'])
+        self.assertEqual('revision_conflict', content['error']['code'])
+
+    def test_jd_save_is_narrow_and_keeps_non_jd_data_and_metadata(self):
+        self.initialize()
+        original = self.app.execute('record.save', {'kind': 'application', 'data': {
+            'company': 'Synthetic Employer', 'title': 'Synthetic Role', 'stage': 'interview',
+            'raw_status': 'Synthetic pending interview', 'notes': 'Synthetic history' * 700},
+            'source': 'synthetic_official_observation', 'scope': 'company:synthetic', 'status': 'observed'})
+        response, content = self.call('career_save', {'operation': 'application.jd.save', 'args': {
+            'id': original['id'], 'revision': original['revision'], 'changes': {
+                'job_description': 'Synthetic full responsibilities and requirements',
+                'jd_url': 'https://example.com/jobs/synthetic', 'jd_coverage': 'complete',
+                'jd_identity_status': 'exact', 'jd_checked_at': '2026-10-16T10:00:00+08:00'}}})
+        self.assertFalse(response['result']['isError'])
+        saved = self.app.execute('record.list', {'kind': 'application'})['items'][0]
+        self.assertEqual(original['revision'] + 1, saved['revision'])
+        for key, value in original['data'].items():
+            self.assertEqual(value, saved['data'][key])
+        for key in ('source', 'scope', 'status'):
+            self.assertEqual(original[key], saved[key])
+        _, rejected = self.call('career_save', {'operation': 'application.jd.save', 'args': {
+            'id': saved['id'], 'revision': saved['revision'], 'changes': {'stage': 'offer'}}})
+        self.assertFalse(rejected['ok'])
+        self.assertEqual(saved, self.app.execute('record.list', {'kind': 'application'})['items'][0])
+
     def test_document_page_preserves_validation_small_limits_and_end_offsets(self):
         self.initialize()
         doc = self.app.execute("document.import", {"filename": "synthetic.txt", "content_base64": base64.b64encode("甲乙丙".encode()).decode()})

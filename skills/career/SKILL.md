@@ -1,17 +1,40 @@
 ---
 name: career
-description: 使用本地求职档案与公司资源，发现岗位、准备获准的官网简历、核验已有申请和接续数据库任务。用于 Windows Codex 求职协作，由用户选择岗位、审阅资料并最终投递。
+description: 使用共用本地档案接续求职任务，准备获准的官网简历、核验已有申请，并路由岗位推荐和面试准备。用于 Windows Codex 求职协作；本人选择岗位、审阅资料并最终投递。
 ---
 
 使用本插件的本地服务。个人材料、申请记录、附件、凭据与浏览器原件留在私有数据目录；公开 Skill、适配器和测试只保存通用方法。Codex 可读取任务所需资料，本地存储不代表模型离线运行。
 
+## 选择流程与能力
+
+`career` 是共用档案与任务入口；按用户意图读取对应流程，不默认加载所有公司或所有个人材料：
+
+| 用户意图 | 使用流程 |
+| --- | --- |
+| 准备面试、梳理项目或论文贡献、诊断知识缺口、模拟追问及复盘 | [面试准备](../interview-preparation/SKILL.md) |
+| 找岗位、新增公司、补充或刷新推荐 | [岗位发现与推荐](../job-recommendation/SKILL.md) |
+| 维护个人事实、简历方案、已有申请跟进、继续任务或获准填表 | 本入口相应章节 |
+| 开发或修复公司网页适配器、增加未支持的表单模块 | [公司资源制作](../company-resource/SKILL.md)，普通填表不走开发流程 |
+
+不确定当前服务有什么能力时，用 `career_get(operation="capability.list")`；需要输入、边界和调用配方时用 `capability.describe`，`args={id:返回的能力ID}`。目录中的源码契约不代表浏览器、真实网站或安装后已经验收。常见调用与工具缺失时的入口见 [Agent 调用配方](../../references/agent-recipes.md)；不要因旧招聘插件可用就把它当成本项目或另一份档案。
+
 ## 开始与接续
 
-先调用 `career_get(operation="state")` 核对 `base_data_dir` 和账号。每次开始或恢复工作，用同一个显式顶层 `user_id` 调用 `career_tasks(operation="task.context",args={id:任务编号})`；无指定任务则省略 `id`。按 `total/next_offset` 读取所需资料与申请；推荐任务还须读完 `recommendation_exclusions/recommendation_activity`，后续页分别用 `career_get` 的 `recommendation.exclusions/recommendation.activity` 操作（`args={offset,limit}`）。工具预览 `truncated=true` 时缩小分页重新读取，不将缩短预览当作读完。遵循最新偏好、取消状态和本人决定。网页切换账号不会改变 MCP 启动账号；工具不可用或数据库不一致时使用当前服务的显式 `--data-dir/--user-id` 入口。
+先调用 `career_get(operation="state")` 核对 `base_data_dir` 和账号。每次开始或恢复工作，用同一个显式顶层 `user_id` 调用 `career_tasks(operation="task.context",args={id:任务编号,profile_limit:5,application_limit:5})`；无指定任务则省略 `id`。这一步恢复账号、偏好、取消状态和最新任务，不要求每次穷举全档案。遵循最新偏好、取消状态和本人决定。网页切换账号不会改变 MCP 启动账号；工具不可用或数据库不一致时按 [调用配方](../../references/agent-recipes.md#原生工具缺失时) 使用显式 `--data-dir/--user-id` 的当前服务入口。
+
+用户提到公司、岗位、面试、项目或论文时，先定位已有记录再询问。申请用 `career_get(operation="record.list",args={kind:"application",query:公司或岗位词,limit:5,offset:0})`，资料用相关类别或关键词过滤；按本人指定的简历方案和明确关联选取项目、研究、论文。对齐本地申请记录 ID、官网岗位 ID 和官网申请编号，不把同公司不同志愿合并。先利用已保存资料，只询问仍缺失、冲突或时效上需要确认的内容，不让用户重复提供数据库已有简历。没有本次官网读取时，明确说是本地保存的官网观察并保留观察时间；本轮用户补充另记为自报。
+
+岗位资料包括可复用的原始 JD，不能只存标题或推荐结论。首次推荐、准备已选岗位及核验实际申请时，将本轮实际读到的职责和条件按 [JD 采集与补齐](../../references/agent-recipes.md#jd-采集与补齐) 保存到对应岗位记录；已有记录缺 JD 时先打开对应官方链接，必要时按官方岗位身份检索，不直接让用户重新粘贴。JD 补齐与官网申请状态是两种观察，分别保存来源时间，不以打开详情、补 JD 或网页不可用改变原申请阶段。
+
+按各接口的 `total/next_offset` 读取任务所需页；`record.list` 用过滤后的 `total` 与当前 offset、实际 items 数计算余页。工具预览 `truncated=true` 时缩小分页重新读取，不将缩短预览当作读完。推荐任务还须读完 `recommendation_exclusions/recommendation_activity`，后续页分别用 `career_get` 的 `recommendation.exclusions/recommendation.activity` 操作（`args={offset,limit}`）；普通面试辅导不需要为此全量扫描无关申请。
 
 如 `state.sync` 或 `task.context.sync` 已配置同步且当前模式不是 `writer`，停止会改写资料的求职工作，由本人在网页同步或交接；遇到同步冲突或联网验证失败，不绕过服务修改数据库。用 `task.save` 写回进度，`career_save` 保存必要记录。更新携带新读到的 `revision`，冲突时重新读取比较。事实保留来源、作用域和确认状态；AI 文案用 `ai_draft/unconfirmed`，未知值保持未知。账号创建、持久偏好与凭据配置由用户网页维护。本次明确范围优先于默认偏好。
 
-轮流换电脑可用[个人 WebDAV 同步](../../references/sync.md)，公司包从[公共目录](../../references/public-resources.md)下载并审阅。手工[完整备份与恢复](../../references/migration.md)停用服务后在本机执行；恢复保留全部账号、资料、任务和附件身份。portable v1 仅交换结构化记录。接管异构旧档案、核对材料完整性或处理官网保存差异时读 [连续流程](../../references/workflow.md)。
+轮流换电脑可用[个人 WebDAV 同步](../../references/sync.md)，公司包从[公共目录](../../references/public-resources.md)下载并审阅。手工[完整备份与恢复](../../references/migration.md)停用服务后在本机执行；恢复保留全部账号、资料、任务和附件身份。portable v3 交换结构化记录、字段来源、关联、简历方案、公司答案及公司决定，兼容 v1/v2 导入；不含意向设置或附件原件。schema 4 资料库需要新版服务，旧安装插件不会自动更新。接管异构旧档案、核对材料完整性或处理官网保存差异时读 [连续流程](../../references/workflow.md)。
+
+编辑资料先读 `profile.schema`，使用教育、项目及论文的固定字段和 `profile.patch`。布尔、数值、顺序数组保留类型；未知为 null，不用空值推导否或至今。`profile.relation.list/save/archive` 管理本人明确的项目、研究与论文关联，不按标题相似建立关系。正文与字段来源分开；资料整理用 `profile.migration.preview`，旧偏好整理用 `legacy.preview`，执行由本人在网页审阅确认。历史或待整理行不是当前全局意向及执行授权。
+
+`task.context` 分别返回个人事实、唯一 `intention`、`legacy_pending`、分页的方案、公司答案与公司决定。意向字段读 `intention.schema/get`；本人在网页修改，Agent 不通过旧 preference 行另建有效规则。`decision.list/get` 读取 `pause/exclude/watch`，暂停、排除和恢复由本人维护，恢复或导入档案不重新授予旧动作权限。
 
 ## 发现与申请
 
@@ -24,6 +47,10 @@ description: 使用本地求职档案与公司资源，发现岗位、准备获�
 用户要求有在投流程的公司不再推荐时，按 [活跃公司与推荐收束](../../references/workflow.md#活跃公司与推荐收束) 仅由实际活跃申请过滤已确认主体，并由服务收束同公司其他未投推荐；准备任务不触发公司过滤。此规则区别于持久公司排除，也不证明官方额度已用尽。停止未投准备用用户决定、任务取消及获准归档处理，不将其写成已投申请 `closed`。
 
 ## 公司填表
+
+先读 `resume.list/get` 选择本人指定方案，用 `resume.compose({id,company_id?,recruitment_scope?})` 审阅正文、公司答案、缺项和修订 pins；按明确 ID 选用，关联论文不自动加入。`resume.save` 的文案覆盖只改方案，`answer.save` 的值保留类型和公司/招聘范围；Agent 修改为 `ai_draft/unconfirmed`。携带新读到的方案/答案 `revision` 和引用事实 `source_versions`，原事实更新后重新核对，引用复核与确认交给本人。公司答案过期、冲突或来源变化时不能取用；未知实际毕业、拿证日期不从预计日期推断。
+
+组合返回的 Markdown 只包含简历内容，来源和编辑过程保留在独立审阅信息。`company_form` 只检查已接受包声明的范围及原事实，`scope_complete=false`；当前不能据此认定方案文案或公司答案已经接入网站，也不能替代下面的填表准备和读回。
 
 先按 [主材料与补充来源](../../references/workflow.md#主材料与补充来源) 固定本人指定的主简历、必需项目/论文清单和版本；补充资料用于补证，已填官网简历用于核对措辞与字段承载。没有明确更改时不以旧长简历、解析结果或目标岗位反向替换主材料。
 
@@ -41,7 +68,11 @@ description: 使用本地求职档案与公司资源，发现岗位、准备获�
 
 ## 跟进与可选登录
 
-分别保存 `job_id/application_id`、官网原始状态、覆盖与证据链接。`checked_at` 仅在成功核验时更新；失败只更新 `last_attempt_at/blocker`，保留已有状态。`decision` 保留本人原话，不能当作额外动作权限。亲属信息只在当前公司申报确有需要时读取。
+分别保存 `job_id/application_id`、官网原始状态、覆盖与证据链接。`checked_at` 仅在成功核验时更新；失败只更新 `last_attempt_at/blocker`，保留已有状态。`decision` 保留本人原话，不能当作额外动作权限。
+
+家庭申报默认规则：未填写亲属任职资料就是无任职情况，不逐公司创建“无任职”记录。有资料时调用 `family.evaluate`，按目标公司、明确的单位别名及问题询问的在职／曾任职范围判断；返回需复核时先核对已填资料。此默认规则不等于官网核验或自动投递授权。
+
+简历正文只放个人事实、职责、成果和可用于表单的文案。命名要求、避免误述的提醒、来源核对过程、分区是否独立验证、迁移说明应单独报告或保留在来源与修改历史中，不写进 `summary/description`。论文赛道、发表状态、参与角色和指标配置等实际限定条件保留。遇到旧正文混入编辑说明，按本人授权修改并保留原文历史，不用宽泛关键词删除事实。
 
 本次登录需要取码时读 [验证码说明](../../references/otp.md)：先 begin 建立窗口，再请求网站发码，只消费匹配结果。来源或控件不明确时交给用户，不重复发码。取码权限不授予注册条款、修改申请或最终投递权限。
 

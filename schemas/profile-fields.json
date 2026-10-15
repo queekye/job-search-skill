@@ -1,0 +1,1281 @@
+{
+  "schema_version": 3,
+  "storage_contract": "portable_v3",
+  "migration_mode": "reviewed_apply",
+  "records": {
+    "basic": {
+      "fields": [
+        {
+          "key": "name",
+          "label": "姓名",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string"
+        },
+        {
+          "key": "email",
+          "label": "邮箱",
+          "type": "email",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string"
+        },
+        {
+          "key": "phone",
+          "label": "电话",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string"
+        },
+        {
+          "key": "location",
+          "label": "所在地",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string"
+        },
+        {
+          "key": "summary",
+          "label": "个人简介",
+          "type": "textarea",
+          "max_length": 12000,
+          "nullable": true,
+          "content_purpose": "resume_text",
+          "help": "填写个人事实和简历文案；编辑要求、来源核对及验证备注留在报告和修改历史。",
+          "value_type": "string"
+        },
+        {
+          "key": "id_number",
+          "label": "证件号码",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "sensitive": true,
+          "value_type": "string"
+        },
+        {
+          "key": "birth_date",
+          "label": "出生日期",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "sensitive": true,
+          "value_type": "string"
+        },
+        {
+          "key": "gender",
+          "label": "性别",
+          "type": "select",
+          "max_length": 500,
+          "nullable": true,
+          "options": {
+            "男": "男",
+            "女": "女"
+          },
+          "value_type": "string"
+        },
+        {
+          "key": "hometown",
+          "label": "籍贯",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string"
+        },
+        {
+          "key": "ethnicity",
+          "label": "民族",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string"
+        },
+        {
+          "key": "residence_city",
+          "label": "居住城市",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string"
+        }
+      ]
+    },
+    "education": {
+      "fields": [
+        {
+          "key": "school",
+          "label": "学校",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string"
+        },
+        {
+          "key": "degree",
+          "label": "学历",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string"
+        },
+        {
+          "key": "major",
+          "label": "专业",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string"
+        },
+        {
+          "key": "department",
+          "label": "院系",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string"
+        },
+        {
+          "key": "start_date",
+          "label": "开始年月",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string",
+          "format": "partial_date"
+        },
+        {
+          "key": "end_date",
+          "label": "旧结束年月（待区分）",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string",
+          "legacy": true,
+          "format": "partial_date"
+        },
+        {
+          "key": "description",
+          "label": "教育补充说明",
+          "type": "textarea",
+          "max_length": 12000,
+          "nullable": true,
+          "content_purpose": "resume_text",
+          "help": "填写个人事实和简历文案；编辑要求、来源核对及验证备注留在报告和修改历史。",
+          "value_type": "string"
+        },
+        {
+          "key": "degree_name",
+          "label": "学位名称",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500
+        },
+        {
+          "key": "education_status",
+          "label": "教育状态",
+          "value_type": "string",
+          "type": "select",
+          "nullable": true,
+          "max_length": 500,
+          "options": {
+            "studying": "在读",
+            "completed": "已毕业",
+            "withdrawn": "肄业",
+            "unknown": "尚未确认"
+          }
+        },
+        {
+          "key": "study_mode",
+          "label": "学习形式",
+          "value_type": "string",
+          "type": "select",
+          "nullable": true,
+          "max_length": 500,
+          "options": {
+            "full_time": "全日制",
+            "part_time": "非全日制",
+            "online": "在线学习",
+            "unknown": "尚未确认"
+          }
+        },
+        {
+          "key": "laboratory",
+          "label": "实验室",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500
+        },
+        {
+          "key": "supervisor_name",
+          "label": "导师姓名",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500
+        },
+        {
+          "key": "supervisor_title",
+          "label": "导师职称",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500
+        },
+        {
+          "key": "research_directions",
+          "label": "研究方向",
+          "value_type": "string_array",
+          "type": "array",
+          "nullable": true,
+          "max_items": 100,
+          "item_max_length": 500
+        },
+        {
+          "key": "double_degree",
+          "label": "双学位",
+          "value_type": "boolean",
+          "type": "checkbox",
+          "nullable": true
+        },
+        {
+          "key": "is_highest",
+          "label": "最高学历",
+          "value_type": "boolean",
+          "type": "checkbox",
+          "nullable": true
+        },
+        {
+          "key": "expected_graduation_date",
+          "label": "预计毕业年月",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500,
+          "format": "partial_date"
+        },
+        {
+          "key": "graduation_date",
+          "label": "实际毕业年月",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500,
+          "format": "partial_date"
+        },
+        {
+          "key": "degree_awarded_date",
+          "label": "学位授予年月",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500,
+          "format": "partial_date"
+        },
+        {
+          "key": "rank_percent",
+          "label": "排名百分比",
+          "value_type": "number",
+          "type": "number",
+          "nullable": true,
+          "minimum": 0,
+          "maximum": 100
+        },
+        {
+          "key": "gpa",
+          "label": "GPA",
+          "value_type": "number",
+          "type": "number",
+          "nullable": true,
+          "minimum": 0,
+          "maximum": 100
+        },
+        {
+          "key": "gpa_scale",
+          "label": "GPA满分",
+          "value_type": "number",
+          "type": "number",
+          "nullable": true,
+          "minimum": 0.01,
+          "maximum": 100
+        }
+      ]
+    },
+    "experience": {
+      "fields": [
+        {
+          "key": "title",
+          "label": "名称",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string"
+        },
+        {
+          "key": "category",
+          "label": "类别",
+          "type": "select",
+          "max_length": 500,
+          "nullable": true,
+          "options": {
+            "project": "项目",
+            "work": "工作／实习",
+            "research": "研究",
+            "publication": "论文",
+            "skill": "技能",
+            "award": "奖项"
+          },
+          "value_type": "string"
+        },
+        {
+          "key": "organization",
+          "label": "单位／团队",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string",
+          "hidden_categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "role",
+          "label": "本人角色",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string",
+          "hidden_categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "start_date",
+          "label": "开始年月",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string",
+          "format": "partial_date",
+          "hidden_categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "end_date",
+          "label": "结束年月",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "value_type": "string",
+          "format": "partial_date",
+          "hidden_categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "description",
+          "label": "内容与个人贡献",
+          "type": "textarea",
+          "max_length": 12000,
+          "nullable": true,
+          "content_purpose": "resume_text",
+          "help": "填写个人事实和简历文案；编辑要求、来源核对及验证备注留在报告和修改历史。",
+          "value_type": "string",
+          "hidden_categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "short_title",
+          "label": "项目简称",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500,
+          "categories": [
+            "project"
+          ]
+        },
+        {
+          "key": "project_code",
+          "label": "项目编号",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500,
+          "categories": [
+            "project"
+          ]
+        },
+        {
+          "key": "project_type",
+          "label": "项目类型",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500,
+          "categories": [
+            "project"
+          ]
+        },
+        {
+          "key": "responsibilities",
+          "label": "本人职责",
+          "value_type": "string",
+          "type": "textarea",
+          "nullable": true,
+          "max_length": 12000,
+          "content_purpose": "resume_text",
+          "categories": [
+            "project"
+          ]
+        },
+        {
+          "key": "results",
+          "label": "项目成果",
+          "value_type": "string",
+          "type": "textarea",
+          "nullable": true,
+          "max_length": 12000,
+          "content_purpose": "resume_text",
+          "categories": [
+            "project"
+          ]
+        },
+        {
+          "key": "technologies",
+          "label": "技术与工具",
+          "value_type": "string_array",
+          "type": "array",
+          "nullable": true,
+          "max_items": 100,
+          "item_max_length": 500,
+          "categories": [
+            "project"
+          ]
+        },
+        {
+          "key": "is_current",
+          "label": "正在参与",
+          "value_type": "boolean",
+          "type": "checkbox",
+          "nullable": true,
+          "categories": [
+            "project"
+          ]
+        },
+        {
+          "key": "authors",
+          "label": "作者（按署名顺序）",
+          "value_type": "string_array",
+          "type": "array",
+          "nullable": true,
+          "max_items": 100,
+          "item_max_length": 500,
+          "categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "author_position",
+          "label": "本人作者次序",
+          "value_type": "integer",
+          "type": "number",
+          "nullable": true,
+          "minimum": 1,
+          "maximum": 1000,
+          "categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "venue",
+          "label": "发表期刊或会议",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500,
+          "categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "publication_type",
+          "label": "成果类型",
+          "value_type": "string",
+          "type": "select",
+          "nullable": true,
+          "max_length": 500,
+          "options": {
+            "journal": "期刊论文",
+            "conference": "会议论文",
+            "challenge": "竞赛或挑战赛成果",
+            "workshop": "研讨会论文",
+            "preprint": "预印本",
+            "other": "其他",
+            "unknown": "尚未确认"
+          },
+          "categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "track",
+          "label": "会议分轨",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500,
+          "categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "year",
+          "label": "发表年份",
+          "value_type": "integer",
+          "type": "number",
+          "nullable": true,
+          "minimum": 1800,
+          "maximum": 2200,
+          "categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "publication_status",
+          "label": "发表状态",
+          "value_type": "string",
+          "type": "select",
+          "nullable": true,
+          "max_length": 500,
+          "options": {
+            "published": "已发表",
+            "accepted": "已录用",
+            "submitted": "已投稿",
+            "in_preparation": "准备中",
+            "unknown": "尚未确认"
+          },
+          "categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "doi",
+          "label": "DOI",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500,
+          "categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "url",
+          "label": "论文链接",
+          "value_type": "string",
+          "type": "url",
+          "nullable": true,
+          "max_length": 2048,
+          "categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "volume",
+          "label": "卷号",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500,
+          "categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "issue",
+          "label": "期号",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500,
+          "categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "article_number",
+          "label": "文章编号",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500,
+          "categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "pages",
+          "label": "页码",
+          "value_type": "string",
+          "type": "text",
+          "nullable": true,
+          "max_length": 500,
+          "categories": [
+            "publication"
+          ]
+        },
+        {
+          "key": "abstract",
+          "label": "摘要或成果简介",
+          "value_type": "string",
+          "type": "textarea",
+          "nullable": true,
+          "max_length": 12000,
+          "content_purpose": "resume_text",
+          "categories": [
+            "publication"
+          ]
+        }
+      ]
+    },
+    "family": {
+      "fields": [
+        {
+          "key": "relation",
+          "label": "亲属关系",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "sensitive": true,
+          "value_type": "string"
+        },
+        {
+          "key": "name",
+          "label": "姓名（按需填写）",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "sensitive": true,
+          "value_type": "string"
+        },
+        {
+          "key": "organization",
+          "label": "任职单位",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "sensitive": true,
+          "value_type": "string"
+        },
+        {
+          "key": "department",
+          "label": "部门",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "sensitive": true,
+          "value_type": "string"
+        },
+        {
+          "key": "role",
+          "label": "职务",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "sensitive": true,
+          "value_type": "string"
+        },
+        {
+          "key": "employment_status",
+          "label": "任职状态",
+          "type": "select",
+          "max_length": 500,
+          "nullable": true,
+          "options": {
+            "unknown": "不了解",
+            "current": "在职",
+            "former": "曾任职",
+            "none": "无任职"
+          },
+          "sensitive": true,
+          "value_type": "string"
+        },
+        {
+          "key": "confirmed_at",
+          "label": "确认日期",
+          "type": "text",
+          "max_length": 500,
+          "nullable": true,
+          "sensitive": true,
+          "value_type": "string"
+        },
+        {
+          "key": "notes",
+          "label": "补充说明",
+          "type": "textarea",
+          "max_length": 12000,
+          "nullable": true,
+          "sensitive": true,
+          "value_type": "string"
+        }
+      ]
+    },
+    "preference": {
+      "fields": [
+        {
+          "key": "category",
+          "label": "旧偏好类别",
+          "type": "select",
+          "max_length": 500,
+          "nullable": true,
+          "options": {
+            "cities": "城市",
+            "roles": "方向",
+            "industries": "行业",
+            "excluded": "排除条件",
+            "other": "其他"
+          },
+          "value_type": "string"
+        },
+        {
+          "key": "value",
+          "label": "旧记录内容",
+          "type": "textarea",
+          "max_length": 12000,
+          "nullable": true,
+          "value_type": "string"
+        },
+        {
+          "key": "notes",
+          "label": "来源说明",
+          "type": "textarea",
+          "max_length": 12000,
+          "nullable": true,
+          "value_type": "string"
+        }
+      ]
+    },
+    "company_answer": {
+      "fields": [
+        {
+          "key": "company_id",
+          "label": "公司标识",
+          "value_type": "string",
+          "nullable": true,
+          "type": "text",
+          "max_length": 500
+        },
+        {
+          "key": "question_key",
+          "label": "问题标识",
+          "value_type": "string",
+          "nullable": true,
+          "type": "text",
+          "max_length": 500
+        },
+        {
+          "key": "label",
+          "label": "问题",
+          "value_type": "string",
+          "nullable": true,
+          "type": "text",
+          "max_length": 500
+        },
+        {
+          "key": "value",
+          "label": "填写答案",
+          "value_type": "json",
+          "nullable": true,
+          "type": "object",
+          "max_length": 12000,
+          "max_bytes": 24000,
+          "max_depth": 5,
+          "json_schema": {
+            "type": [
+              "string",
+              "number",
+              "boolean",
+              "array",
+              "object",
+              "null"
+            ]
+          }
+        },
+        {
+          "key": "value_type",
+          "label": "答案类型",
+          "value_type": "string",
+          "nullable": true,
+          "type": "select",
+          "max_length": 500,
+          "options": {
+            "string": "文本",
+            "boolean": "是／否",
+            "number": "数字",
+            "array": "列表",
+            "object": "结构化答案"
+          }
+        },
+        {
+          "key": "origin",
+          "label": "招聘网站",
+          "value_type": "string",
+          "nullable": true,
+          "type": "url",
+          "max_length": 2048
+        },
+        {
+          "key": "recruitment_scope",
+          "label": "适用招聘场景",
+          "value_type": "string",
+          "nullable": true,
+          "type": "text",
+          "max_length": 500
+        },
+        {
+          "key": "expires_at",
+          "label": "有效期",
+          "value_type": "string",
+          "nullable": true,
+          "type": "text",
+          "max_length": 500,
+          "format": "partial_date"
+        },
+        {
+          "key": "linked_record_id",
+          "label": "关联资料",
+          "value_type": "string",
+          "nullable": true,
+          "type": "text",
+          "max_length": 500,
+          "reference": true
+        },
+        {
+          "key": "linked_field",
+          "label": "关联字段",
+          "value_type": "string",
+          "nullable": true,
+          "type": "text",
+          "max_length": 500
+        },
+        {
+          "key": "source_fingerprint",
+          "label": "引用版本",
+          "type": "text",
+          "value_type": "string",
+          "nullable": true,
+          "readonly": true,
+          "max_length": 64
+        }
+      ]
+    },
+    "resume_variant": {
+      "fields": [
+        {
+          "key": "name",
+          "label": "方案名称",
+          "value_type": "string",
+          "nullable": true,
+          "type": "text",
+          "max_length": 500
+        },
+        {
+          "key": "summary_text",
+          "label": "个人简介",
+          "value_type": "string",
+          "nullable": true,
+          "type": "textarea",
+          "max_length": 12000,
+          "content_purpose": "resume_text"
+        },
+        {
+          "key": "project_ids",
+          "label": "项目",
+          "value_type": "string_array",
+          "nullable": true,
+          "type": "array",
+          "max_length": 500,
+          "max_items": 200,
+          "item_max_length": 100,
+          "reference_section": "projects"
+        },
+        {
+          "key": "research_ids",
+          "label": "研究",
+          "value_type": "string_array",
+          "nullable": true,
+          "type": "array",
+          "max_length": 500,
+          "max_items": 200,
+          "item_max_length": 100,
+          "reference_section": "research"
+        },
+        {
+          "key": "publication_ids",
+          "label": "论文",
+          "value_type": "string_array",
+          "nullable": true,
+          "type": "array",
+          "max_length": 500,
+          "max_items": 200,
+          "item_max_length": 100,
+          "reference_section": "publications"
+        },
+        {
+          "key": "employment_ids",
+          "label": "工作／实习",
+          "value_type": "string_array",
+          "nullable": true,
+          "type": "array",
+          "max_length": 500,
+          "max_items": 200,
+          "item_max_length": 100,
+          "reference_section": "employment"
+        },
+        {
+          "key": "skill_ids",
+          "label": "技能",
+          "value_type": "string_array",
+          "nullable": true,
+          "type": "array",
+          "max_length": 500,
+          "max_items": 200,
+          "item_max_length": 100,
+          "reference_section": "skills"
+        },
+        {
+          "key": "section_order",
+          "label": "内容顺序",
+          "value_type": "string_array",
+          "nullable": true,
+          "type": "array",
+          "max_length": 500,
+          "max_items": 7,
+          "item_max_length": 100,
+          "options": [
+            "summary",
+            "education",
+            "projects",
+            "research",
+            "publications",
+            "employment",
+            "skills"
+          ]
+        },
+        {
+          "key": "text_overrides",
+          "label": "方案文案",
+          "value_type": "object",
+          "nullable": true,
+          "type": "object",
+          "max_length": 500,
+          "max_bytes": 100000,
+          "max_depth": 3,
+          "json_schema": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "maxProperties": 200,
+            "additionalProperties": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": false,
+              "properties": {
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 12000
+                },
+                "responsibilities": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 12000
+                },
+                "results": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 12000
+                },
+                "abstract": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 12000
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "target_scope",
+          "label": "适用范围",
+          "value_type": "string",
+          "nullable": true,
+          "type": "text",
+          "max_length": 500
+        },
+        {
+          "key": "document_id",
+          "label": "参考简历材料",
+          "value_type": "string",
+          "nullable": true,
+          "type": "text",
+          "max_length": 500,
+          "reference_document": true
+        },
+        {
+          "key": "source_fingerprints",
+          "label": "文案引用版本",
+          "type": "object",
+          "value_type": "object",
+          "nullable": true,
+          "readonly": true,
+          "max_bytes": 24000,
+          "max_depth": 1,
+          "json_schema": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "maxProperties": 200,
+            "additionalProperties": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      ]
+    },
+    "company_decision": {
+      "fields": [
+        {
+          "key": "company_id",
+          "label": "公司标识",
+          "type": "text",
+          "value_type": "string",
+          "nullable": true,
+          "max_length": 500
+        },
+        {
+          "key": "company_name",
+          "label": "公司",
+          "type": "text",
+          "value_type": "string",
+          "nullable": true,
+          "max_length": 500
+        },
+        {
+          "key": "decision",
+          "label": "本人决定",
+          "type": "select",
+          "value_type": "string",
+          "nullable": true,
+          "max_length": 500,
+          "options": {
+            "pause": "暂停推进",
+            "exclude": "排除",
+            "watch": "恢复评估"
+          }
+        },
+        {
+          "key": "reason",
+          "label": "决定理由",
+          "type": "textarea",
+          "value_type": "string",
+          "nullable": true,
+          "max_length": 12000
+        }
+      ]
+    }
+  },
+  "sections": [
+    {
+      "id": "basic",
+      "label": "基础信息",
+      "kind": "basic"
+    },
+    {
+      "id": "education",
+      "label": "教育经历",
+      "kind": "education"
+    },
+    {
+      "id": "projects",
+      "label": "项目",
+      "kind": "experience",
+      "category": "project"
+    },
+    {
+      "id": "employment",
+      "label": "工作／实习",
+      "kind": "experience",
+      "category": "work"
+    },
+    {
+      "id": "research",
+      "label": "研究",
+      "kind": "experience",
+      "category": "research"
+    },
+    {
+      "id": "publications",
+      "label": "论文",
+      "kind": "experience",
+      "category": "publication"
+    },
+    {
+      "id": "skills",
+      "label": "技能与语言",
+      "kind": "experience",
+      "category": "skill"
+    },
+    {
+      "id": "awards",
+      "label": "奖项",
+      "kind": "experience",
+      "category": "award"
+    },
+    {
+      "id": "family",
+      "label": "家庭申报",
+      "kind": "family",
+      "help": "未填写任职资料时默认无任职情况；有情况才新增，并按目标公司判断。无需逐公司填写“无”。"
+    },
+    {
+      "id": "legacy_preferences",
+      "label": "历史与待整理",
+      "kind": "preference",
+      "legacy": true
+    }
+  ],
+  "planned_fields": {},
+  "aliases": {
+    "basic.mobile": "basic.phone",
+    "education.academy": "education.department"
+  },
+  "intention": {
+    "authority": "settings.preferences",
+    "fields": [
+      "cities",
+      "roles",
+      "industries",
+      "excluded_companies",
+      "recruitment_types",
+      "notes",
+      "city_tiers",
+      "allowed_cities",
+      "other_cities_allowed",
+      "primary_directions",
+      "exploratory_directions",
+      "excluded_directions",
+      "earliest_start_date",
+      "salary"
+    ],
+    "agent_write_supported": false,
+    "schema_operation": "intention.schema"
+  },
+  "migration_labels": {
+    "laboratory": "实验室",
+    "research_directions": "研究方向",
+    "study_mode": "学习形式",
+    "double_degree": "双学位",
+    "supervisor_name": "导师姓名",
+    "supervisor_title": "导师职称",
+    "expected_graduation_date": "预计毕业年月",
+    "graduation_date": "实际毕业年月",
+    "description": "补充说明",
+    "responsibilities": "本人职责",
+    "results": "项目成果",
+    "school": "学校",
+    "degree": "学历",
+    "major": "专业",
+    "department": "院系",
+    "start_date": "开始年月",
+    "end_date": "结束年月",
+    "degree_name": "学位名称",
+    "education_status": "教育状态",
+    "is_highest": "最高学历",
+    "degree_awarded_date": "学位授予年月",
+    "rank_percent": "排名百分比",
+    "gpa": "GPA",
+    "gpa_scale": "GPA满分",
+    "title": "名称",
+    "category": "类别",
+    "organization": "单位／团队",
+    "role": "本人角色",
+    "short_title": "项目简称",
+    "project_code": "项目编号",
+    "project_type": "项目类型",
+    "technologies": "技术与工具",
+    "is_current": "正在参与",
+    "authors": "作者（按署名顺序）",
+    "author_position": "本人作者次序",
+    "venue": "发表期刊或会议",
+    "publication_type": "成果类型",
+    "track": "会议分轨",
+    "year": "发表年份",
+    "publication_status": "发表状态",
+    "doi": "DOI",
+    "url": "论文链接",
+    "volume": "卷号",
+    "issue": "期号",
+    "article_number": "文章编号",
+    "pages": "页码",
+    "abstract": "摘要或成果简介"
+  },
+  "migration_targets": {
+    "basic": "基础信息",
+    "education": "教育经历",
+    "projects": "项目",
+    "employment": "工作／实习",
+    "research": "研究",
+    "publications": "论文",
+    "skills": "技能与语言",
+    "awards": "奖项",
+    "family": "家庭申报",
+    "intention": "求职意向",
+    "intention_review": "求职意向（需核对）",
+    "education_fact": "教育事实",
+    "historical_task_policy": "历史任务约束",
+    "provenance_policy": "来源规则",
+    "company_answer": "公司填写答案",
+    "company_answer_review": "公司答案（需复核）",
+    "company_date_conversion": "公司日期格式",
+    "resume_selection": "简历条目选择",
+    "manual_review": "待人工归类",
+    "uncategorized": "未分类"
+  },
+  "family_policy": {
+    "unfilled_declaration": "none",
+    "persist_default_records": false,
+    "evaluation_operation": "family.evaluate"
+  },
+  "relations": {
+    "types": {
+      "project_publication": "项目与论文",
+      "research_publication": "研究与论文",
+      "project_research": "项目与研究"
+    },
+    "infer_by_title": false
+  },
+  "domain_kinds": [
+    "company_answer",
+    "resume_variant",
+    "company_decision"
+  ]
+}

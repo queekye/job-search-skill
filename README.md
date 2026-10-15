@@ -1,10 +1,10 @@
 # Job Search Skill
 
-面向 **Windows** 的本地求职协作工具和 Codex 插件，当前 **0.2.1 开发预览版**。网页与 Agent 共用 SQLite 档案，自动填表可独立于 Codex 运行。用户选择岗位、审阅资料并最终投递。默认优先正式校招，也可按明确范围处理社招；实习须用户明确要求。每人独立本地使用，账号是同一可信 Windows 用户下的档案分区。
+面向 **Windows** 的本地求职协作工具和 Codex 插件，当前源码为 **0.4.1 开发预览版**。网页与 Agent 共用 SQLite 档案、类型化意向、简历方案和公司答案；个人事实与方案文案分别维护，自动填表可独立于 Codex 运行。用户选择岗位、审阅资料并最终投递。默认优先正式校招，也可按明确范围处理社招；实习须用户明确要求。每人独立本地使用，账号是同一可信 Windows 用户下的档案分区。
 
 ## 开始使用
 
-从 [公开发行页](https://github.com/queekye/job-search-skill/releases/tag/v0.2.1) 下载运行包；继续开发可直接克隆公开仓库。
+当前开发预览发行版为 [0.4.1](https://github.com/queekye/job-search-skill/releases/tag/v0.4.1)，新增类型化资料、简历方案、能力目录、面试准备及 JD 证据。旧 [0.2.1 运行包](https://github.com/queekye/job-search-skill/releases/tag/v0.2.1) 使用旧数据库格式。升级前关闭旧服务和 MCP 实例并保存完整备份，schema 4 资料库须由新版服务访问。
 
 1. 将运行 ZIP 解压到普通本地目录，双击 `Start.cmd`，打开 <http://127.0.0.1:8766/>。
 2. 选择或新建账号，填写资料或导入简历材料，保存招聘类型、城市和方向等偏好，建立 Agent 任务。
@@ -29,13 +29,17 @@
 ## 主要流程
 
 - **档案与材料**：基础信息、教育、工作/项目/研究经历、按需亲属资料；导入文本并保留原件。事实有来源、作用域、确认状态和修改历史，支持版本冲突保护与撤销。
+- **意向与简历**：一份求职意向管理城市梯队、主线与探索方向、薪资和到岗时间；简历方案显式选择已有项目、研究及论文并单独改写文案，预览后导出 Markdown。公司答案按公司和招聘范围保存，公司暂停、排除及恢复由本人维护。旧偏好通过预览整理，历史指令不成为当前授权。
 - **推荐与申请**：未选岗位在“推荐岗位”；明确选定后进入准备，实际投递分别记录本人自报和官网核验。保留岗位/申请编号、原始状态、覆盖、决定、待办、阻点和证据。
 - **任务协作**：账号偏好与任务存在同一数据库。Codex 执行前重新读取上下文与分页，执行后写回进度与结果；用户取消任务或修改偏好后按最新状态执行。
+- **面试准备**：使用 `$interview-preparation` 先读取已有岗位、简历与研究，再诊断知识缺口、深挖项目并进行追问练习。网页“任务协作”可创建面试任务，显示计划、项目卡与练习结果；复用原任务表，不改变投递状态或自动化。
 - **公司资源**：15 家独立版本包，支持本地安装、公共目录下载、完整审阅后导入、回退与公开包导出。静态目录可托管到 GitHub Pages 或 Cloudflare Pages。字段脚本仅覆盖已观察控件；不同学历与条目数量按本人的身份匹配，未知结构需要发现和扩展。
 - **个人跨电脑同步**：网页配置 WebDAV，轮流换机时同步并交接写入权；约每 30 秒同步全部账号的业务数据和原始附件，公司资源不参与个人同步。
 - **可选取码与跟进**：用户配置自己的 Gotify，Token 由 Windows DPAPI 保护；取码窗口单次消费。每日设置生成绑定账号的宿主任务说明，保存时间不等于自动化已建立。
 
 原生工具为 `career_get`、`career_save`、`career_import`、`career_resources`、`career_forms`、`career_otp`、`career_tasks`、`career_schedule`。执行任务先用 `career_tasks(operation="task.context",user_id="账号",args={"id":"任务编号"})`；无指定任务可省略 `id`。按 `total/next_offset` 继续分页，更新携带最新 `revision`。临时接口也可用 `scripts/run.py mcp --data-dir ... --user-id ...` 绑定同一档案。偏好、账号创建与凭据配置由用户网页完成。
+
+使用 `career_get(operation="capability.list")` 发现能力，再用 `capability.describe` 的 `args.id` 读取具体入口、参数、前置条件、限制和证据范围；`interview.schema` 返回面试任务数据约定。目录是公共能力说明，不表示本机配置、真实网站或当前会话已经验收。调用示例、先查后问规则和无原生工具时的 `scripts/career-call.py` 入口见 [Agent 调用配方](references/agent-recipes.md)。本插件包含 `career`、`job-recommendation`、`interview-preparation`、`company-resource` 四个 skills；源码存在、插件已安装、会话可调用需分别核实。
 
 Agent 制作新的公司适配器时使用 `$company-resource`，通过 `career_resources` 的 `resource.template` 生成公共模板、`resource.validate` 校验声明和成员哈希。也可独立运行 `python scripts/run.py resources template|validate|export`；不读取个人数据库。规范、执行接口、合成用例与导出流程见 [公司资源制作](references/company-resource.md)。
 
@@ -61,13 +65,13 @@ Agent 制作新的公司适配器时使用 `$company-resource`，通过 `career_
 
 手工换机仍可用 [完整迁移](references/migration.md)：旧电脑停止网页与 MCP 后运行 `backup`，复制私有 ZIP，在新电脑运行 `restore` 到新目录，再启动网页及 Codex。账号、记录、附件、偏好、任务、修改历史和本机已接受公司包全部保留；运行中任务转为待继续。新电脑重新登录招聘网站、配置验证码来源及绑定自动化，业务状态与官网核验时间保留。附件使用稳定 `document_id` 在新电脑解析当前路径。
 
-portable v1 JSON 用于当前账号结构化记录互换，不含附件原件、任务、设置和完整历史，不能作为换机备份。仅复制数据库也缺少原始附件，活动库应通过 SQLite backup API 生成一致快照。私有备份与同步快照不能进入公共 Git、公司资源目录或投稿包；不要用网盘直接同步活动数据库目录。
+portable v3 JSON 用于当前账号结构化记录、字段来源、资料关联、简历方案、公司答案和公司决定互换，导入兼容 v1/v2。方案中的事实 ID 在导入时映射；不含附件原件、意向设置、任务和完整历史，不能作为换机备份。仅复制数据库也缺少原始附件，活动库应通过 SQLite backup API 生成一致快照。私有备份与同步快照不能进入公共 Git、公司资源目录或投稿包；不要用网盘直接同步活动数据库目录。
 
 首版不支持 OCR、远程多人服务、多人同时或离线合并写入、公司资源自动启用或自动最终投递。源码测试、本地网页、真实 WebDAV、真实招聘网站和安装后调用分别验收；跨公司完整填表仍需逐家验证。
 
 ## 开发与发行
 
-换电脑继续开发请先阅读 [0.2.1 开发交接](references/development-handoff.md)。从公开仓库取得源码，个人档案通过同一 WebDAV 工作区接续；私有离线备份作为备用。
+换电脑继续开发请先阅读 [开发交接](references/development-handoff.md)。使用兼容 schema 4 的新版源码或运行包，个人档案通过同一 WebDAV 工作区接续；私有离线备份作为备用。简历方案的公司预览只检查该公司已声明的字段范围，不能据此认定整站资料完整；方案文案与公司答案接入各站填写仍须逐家实现和验证。
 
 源码仓库保留 `Check.cmd`、`tests/` 和开发脚本。使用 `Check.cmd`、`python scripts/check_node.py` 运行合成回归，`python scripts/check_source.py` 扫描全部允许的公开源码，`python scripts/build_release.py` 生成 `dist/` 内的运行 ZIP、公司 ZIP、静态目录、SHA-256 清单和本地市场。源码与运行快照分别扫描；运行 ZIP 不携带开发测试、CI、构建器或开发约定。贡献与维护在源码仓库进行。
 

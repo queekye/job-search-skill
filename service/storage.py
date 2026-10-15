@@ -1,11 +1,14 @@
 """Shared local database schema; migrations never inspect applicant values."""
 from __future__ import annotations
 
-SCHEMA_VERSION = 2
+# Version 4 keeps the version 3 table shape. The marker prevents an older
+# service from interpreting or overwriting typed intentions and new records.
+SCHEMA_VERSION = 4
+PROFILE_TABLES = ("profile_sources", "profile_relations", "profile_migrations", "profile_relation_events")
 
 
 def initialize(db, timestamp):
-    """Atomically add account scope to legacy databases, retaining the default user."""
+    """Atomically add account scope and profile metadata without rewriting facts."""
     db.execute("BEGIN IMMEDIATE")
     version = db.execute("PRAGMA user_version").fetchone()[0]
     if version > SCHEMA_VERSION:
@@ -67,6 +70,26 @@ def initialize(db, timestamp):
         """CREATE TABLE IF NOT EXISTS task_events (
           id TEXT PRIMARY KEY,user_id TEXT NOT NULL,task_id TEXT NOT NULL,
           actor TEXT NOT NULL,at TEXT NOT NULL,before_json TEXT,after_json TEXT NOT NULL)""",
+        """CREATE TABLE IF NOT EXISTS profile_sources (
+          id TEXT PRIMARY KEY,user_id TEXT NOT NULL,record_id TEXT NOT NULL,
+          field_path TEXT NOT NULL,revision INTEGER NOT NULL,source TEXT NOT NULL,
+          scope TEXT NOT NULL,status TEXT NOT NULL,value_json TEXT NOT NULL,
+          created_at TEXT NOT NULL)""",
+        "CREATE INDEX IF NOT EXISTS profile_sources_user_record ON profile_sources(user_id,record_id,revision)",
+        """CREATE TABLE IF NOT EXISTS profile_relations (
+          id TEXT PRIMARY KEY,user_id TEXT NOT NULL,from_id TEXT NOT NULL,to_id TEXT NOT NULL,
+          relation_type TEXT NOT NULL,revision INTEGER NOT NULL,source TEXT NOT NULL,
+          status TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,
+          archived INTEGER NOT NULL DEFAULT 0)""",
+        "CREATE INDEX IF NOT EXISTS profile_relations_user_record ON profile_relations(user_id,from_id,to_id,archived)",
+        """CREATE TABLE IF NOT EXISTS profile_migrations (
+          id TEXT PRIMARY KEY,user_id TEXT NOT NULL,preview_digest TEXT NOT NULL,
+          actor TEXT NOT NULL,created_at TEXT NOT NULL,result_json TEXT NOT NULL)""",
+        "CREATE INDEX IF NOT EXISTS profile_migrations_user ON profile_migrations(user_id,created_at)",
+        """CREATE TABLE IF NOT EXISTS profile_relation_events (
+          id TEXT PRIMARY KEY,user_id TEXT NOT NULL,relation_id TEXT NOT NULL,
+          actor TEXT NOT NULL,at TEXT NOT NULL,before_json TEXT,after_json TEXT NOT NULL)""",
+        "CREATE INDEX IF NOT EXISTS profile_relation_events_user_relation ON profile_relation_events(user_id,relation_id,at)",
     ):
         db.execute(statement)
     db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")

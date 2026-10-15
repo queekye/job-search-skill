@@ -1,114 +1,151 @@
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import vm from 'node:vm';
+import {readFile} from 'node:fs/promises';
+import {decode,app,deferred,tick,manual,gotify,connectionResult,apiError,localSync,writerSync,publicPack,publicDefaults} from './web_app_harness.mjs';
 
-const source = await readFile(new URL('../web/app.js', import.meta.url), 'utf8');
-const decode = value => String(value).replace(/&quot;/g, '"').replace(/&#39;/g, "'")
-  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-
-// A small DOM/form boundary, not a replacement implementation of the UI logic.
-// The unmodified app.js renders, binds its handlers and makes real API requests
-// against a synthetic fetch stub. No credentials, browser or dependencies needed.
-class Element {
-  constructor(tag, attributes = {}, parent = null) {
-    this.tagName = tag.toUpperCase();
-    this.attributes = attributes;
-    this.parentElement = parent;
-    this.children = [];
-    this.id = attributes.id || '';
-    this.name = attributes.name || '';
-    this.type = attributes.type || '';
-    this.value = attributes.value || '';
-    this.disabled = 'disabled' in attributes;
-    this.required = 'required' in attributes;
-    this.checked = 'checked' in attributes;
-    this.hidden = 'hidden' in attributes;
-    this.dataset = Object.fromEntries(Object.entries(attributes).filter(([k]) => k.startsWith('data-'))
-      .map(([k, v]) => [k.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase()), v]));
-    this.classList = {toggle() {}};
-    this.textContent = '';
-    this.htmlWrites = 0;
-    this._html = '';
-  }
-  get innerHTML() { return this._html; }
-  set innerHTML(html) {
-    this._html = html;
-    this.htmlWrites++;
-    this.children = [];
-    const stack = [this];
-    for (const match of html.matchAll(/<\/?([\w-]+)\b([^>]*)>/g)) {
-      const [raw, tag, tail] = match;
-      if (raw.startsWith('</')) {
-        const index = stack.findLastIndex(el => el.tagName === tag.toUpperCase());
-        if (index > 0) stack.length = index;
-        continue;
-      }
-      const attrs = {};
-      for (const [, key, quoted, single, bare] of tail.matchAll(/([\w-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s/>]+)))?/g)) {
-        attrs[key] = decode(quoted ?? single ?? bare ?? '');
-      }
-      const parent = stack.at(-1), element = new Element(tag, attrs, parent);
-      if (tag === 'textarea') {
-        const end = html.indexOf('</textarea>', match.index + raw.length);
-        if (end >= 0) element.value = decode(html.slice(match.index + raw.length, end));
-      }
-      parent.children.push(element);
-      if (tag === 'option' && parent.tagName === 'SELECT' && (parent.children.length === 1 || 'selected' in attrs)) {
-        parent.value = element.value;
-      }
-      if (!['input', 'br', 'hr', 'img', 'meta', 'link'].includes(tag)) stack.push(element);
-    }
-  }
-  descendants() { return this.children.flatMap(child => [child, ...child.descendants()]); }
-  querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
-  querySelectorAll(selector) {
-    const nodes = this.descendants();
-    if (selector.startsWith('#')) return nodes.filter(el => el.id === selector.slice(1));
-    const attr = selector.match(/^\[([\w-]+)(?:=([^\]]+))?\]$/);
-    if (attr) return nodes.filter(el => attr[1] in el.attributes && (attr[2] === undefined || el.attributes[attr[1]] === attr[2]));
-    return nodes.filter(el => el.tagName.toLowerCase() === selector);
-  }
-  effectivelyDisabled() { return this.disabled || Boolean(this.parentElement?.effectivelyDisabled()); }
-  reportValidity() {
-    return this.descendants().every(el => !el.required || el.effectivelyDisabled() || Boolean(el.value));
-  }
-  showModal() { this.open = true; }
-  close() { this.open = false; }
-  reset() { for(const el of this.descendants()){if(['INPUT','TEXTAREA'].includes(el.tagName))el.value=el.attributes.value||'';} }
-  focus() { this.focused = true; }
-  setSelectionRange(start, end) { this.selectionStart = start; this.selectionEnd = end; }
-  click() { if (!this.effectivelyDisabled()) return this.onclick?.({target: this}); }
-}
-
-class FormData {
-  constructor(form) {
-    this.values = new Map(form.descendants().filter(el => ['INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName)
-      && el.name && !el.effectivelyDisabled() && (el.type !== 'checkbox' || el.checked))
-      .map(el => [el.name, el.type === 'checkbox' ? 'on' : el.value]));
-  }
-  get(name) { return this.values.get(name) ?? null; }
-}
-
-const deferred = () => {
-  let resolve, reject;
-  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
-  return {promise, resolve, reject};
-};
-const tick = () => new Promise(resolve => setImmediate(resolve));
-const manual = () => ({provider: 'manual', enabled: false, token_configured: false, url: null, connection_test: null});
-const gotify = (url = 'http://127.0.0.1:8123') => ({provider: 'gotify', enabled: true, token_configured: true, url, connection_test: null});
-const connectionResult = (status = 'passed') => ({provider: 'gotify', status,
-  checked_at: '2026-09-16T06:00:00Z', code: status === 'passed' ? 'ok' : 'gotify_unauthorized',
-  message: status === 'passed' ? '合成测试：连接成功且读取权限有效。' : '合成测试：客户端 Token 无读取权限。',
-  live_login_verified: false,
+test('profile sections separate projects from papers and keep old policies out of the intention editor', async()=>{
+ const ui=await app();ui.stored.records={experience:[
+  {id:'project-one',kind:'experience',data:{title:'Synthetic Project',category:'project'},revision:1,scope:'global',status:'confirmed'},
+  {id:'paper-one',kind:'experience',data:{title:'Synthetic Paper',category:'publication'},revision:1,scope:'global',status:'confirmed'}
+ ],preference:[{id:'policy-one',kind:'preference',data:{category:'other',notes:'Historical task instruction',value:'<script>synthetic</script>'},revision:1,scope:'company:synthetic',status:'confirmed'}]};
+ await ui.evaluate("navigate('profile');");await ui.evaluate("profileTab='projects';render()");
+ assert.match(ui.el('content').innerHTML,/Synthetic Project/);assert.doesNotMatch(ui.el('content').innerHTML,/Synthetic Paper/);
+ await ui.evaluate("profileTab='publications';render()");assert.match(ui.el('content').innerHTML,/Synthetic Paper/);assert.doesNotMatch(ui.el('content').innerHTML,/Synthetic Project/);
+ await ui.evaluate("profileTab='legacy_preferences';render()");assert.match(ui.el('content').innerHTML,/&lt;script&gt;synthetic/);assert.doesNotMatch(ui.el('content').innerHTML,/data-edit=/);
+ await ui.render('intention');assert.notEqual(ui.el('preferences-form'),null);assert.doesNotMatch(ui.el('content').innerHTML,/Historical task instruction/);
+ await ui.render('settings');assert.equal(ui.el('preferences-form'),null);
 });
-const apiError = (code, message = code) => ({failure: {code, message}});
-const localSync = () => ({configured:false,config:{url:'',username:'',workspace:'career',automatic:false,password_set:false},device_id:'synthetic-device-a',mode:'local',dirty:false,last_synced_at:null,last_error:null,remote_owner:null});
-const writerSync = () => ({...localSync(),configured:true,config:{url:'https://storage.example.test/dav/',username:'synthetic-user',workspace:'career',automatic:true,password_set:true},mode:'writer',last_synced_at:'2026-10-10T01:00:00Z',remote_owner:'synthetic-device-a'});
-const publicPack = () => ({id:'synthetic-company',name:'合成公司',version:'1.2.3',description:'合成公开方法',origin:'https://company.example.test',capabilities:{applications:{status:'documentation',detail:'合成指引'}},verification:{live_reverified:false},download:{path:'packages/synthetic-company-1.2.3.zip',sha256:'a'.repeat(64),bytes:1024}});
-const publicDefaults = {registry_url:'https://job-search-company-resources.pages.dev/index.json',contribution_url:'https://github.com/queekye/job-search-skill/issues/new?template=company-resource.yml'};
 
+test('profile edit uses a revision patch and preserves exact untouched text', async()=>{
+ const ui=await app();const row={id:'synthetic-education',kind:'education',data:{school:'Original School',description:'  Exact original text  '},revision:7,scope:'company:synthetic',status:'confirmed'};
+ ui.stored.records={education:[row]};ui.handlers['profile.patch']=args=>{row.data.school=args.changes.school;row.revision++;return structuredClone(row);};
+ await ui.evaluate("navigate('profile')");ui.evaluate("profileTab='education';openEdit('education','synthetic-education')");
+ const form=ui.el('edit-form');form.querySelector('[name=school]').value='New School';await ui.evaluate('saveEdit({preventDefault(){},target:document.querySelector("#edit-form")})');
+ const patch=ui.calls.find(c=>c.operation==='profile.patch');assert.equal(patch.args.revision,7);assert.deepEqual(patch.args.changes,{school:'New School'});assert.deepEqual(patch.args.clear,[]);
+ assert.equal(row.data.description,'  Exact original text  ');assert.equal(ui.calls.some(c=>c.operation==='record.save'),false);
+});
+
+test('sensitive profile fields stay masked in cards while remaining editable by the applicant', async()=>{
+ const ui=await app();ui.stored.records={basic:[{id:'synthetic-basic',kind:'basic',data:{name:'Synthetic Applicant',id_number:'SYNTHETIC_PRIVATE_IDENTIFIER'},revision:1,scope:'global',status:'confirmed'}]};
+ await ui.evaluate("navigate('profile')");assert.doesNotMatch(ui.el('content').innerHTML,/SYNTHETIC_PRIVATE_IDENTIFIER/);assert.match(ui.el('content').innerHTML,/编辑时查看/);
+ ui.evaluate("openEdit('basic','synthetic-basic')");assert.equal(ui.el('edit-form').querySelector('[name=id_number]').value,'SYNTHETIC_PRIVATE_IDENTIFIER');
+});
+
+test('empty family declarations use the shared default without company-specific negative rows', async()=>{
+ const ui=await app();await ui.evaluate("navigate('profile')");await ui.evaluate("profileTab='family';render()");
+ assert.match(ui.el('content').innerHTML,/默认无任职情况/);assert.match(ui.el('content').innerHTML,/无需逐公司填写/);
+ assert.equal(ui.calls.some(c=>c.operation==='record.save'||c.operation==='profile.patch'),false);
+});
+
+test('a late migration preview cannot display old-account data after an account switch', async()=>{
+ const ui=await app({withAccounts:true}),pending=deferred();ui.handlers['profile.migration.preview']=()=>pending.promise;
+ await ui.render('profile');const reading=ui.el('profile-preview').click();await tick();await ui.evaluate("switchAccount('synthetic-user-b')");
+ pending.resolve({offset:0,total:1,next_offset:null,items:[{target:'education',source:'Old account private source',scope:'global',proposed_fields:{laboratory:'Private Lab'},issues:[]}]});await reading;
+ assert.doesNotMatch(ui.el('detail-content').innerHTML,/Private Lab|Old account/);assert.equal(ui.el('notice').hidden,true);
+});
+
+test('typed education edits preserve missing, false, zero and untouched arrays while patching explicit changes',async()=>{
+ const ui=await app(),row={id:'typed-education',kind:'education',data:{school:'Synthetic School',description:'  Exact original text  ',double_degree:false,is_highest:null,rank_percent:0,research_directions:['  Exact direction  ','Second direction'],graduation_date:null},revision:8,status:'confirmed',scope:'global'};
+ ui.stored.records={education:[row]};ui.handlers['profile.patch']=args=>{Object.assign(row.data,args.changes);row.revision++;return structuredClone(row)};
+ await ui.evaluate("navigate('profile');");ui.evaluate("profileTab='education';openEdit('education','typed-education')");
+ const form=ui.el('edit-form');assert.equal(form.querySelector('[name=double_degree]').value,'false');assert.equal(form.querySelector('[name=rank_percent]').value,'0');assert.equal(form.querySelector('[name=is_highest]').value,'');
+ form.querySelector('[name=school]').value='Updated School';form.querySelector('[name=is_highest]').value='true';await ui.evaluate('saveEdit({preventDefault(){},target:document.querySelector("#edit-form")})');
+ const patch=ui.calls.find(c=>c.operation==='profile.patch');assert.deepEqual(patch.args.changes,{school:'Updated School',is_highest:true});assert.deepEqual(patch.args.clear,[]);
+ assert.equal(row.data.double_degree,false);assert.equal(row.data.rank_percent,0);assert.deepEqual(row.data.research_directions,['  Exact direction  ','Second direction']);assert.equal(row.data.description,'  Exact original text  ');assert.equal(Object.hasOwn(row.data,'degree_awarded_date'),false);
+});
+
+test('new project forms save typed ordered arrays and false instead of strings or absent checkboxes',async()=>{
+ const ui=await app();ui.handlers['record.save']=args=>({id:'new-project',...args,revision:1});
+ await ui.evaluate("navigate('profile')");ui.evaluate("profileTab='projects';openEdit('experience','')");const form=ui.el('edit-form');
+ assert.equal(form.querySelector('[name=authors]'),null);assert.notEqual(form.querySelector('[name=responsibilities]'),null);
+ form.querySelector('[name=title]').value='Synthetic Project';form.querySelector('[name=technologies]').value='Tool A\nTool B, Edition 2';form.querySelector('[name=is_current]').value='false';
+ await ui.evaluate('saveEdit({preventDefault(){},target:document.querySelector("#edit-form")})');const save=ui.calls.find(c=>c.operation==='record.save');
+ assert.deepEqual(save.args.data,{title:'Synthetic Project',category:'project',technologies:['Tool A','Tool B, Edition 2'],is_current:false});assert.equal(Object.hasOwn(save.args.data,'authors'),false);
+});
+
+test('publication edits use bibliographic fields and preserve old generic values in the folded editor',async()=>{
+ const ui=await app(),row={id:'typed-paper',kind:'experience',data:{title:'Synthetic Paper',category:'publication',authors:['First Author','Second, Author'],year:2024,venue:'Synthetic Conference',author_position:2,organization:'Exact legacy team',role:'Exact legacy role',start_date:'2021',description:'  Exact old bibliography  '},revision:3,status:'confirmed',scope:'global'};
+ ui.stored.records={experience:[row]};ui.handlers['profile.patch']=args=>{Object.assign(row.data,args.changes);return structuredClone(row)};
+ await ui.evaluate("navigate('profile')");ui.evaluate("profileTab='publications';render();openEdit('experience','typed-paper')");
+ assert.doesNotMatch(ui.el('content').innerHTML,/Exact legacy role|Exact legacy team/);assert.match(ui.el('content').innerHTML,/First Author、Second, Author/);assert.doesNotMatch(ui.el('content').innerHTML,/\[&quot;First Author/);
+ const form=ui.el('edit-form');assert.equal(form.querySelector('[name=responsibilities]'),null);assert.match(ui.el('editor-fields').innerHTML,/原有通用字段/);assert.equal(form.querySelector('[name=role]').value,'Exact legacy role');assert.equal(form.querySelector('[name=category]').type,'hidden');
+ form.querySelector('[name=authors]').value='First Author\nThird Author';form.querySelector('[name=year]').value='2026';form.querySelector('[name=author_position]').value='1';await ui.evaluate('saveEdit({preventDefault(){},target:document.querySelector("#edit-form")})');
+ const patch=ui.calls.find(c=>c.operation==='profile.patch');assert.deepEqual(patch.args.changes,{authors:['First Author','Third Author'],year:2026,author_position:1});assert.equal(row.data.description,'  Exact old bibliography  ');assert.equal(row.data.role,'Exact legacy role');
+});
+
+test('invalid numeric edits and incompatible category changes retain the form and never save',async()=>{
+ const ui=await app();await ui.evaluate("navigate('profile')");ui.evaluate("profileTab='projects';openEdit('experience','')");let form=ui.el('edit-form');form.querySelector('[name=responsibilities]').value='Keep this unfinished work';const category=form.querySelector('[name=category]');category.value='publication';category.onchange();
+ assert.equal(category.value,'project');assert.equal(form.querySelector('[name=responsibilities]').value,'Keep this unfinished work');assert.match(ui.el('notice').textContent,/先清空/);
+ ui.evaluate("profileTab='publications';openEdit('experience','')");form=ui.el('edit-form');form.querySelector('[name=title]').value='Unfinished Paper';form.querySelector('[name=year]').value='2026.5';await ui.evaluate('saveEdit({preventDefault(){},target:document.querySelector("#edit-form")})');
+ assert.match(ui.el('notice').textContent,/整数/);assert.equal(ui.el('editor').open,true);assert.equal(form.querySelector('[name=title]').value,'Unfinished Paper');assert.equal(form.querySelector('[type=submit]').disabled,false);assert.equal(ui.calls.some(c=>['record.save','profile.patch'].includes(c.operation)),false);
+});
+
+test('matching titles never create relations; an explicit choice orients and archives the relation with revision',async()=>{
+ const ui=await app({withAccounts:true}),project={id:'relation-project',kind:'experience',data:{title:'Same synthetic title',category:'project'},status:'confirmed',scope:'global',revision:1},paper={id:'relation-paper',kind:'experience',data:{title:'Same synthetic title',category:'publication'},status:'confirmed',scope:'global',revision:1};
+ ui.stored.records={experience:[project,paper,{id:'other-research',kind:'experience',data:{title:'Research A',category:'research'},revision:1},{id:'other-research-b',kind:'experience',data:{title:'Research B',category:'research'},revision:1}]};
+ ui.handlers['profile.relation.save']=args=>{const row={id:'synthetic-relation',revision:4,...args};ui.stored.relations.push(row);return structuredClone(row)};
+ ui.handlers['profile.relation.archive']=args=>{assert.equal(args.revision,4);ui.stored.relations=[];return {archived:true}};
+ await ui.evaluate("navigate('profile')");assert.equal(ui.calls.some(c=>c.operation==='profile.relation.save'),false);await ui.evaluate("showProfileRelations('relation-paper')");ui.el('relation-target').value=project.id;await ui.el('relation-save').click();
+ const saved=ui.calls.find(c=>c.operation==='profile.relation.save');assert.equal(saved.user_id,'synthetic-user-a');assert.deepEqual(saved.args,{from_id:project.id,to_id:paper.id,relation_type:'project_publication',source:'user_edit',status:'confirmed'});
+ const unlink=ui.document.querySelector('[data-unlink]');assert.notEqual(unlink,null);await unlink.click();assert.deepEqual(ui.calls.find(c=>c.operation==='profile.relation.archive').args,{id:'synthetic-relation',revision:4});
+ await ui.evaluate("showProfileRelations('other-research')");assert.doesNotMatch(ui.el('detail-content').innerHTML,/value="other-research-b"/);
+});
+
+test('proposed relations stay pending until an explicit revision-bound user confirmation',async()=>{
+ const ui=await app({withAccounts:true}),project={id:'pending-project',kind:'experience',data:{title:'Synthetic Project',category:'project'},status:'confirmed',revision:1},paper={id:'pending-paper',kind:'experience',data:{title:'Synthetic Paper',category:'publication'},status:'confirmed',revision:1};
+ ui.stored.records={experience:[project,paper]};ui.stored.relations=[{id:'pending-link',from_id:project.id,to_id:paper.id,relation_type:'project_publication',revision:7,status:'unconfirmed',source:'evidenced_proposal'}];
+ ui.handlers['profile.relation.save']=args=>{const relation=ui.stored.relations[0];Object.assign(relation,{...args,revision:8});return structuredClone(relation)};
+ await ui.evaluate("navigate('profile')");await ui.evaluate("profileTab='projects';render()");assert.match(ui.el('content').innerHTML,/Synthetic Paper/);assert.match(ui.el('content').innerHTML,/待确认/);assert.equal(ui.calls.some(c=>c.operation==='profile.relation.save'),false);
+ await ui.evaluate("showProfileRelations('pending-project')");assert.match(ui.el('detail-content').innerHTML,/待确认/);const button=ui.document.querySelector('[data-confirm-relation]');assert.notEqual(button,null);await button.click();
+ const save=ui.calls.find(c=>c.operation==='profile.relation.save');assert.equal(save.user_id,'synthetic-user-a');assert.deepEqual(save.args,{id:'pending-link',revision:7,source:'user_edit',status:'confirmed'});assert.equal(ui.document.querySelector('[data-confirm-relation]'),null);assert.match(ui.el('detail-content').innerHTML,/已确认/);assert.equal(ui.stored.relations[0].revision,8);
+});
+
+test('a late relation confirmation cannot reopen old-account details after switching',async()=>{
+ const ui=await app({withAccounts:true}),pending=deferred();ui.stored.records={experience:[{id:'p',kind:'experience',data:{title:'Private Project',category:'project'},revision:1},{id:'r',kind:'experience',data:{title:'Private Paper',category:'publication'},revision:1}]};ui.stored.relations=[{id:'pending-link',from_id:'p',to_id:'r',relation_type:'project_publication',status:'unknown',revision:4}];ui.handlers['profile.relation.save']=()=>pending.promise;
+ await ui.evaluate("navigate('profile')");await ui.evaluate("showProfileRelations('p')");const confirming=ui.document.querySelector('[data-confirm-relation]').click();await tick();await ui.evaluate("switchAccount('synthetic-user-b')");pending.resolve({id:'pending-link',status:'confirmed',revision:5});await confirming;
+ assert.equal(ui.el('detail').open,false);assert.doesNotMatch(ui.el('toast').textContent,/关联已确认/);assert.equal(ui.el('notice').hidden,true);
+});
+
+test('relation loading paginates fully and discarded old-account results never open a dialog',async()=>{
+ const ui=await app({withAccounts:true});ui.stored.relations=Array.from({length:101},(_,i)=>({id:'synthetic-link-'+i,from_id:'p',to_id:'r'+i,revision:1}));await ui.evaluate("navigate('profile')");
+ assert.deepEqual(ui.calls.filter(c=>c.operation==='profile.relation.list').map(c=>c.args.offset),[0,100]);assert.equal(ui.evaluate('profileRelations.length'),101);
+ const pending=deferred();ui.handlers['profile.relation.list']=()=>pending.promise;const reading=ui.evaluate('load()');await tick();ui.handlers['profile.relation.list']=()=>({items:[],total:0,offset:0,next_offset:null});await ui.evaluate("switchAccount('synthetic-user-b')");pending.resolve({items:[{id:'old-private-link',from_id:'p',to_id:'r'}],total:1,next_offset:null});await reading;
+ assert.equal(ui.evaluate('profileRelations.length'),0);assert.equal(ui.el('notice').hidden,true);
+});
+
+test('migration confirmation freshly reviews all pages and applies only the captured complete digest',async()=>{
+ const ui=await app({withAccounts:true}),items=Array.from({length:101},(_,i)=>({id:'migration-'+i,target:'education',source:'synthetic_source',scope:'global',proposed_fields:{laboratory:'Synthetic Lab '+i},changes:{laboratory:'Synthetic Lab '+i},would_change:true,review_required:false,issues:[]}));
+ let digest='old-digest';ui.handlers['profile.migration.preview']=args=>{const offset=args.offset||0,limit=args.limit||10,page=items.slice(offset,offset+limit);return {items:page,offset,total:items.length,next_offset:offset+page.length<items.length?offset+page.length:null,preview_digest:digest}};
+ ui.handlers['profile.migration.apply']=args=>{assert.equal(args.preview_digest,'fresh-digest');return {applied_count:101,review_count:0}};
+ await ui.evaluate("navigate('profile')");await ui.el('profile-preview').click();assert.equal(ui.el('migration-apply'),null);digest='fresh-digest';await ui.el('preview-review').click();
+ assert.match(ui.el('detail-content').innerHTML,/Synthetic Lab 100/);assert.match(ui.el('detail-content').innerHTML,/不会推断或确认毕业日期/);assert.equal(ui.calls.some(c=>c.operation==='profile.migration.apply'),false);
+ assert.deepEqual(ui.calls.filter(c=>c.operation==='profile.migration.preview').map(c=>[c.args.limit,c.args.offset]),[[10,0],[100,0],[100,100]]);
+ await ui.el('migration-apply').click();assert.equal(ui.calls.filter(c=>c.operation==='profile.migration.apply').length,1);assert.equal(ui.el('detail').open,false);assert.match(ui.el('toast').textContent,/101/);
+});
+
+test('changing migration digest during page review stops confirmation and keeps the original preview',async()=>{
+ const ui=await app(),item={target:'education',proposed_fields:{laboratory:'Synthetic Lab'},changes:{laboratory:'Synthetic Lab'},would_change:true,issues:[]};ui.handlers['profile.migration.preview']=args=>args.limit===10?{items:[item],offset:0,total:101,next_offset:10,preview_digest:'one'}:args.offset===0?{items:Array.from({length:100},()=>item),offset:0,total:101,next_offset:100,preview_digest:'one'}:{items:[item],offset:100,total:101,next_offset:null,preview_digest:'changed'};
+ await ui.evaluate("navigate('profile')");await ui.el('profile-preview').click();await ui.el('preview-review').click();assert.match(ui.el('notice').textContent,/发生变化/);assert.equal(ui.el('migration-apply'),null);assert.equal(ui.el('preview-review').disabled,false);assert.equal(ui.calls.some(c=>c.operation==='profile.migration.apply'),false);
+});
+
+test('explicit false, numeric zero and cleared arrays survive a typed revision patch',async()=>{
+ const ui=await app(),row={id:'education-clear',kind:'education',data:{school:'Synthetic School',double_degree:true,rank_percent:12.5,research_directions:['Old Direction'],graduation_date:null},revision:2,status:'confirmed',scope:'global'};ui.stored.records={education:[row]};ui.handlers['profile.patch']=args=>structuredClone(row);
+ await ui.evaluate("navigate('profile')");ui.evaluate("openEdit('education','education-clear')");const form=ui.el('edit-form');form.querySelector('[name=double_degree]').value='false';form.querySelector('[name=rank_percent]').value='0';form.querySelector('[name=research_directions]').value='';await ui.evaluate('saveEdit({preventDefault(){},target:document.querySelector("#edit-form")})');
+ const patch=ui.calls.find(c=>c.operation==='profile.patch');assert.deepEqual(patch.args.changes,{double_degree:false,rank_percent:0});assert.deepEqual(patch.args.clear,['research_directions']);
+});
+
+test('a revision conflict refreshes migration preview and requires a new review before applying again',async()=>{
+ const ui=await app(),item={id:'migration-one',target:'education',proposed_fields:{description:null,laboratory:'Synthetic Lab'},changes:{description:null,laboratory:'Synthetic Lab'},would_change:true,review_required:false,issues:[]};let attempts=0;
+ ui.handlers['profile.migration.preview']=()=>({items:[item],offset:0,total:1,next_offset:null,preview_digest:attempts?'new-digest':'first-digest'});ui.handlers['profile.migration.apply']=()=>{attempts++;return apiError('revision_conflict','合成资料已修改，请重新查看迁移对照。')};
+ await ui.evaluate("navigate('profile')");await ui.el('profile-preview').click();await ui.el('preview-review').click();assert.match(ui.el('detail-content').innerHTML,/清空旧正文，原文保留/);await ui.el('migration-apply').click();
+ assert.match(ui.el('notice').textContent,/已修改/);assert.equal(ui.el('migration-apply'),null);assert.notEqual(ui.el('preview-review'),null);assert.equal(attempts,1);assert.equal(ui.calls.filter(c=>c.operation==='profile.migration.preview').length,3);
+});
+
+test('migration apply completion from a switched account cannot reopen or update its old preview',async()=>{
+ const ui=await app({withAccounts:true}),pending=deferred(),item={id:'migration-private',target:'education',proposed_fields:{laboratory:'Old Account Lab'},changes:{laboratory:'Old Account Lab'},would_change:true,review_required:false,issues:[]};ui.handlers['profile.migration.preview']=()=>({items:[item],offset:0,total:1,next_offset:null,preview_digest:'private-digest'});ui.handlers['profile.migration.apply']=()=>pending.promise;
+ await ui.evaluate("navigate('profile')");await ui.el('profile-preview').click();await ui.el('preview-review').click();const applying=ui.el('migration-apply').click();await tick();await ui.evaluate("switchAccount('synthetic-user-b')");pending.resolve({applied_count:1,review_count:0});await applying;
+ assert.equal(ui.el('detail').open,false);assert.doesNotMatch(ui.el('toast').textContent,/已整理/);assert.equal(ui.el('notice').hidden,true);assert.equal(ui.evaluate('state.user_id'),'synthetic-user-b');
+});
 test('public resource defaults appear in settings without reading the remote directory',async()=>{
  const ui=await app({withAccounts:true});await ui.render('settings');
  const form=ui.el('registry-form');
@@ -309,61 +346,6 @@ test('whole-data migration help uses the current shared base for every account',
   assert.equal(launch()[8], 'D:/synthetic-restored');
   assert.ok(!JSON.stringify(launch()).includes('/accounts/'));
 });
-
-async function app({withAccounts=false}={}) {
-  const document = new Element('document');
-  document.innerHTML = '<main id="content"></main><h1 id="page-title"></h1><span id="save-state"></span>'
-    + '<p id="notice" hidden></p><p id="toast" hidden></p><dialog id="editor"><h2 id="editor-title"></h2>'
-    + '<form id="edit-form"><div id="editor-fields"></div><button type="submit"></button></form></dialog><button id="refresh"></button>'
-    + '<dialog id="detail"><h2 id="detail-title"></h2><div id="detail-content"></div><div id="detail-actions"></div></dialog>'
-    + '<dialog id="task-editor"><h2 id="task-editor-title"></h2><form id="task-form"><div id="task-editor-fields"></div><button type="submit"></button></form></dialog>'
-    + (withAccounts?'<select id="account-select"></select><button id="account-new"></button><dialog id="account-editor"><form id="account-form"><input name="name"><button type="submit"></button></form></dialog>':'');
-  const calls = [], syncCalls = [], timers = [], clipboard = [];
-  const stored = {records: {}, documents: [], settings: {...publicDefaults, _revision: 4, schedule: {
-    time: '10:00', timezone: 'Asia/Shanghai', allow_relogin: false, enabled: false, host_task_id: null,
-  }}};
-  const accountItems=[{id:'synthetic-user-a',name:'合成账号甲',created_at:'2026-10-09T01:00:00Z'},{id:'synthetic-user-b',name:'合成账号乙',created_at:'2026-10-09T02:00:00Z'}];
-  if(withAccounts)Object.assign(stored,{account:accountItems[0],user_id:accountItems[0].id,database:{path:'C:/synthetic-local-data/career.db',base_data_dir:'C:/synthetic-local-data',root_dir:'C:/synthetic-project'}});
-  const handlers = {
-    state: () => structuredClone(stored),
-    'otp.status': manual,
-    'sync.status': localSync,
-    'resource.list': () => ({items:[],registry_configured:false,remote_registry_supported:true}),
-    'otp.test': () => connectionResult(),
-    'settings.save': args => ({...stored.settings, ...args.settings, _revision: 5}),
-    'account.list':()=>({items:structuredClone(accountItems),total:accountItems.length}),
-    'account.select':args=>{stored.account=accountItems.find(a=>a.id===args.id);stored.user_id=args.id;return structuredClone(stored.account);},
-  };
-  const context = vm.createContext({
-    document, FormData, URL, console, location: {hash: ''}, window: {addEventListener() {}},
-    navigator: {clipboard: {writeText: async text => { clipboard.push(text); }}},
-    setTimeout(callback, delay) {if(delay===5000)timers.push(callback);},
-    fetch: async (path, options = {}) => {
-      const url=new URL(path,'http://synthetic.local'),request=url.pathname==='/api/state'?{operation:'state',args:{},...(url.searchParams.has('user_id')?{user_id:url.searchParams.get('user_id')}:{})}:url.pathname==='/api/accounts'?{operation:'account.list',args:{}}:JSON.parse(options.body);
-      // Keep existing per-account operation assertions independent of the
-      // additional shared sync status read. Sync assertions inspect syncCalls.
-      if(request.operation!=='sync.status')calls.push(request);
-      if(request.operation.startsWith('sync.'))syncCalls.push(request);
-      assert.ok(handlers[request.operation], `Unexpected API operation ${request.operation}`);
-      const data = await handlers[request.operation](request.args);
-      return data?.failure ? {ok: false, json: async () => ({ok: false, error: data.failure})}
-        : {ok: true, json: async () => ({ok: true, data})};
-    },
-  });
-  vm.runInContext(source, context, {filename: 'web/app.js'});
-  await tick(); // Complete the actual startup load().
-  calls.length = 0;
-  const evaluate = code => vm.runInContext(code, context);
-  return {
-    document, calls, syncCalls, timers, handlers, clipboard, evaluate,stored,
-    el: id => document.querySelector(`#${id}`),
-    render: target => evaluate(`page=${JSON.stringify(target)}; render()`),
-    submit: async () => {
-      const form = document.querySelector('#otp-form');
-      await form.onsubmit({target: form, preventDefault() {}});
-    },
-  };
-}
 
 function chooseGotify(ui, {url = 'http://127.0.0.1:8123', token = ''} = {}) {
   ui.el('otp-provider').value = 'gotify';
@@ -1324,43 +1306,43 @@ test('preferences save to the captured database account and campus remains the d
  const ui=await app({withAccounts:true});
  ui.stored.settings.preferences={cities:['旧城市'],recruitment_types:['campus'],legacy_rule:{retain:true}};
  ui.handlers['settings.save']=args=>{ui.stored.settings={...ui.stored.settings,...args.settings,preferences:{...ui.stored.settings.preferences,...args.settings.preferences},_revision:5};return structuredClone(ui.stored.settings);};
- await ui.evaluate("page='settings';load()");const form=ui.el('preferences-form');
- form.querySelector('[name=cities]').value='武汉\n北京，武汉';form.querySelector('[name=roles]').value='研究员, 算法工程師';
+ await ui.evaluate("page='intention';load()");const form=ui.el('preferences-form');
+ form.querySelector('[name=allowed_cities]').value='武汉\n北京，武汉';form.querySelector('[name=roles]').value='研究员, 算法工程師';
  form.querySelector('[name=industries]').value='人工智能';form.querySelector('[name=excluded_companies]').value='合成公司';form.querySelector('[name=notes]').value='最新偏好';
  await form.onsubmit({target:form,preventDefault(){}});
- const save=ui.calls.find(c=>c.operation==='settings.save');assert.equal(save.user_id,'synthetic-user-a');assert.equal(save.args.revision,4);
- assert.deepEqual(save.args.settings.preferences,{cities:['武汉','北京'],roles:['研究员','算法工程師'],industries:['人工智能'],excluded_companies:['合成公司'],recruitment_types:['campus'],notes:'最新偏好'});
+ const save=ui.calls.find(c=>c.operation==='intention.patch');assert.equal(save.user_id,'synthetic-user-a');assert.equal(save.args.revision,4);
+ assert.deepEqual(save.args.changes,{allowed_cities:['武汉','北京'],roles:['研究员','算法工程師'],industries:['人工智能'],excluded_companies:['合成公司'],notes:'最新偏好'});
  assert.deepEqual(ui.stored.settings.preferences.legacy_rule,{retain:true});
  assert.equal(ui.el('preferences-form').querySelector('[name=notes]').value,'最新偏好');
  const reread=ui.calls.find(c=>c.operation==='state');assert.equal(reread.user_id,'synthetic-user-a');
  const next=ui.el('preferences-form');next.querySelector('[name=include_internships]').checked=true;
  await next.onsubmit({target:next,preventDefault(){}});
- assert.deepEqual(ui.calls.filter(c=>c.operation==='settings.save').at(-1).args.settings.preferences.recruitment_types,['campus','internship']);
+ assert.deepEqual(ui.calls.filter(c=>c.operation==='intention.patch').at(-1).args.changes.recruitment_types,['campus','internship']);
 });
 
 test('editing social-only preferences preserves the selected scope and does not add campus or internships',async()=>{
  const ui=await app({withAccounts:true});
  ui.stored.settings.preferences={recruitment_types:['social'],notes:'原备注'};
- ui.handlers['settings.save']=args=>{ui.stored.settings={...ui.stored.settings,...args.settings,_revision:5};return structuredClone(ui.stored.settings);};
- await ui.evaluate("page='settings';load()");const form=ui.el('preferences-form');
+ ui.handlers['settings.save']=args=>{ui.stored.settings={...ui.stored.settings,...args.settings,preferences:{...ui.stored.settings.preferences,...args.settings.preferences},_revision:5};return structuredClone(ui.stored.settings);};
+ await ui.evaluate("page='intention';load()");const form=ui.el('preferences-form');
  assert.equal(form.querySelector('[name=include_social]').checked,true);
  assert.equal(form.querySelector('[name=include_campus]').checked,false);
  assert.equal(form.querySelector('[name=include_campus]').disabled,false);
  assert.equal(form.querySelector('[name=include_internships]').checked,false);
  form.querySelector('[name=notes]').value='更新备注';
  await form.onsubmit({target:form,preventDefault(){}});
- assert.deepEqual(ui.calls.find(c=>c.operation==='settings.save').args.settings.preferences.recruitment_types,['social']);
+ assert.equal(ui.calls.find(c=>c.operation==='intention.patch').args.changes.recruitment_types,undefined);
  assert.deepEqual(ui.stored.settings.preferences.recruitment_types,['social']);
 });
 
 test('recruitment types can be explicitly changed and empty selection never overwrites saved preferences',async()=>{
  const ui=await app({withAccounts:true});
  ui.stored.settings.preferences={recruitment_types:['campus'],notes:'保留备注'};
- ui.handlers['settings.save']=args=>{ui.stored.settings={...ui.stored.settings,...args.settings,_revision:5};return structuredClone(ui.stored.settings);};
- await ui.evaluate("page='settings';load()");const form=ui.el('preferences-form');
+ ui.handlers['settings.save']=args=>{ui.stored.settings={...ui.stored.settings,...args.settings,preferences:{...ui.stored.settings.preferences,...args.settings.preferences},_revision:5};return structuredClone(ui.stored.settings);};
+ await ui.evaluate("page='intention';load()");const form=ui.el('preferences-form');
  form.querySelector('[name=include_campus]').checked=false;
  await form.onsubmit({target:form,preventDefault(){}});
- assert.equal(ui.calls.filter(c=>c.operation==='settings.save').length,0);
+ assert.equal(ui.calls.filter(c=>c.operation==='intention.patch').length,0);
  assert.deepEqual(ui.stored.settings.preferences.recruitment_types,['campus']);
  assert.equal(ui.el('notice').hidden,false);
  form.querySelector('[name=include_social]').checked=true;

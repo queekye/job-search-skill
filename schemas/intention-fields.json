@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "authority": "settings.preferences",
+  "agent_write_supported": false,
+  "defaults": {
+    "cities": [], "roles": [], "industries": [], "excluded_companies": [],
+    "recruitment_types": ["campus"], "notes": "", "city_tiers": [],
+    "allowed_cities": [], "other_cities_allowed": null, "primary_directions": [],
+    "exploratory_directions": [], "excluded_directions": [], "earliest_start_date": null,
+    "salary": null
+  },
+  "fields": [
+    {"key":"recruitment_types","label":"招聘类型","type":"multiselect","value_type":"string_array","nullable":false,"max_items":3,"item_max_length":200,"options":["campus","internship","social"],"option_labels":{"campus":"校招","internship":"实习","social":"社招"}},
+    {"key":"city_tiers","label":"城市优先级","type":"textarea","value_type":"string_array_array","nullable":false,"max_items":20,"tier_max_items":100,"item_max_length":200,"help":"每行一个优先级，同一行的城市优先级相同。"},
+    {"key":"allowed_cities","label":"可接受城市","type":"textarea","value_type":"string_array","nullable":false,"max_items":100,"item_max_length":200},
+    {"key":"other_cities_allowed","label":"是否接受其他城市","type":"select","value_type":"boolean","nullable":true,"options":[true,false],"option_labels":{"true":"接受","false":"不接受"}},
+    {"key":"primary_directions","label":"主要求职方向","type":"textarea","value_type":"string_array","nullable":false,"max_items":100,"item_max_length":200},
+    {"key":"exploratory_directions","label":"探索方向","type":"textarea","value_type":"string_array","nullable":false,"max_items":100,"item_max_length":200},
+    {"key":"excluded_directions","label":"排除方向","type":"textarea","value_type":"string_array","nullable":false,"max_items":100,"item_max_length":200},
+    {"key":"roles","label":"职位名称","type":"textarea","value_type":"string_array","nullable":false,"max_items":100,"item_max_length":200},
+    {"key":"industries","label":"行业","type":"textarea","value_type":"string_array","nullable":false,"max_items":100,"item_max_length":200},
+    {"key":"excluded_companies","label":"排除公司","type":"textarea","value_type":"string_array","nullable":false,"max_items":100,"item_max_length":200},
+    {"key":"earliest_start_date","label":"最早到岗日期","type":"text","value_type":"string","nullable":true,"max_length":10,"format":"partial_date","help":"填写已知精度：YYYY、YYYY-MM 或 YYYY-MM-DD。"},
+    {"key":"salary","label":"薪资期望","type":"object","value_type":"object","nullable":true,"help":"期望值与可接受上下限分别填写；空白表示未知。"},
+    {"key":"notes","label":"补充意向","type":"textarea","value_type":"string","nullable":false,"max_length":12000,"help":"只记录本人当前求职意向，公司填写答案和开发说明分别管理。"},
+    {"key":"cities","label":"原有城市列表","type":"textarea","value_type":"string_array","nullable":false,"max_items":100,"item_max_length":200,"legacy":true}
+  ],
+  "salary_fields": [
+    {"key":"expected_amount","label":"期望金额","type":"number","value_type":"number","nullable":true,"minimum":0,"maximum":1000000000},
+    {"key":"amount_min","label":"可接受下限","type":"number","value_type":"number","nullable":true,"minimum":0,"maximum":1000000000},
+    {"key":"amount_max","label":"可接受上限","type":"number","value_type":"number","nullable":true,"minimum":0,"maximum":1000000000},
+    {"key":"currency","label":"币种","type":"text","value_type":"string","nullable":false,"max_length":20},
+    {"key":"period","label":"金额周期","type":"select","value_type":"string","nullable":false,"options":["annual","monthly"],"option_labels":{"annual":"年薪","monthly":"月薪"}},
+    {"key":"tax_basis","label":"税前／税后","type":"select","value_type":"string","nullable":false,"options":["gross","net","unknown"],"option_labels":{"gross":"税前","net":"税后","unknown":"未知"}}
+  ],
+  "legacy_targets": {
+    "intention":"求职意向", "education":"教育事实", "company_answer":"公司填写答案",
+    "resume_selection":"简历条目选择", "historical_instruction":"历史开发与任务说明", "review":"待核对"
+  }
+}

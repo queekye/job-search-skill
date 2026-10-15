@@ -86,7 +86,7 @@ def _merge(base, incoming):
 
 
 def _source_input(app, package, selection):
-    """Use explicit record identities when multiple basic profiles are eligible."""
+    """Bind reviewed raw field values, preserving typed facts and record revisions."""
     allowed = {"basic", "education", "experience", "family", "preference"}
     if not isinstance(selection, dict) or set(selection) - allowed:
         raise AppError("invalid_selection", "Select profile records by their kind and local identifiers.")
@@ -108,6 +108,8 @@ def _source_input(app, package, selection):
     pins, issues = {}, []
 
     def bind(record):
+        from .resume_content import ensure_resume_content
+        ensure_resume_content(record['kind'], record['data'])
         pins[record["id"]] = {"id": record["id"], "kind": record["kind"], "revision": record["revision"]}
         return record["data"]
 
@@ -120,7 +122,9 @@ def _source_input(app, package, selection):
             parts = source.replace(":", ".").split(".")
             kind = parts[0]
             records = eligible.get(kind, [])
-            if "array" in types:
+            from .profile import fields
+            field_source = len(parts) == 2 and parts[1] in {field['key'] for field in fields(kind)}
+            if "array" in types and not field_source:
                 if kind == "experience" and len(parts) == 2:
                     records = [record for record in records if record["data"].get("category") == parts[1]]
                 if records and kind not in selection:
@@ -169,6 +173,8 @@ def _documents(app, schema, inputs):
 
 
 def _fresh(app, data):
+    from .resumes import guard_company
+    guard_company(app, data['company_id'])
     package = _package(app, data["company_id"])
     if (package["version"], package["digest"]) != (data["version"], data["digest"]):
         raise AppError("package_changed", "The enabled company version changed. Prepare this form again.", 409)
@@ -269,6 +275,8 @@ def execute(app, operation, args, actor):
         app._validate_task_data({"answers": incoming})
         from .form_contract import validate_input
         with gate(app.base_data_dir):
+            from .resumes import guard_company
+            guard_company(app, args['company_id'])
             package = _package(app, args["company_id"])
             previous = _task(app, args["task_id"], args.get("revision")) if args.get("task_id") else None
             if previous and previous["status"] == "running":

@@ -1,4 +1,5 @@
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -127,6 +128,79 @@ class ReleaseTests(unittest.TestCase):
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
         with self.assertRaises(ValueError):
             verify(self.root)
+
+    def install_phone_hash(self):
+        from scripts.build_release import installation_files
+        # Find an actual digest with a phone-shaped run; no private data fixture
+        # or fabricated hash is needed for the generated-manifest regression.
+        for number in range(10000):
+            raw = f"public synthetic content {number}".encode()
+            if CHECKER.PHONE.search(hashlib.sha256(raw).hexdigest()):
+                break
+        else:
+            self.fail("Synthetic hash fixture was not found")
+        runtime = installation_files({"public.txt": raw}, "0.2.1")
+        for name, content in runtime.items():
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content)
+        return runtime
+
+    def test_verified_install_manifest_sha_is_exempt_only_from_shape_checks(self):
+        runtime = self.install_phone_hash()
+        self.assertTrue(self.scan(sorted(runtime))["ok"])
+        manifest = json.loads(runtime["INSTALL-MANIFEST.json"])
+        digest = next(entry["sha256"] for entry in manifest["files"] if entry["path"] == "public.txt")
+        phone = CHECKER.PHONE.search(digest).group()
+        self.assertIn("private_identifier", self.codes(self.scan(sorted(runtime), [phone])))
+        self.put("ordinary.json", runtime["INSTALL-MANIFEST.json"].decode())
+        self.assertIn("personal_phone", self.codes(self.scan(["ordinary.json"])))
+        self.assertIn("personal_phone", self.codes(self.scan(["INSTALL-MANIFEST.json"])))
+
+    def test_install_manifest_bad_hash_or_structure_does_not_hide_phone(self):
+        runtime = self.install_phone_hash()
+        original = json.loads(runtime["INSTALL-MANIFEST.json"])
+        for malformed in (False, True):
+            with self.subTest(malformed=malformed):
+                manifest = json.loads(runtime["INSTALL-MANIFEST.json"])
+                entry = next(item for item in manifest["files"] if item["path"] == "public.txt")
+                if malformed:
+                    entry["sha256"] += "g"
+                else:
+                    entry["sha256"] = ("a" if entry["sha256"][0] != "a" else "b") + entry["sha256"][1:]
+                self.put("INSTALL-MANIFEST.json", json.dumps(manifest))
+                self.assertIn("personal_phone", self.codes(self.scan(sorted(runtime))))
+        phone = "139" + "01234567"
+        original["phone"] = phone
+        self.put("INSTALL-MANIFEST.json", json.dumps(original))
+        self.assertIn("personal_phone", self.codes(self.scan(sorted(runtime))))
+
+    def test_private_content_and_secrets_still_block_valid_install_snapshot(self):
+        from scripts.build_release import installation_files
+        phone = "139" + "01234567"
+        secret = "sk-" + "A" * 30
+        runtime = installation_files({"public.txt": (phone + " " + secret).encode()}, "0.2.1")
+        for name, content in runtime.items():
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content)
+        self.assertTrue({"personal_phone", "credential_value"} <= self.codes(self.scan(sorted(runtime))))
+
+    def test_manifest_hash_verification_never_reads_denied_private_members(self):
+        from scripts.build_release import installation_files
+        runtime = installation_files({"credentials.json": b"synthetic private state"}, "0.2.1")
+        for name, content in runtime.items():
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(content)
+        private_path = self.root / "credentials.json"
+        original_open = Path.open
+        def public_only(path, *args, **kwargs):
+            if path == private_path:
+                self.fail("The scanner opened a denied private member")
+            return original_open(path, *args, **kwargs)
+        with patch.object(Path, "open", public_only):
+            self.assertIn("private_resource", self.codes(self.scan(sorted(runtime))))
 
     def test_installation_snapshot_rejects_links(self):
         from scripts.verify_release import verify

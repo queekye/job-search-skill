@@ -4,6 +4,9 @@
 | --- | --- | --- |
 | `.codex-plugin/plugin.json`、`.mcp.json` | 插件入口和本地 MCP 启动 | 核心版本 |
 | `skills/career/SKILL.md` | Codex 求职流程与权限边界 | 核心版本，保持入口稳定 |
+| `skills/interview-preparation/SKILL.md` | 依据现有资料进行面试诊断、项目深挖和练习复盘 | 独立隐式触发，结果复用 custom 任务 |
+| `references/agent-recipes.md` | 能力发现、过滤分页、任务保存和工具缺失时的调用配方 | 参数与真实 MCP、CLI 同步 |
+| `schemas/interview-task.json` | 面试准备任务的共享数据结构 | 与网页和 interview.schema 保持一致，不新增平行档案 |
 | `service/app.py`、`http.py`、`mcp.py` | 统一资料、网页和工具接口 | 数据库迁移与接口兼容 |
 | `service/packages.py`、`schemas/company-pack.schema.json` | 公司资源验证与版本管理 | 先升级契约再使用新字段 |
 | `service/otp.py` | 可选取码来源和消费规则 | 可替换来源，保持工具接口 |

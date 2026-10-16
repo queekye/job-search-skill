@@ -1,7 +1,7 @@
 {
   "id": "zte",
   "name": "中兴通讯",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "contract_version": 1,
   "origin": "https://app.mokahr.com",
   "description": "中兴 Moka 租户授权身份文本、预期旧值简介和单项目准备；就绪不依赖申请人学校，供本人审阅后保存。",
@@ -17,6 +17,10 @@
     "applications": {
       "status": "unavailable",
       "detail": "No application reader."
+    },
+    "job_description": {
+      "status": "documentation",
+      "detail": "Observed current public job-detail procedure, tenant and completeness boundaries; no executable extractor or new form acceptance."
     }
   },
   "verification": {
@@ -27,7 +31,9 @@
     "live_reverified": false,
     "installed_verification": "not_run",
     "scope": "Current source supports the bounded preparation detail above. Historical observations are reference evidence only; no new real-site save, completeness or submission acceptance.",
-    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification.",
+    "job_description_observed_on": "2026-10-16",
+    "job_description_scope": "Current public job-detail DOM only; existing executable controls, persistence, applications and installation were not reverified."
   },
   "files": [
     {
@@ -44,7 +50,7 @@
     },
     {
       "path": "guide.md",
-      "sha256": "e8b5075c754e94327e67552a53faa469c1a428838428f653ca5822a840d6a7a5"
+      "sha256": "193fdbd553237b6b3a3e8f0dfac9ef7094bd01257c1acdb499c1cf4c348b1f2c"
     },
     {
       "path": "profile-projects.mjs",
@@ -53,6 +59,10 @@
     {
       "path": "profile-summary.mjs",
       "sha256": "7d9a09487ddebe2dae3dca4197dc4f6317c4eb6c849fd94a4d280310fb242fe5"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "dcdce8d4c47db94a55680a9d8e1ab872c0531bc76930b4f8f9bc872f85d71cf7"
     }
   ]
 }

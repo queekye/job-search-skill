@@ -227,6 +227,43 @@ class MCPTests(unittest.TestCase):
         self.assertTrue(content["truncated_paths"])
         self.assertLessEqual(len(json.dumps(response, ensure_ascii=False, separators=(",", ":")).encode()), MAX_OUTPUT_BYTES)
 
+    def test_resource_list_paging_is_declared_on_both_tools(self):
+        definitions = {tool["name"]: tool for tool in tool_definitions()}
+        for name in ("career_get", "career_resources"):
+            definition = definitions[name]
+            branch = next(branch for branch in definition["inputSchema"]["allOf"]
+                          if branch["if"]["properties"]["operation"]["const"] == "resource.list")
+            args = branch["then"]["properties"]["args"]
+            self.assertEqual({"limit", "offset"}, set(args["properties"]))
+            self.assertEqual({"type": "integer", "minimum": 0, "default": 0}, args["properties"]["offset"])
+            self.assertEqual(200, args["properties"]["limit"]["maximum"])
+            self.assertEqual(200, args["properties"]["limit"]["default"])
+            self.assertFalse(args["additionalProperties"])
+            self.assertIn("limit:5", definition["description"])
+
+    def test_bundled_resource_pages_reassemble_without_transport_truncation(self):
+        # Only a new temporary database is used; package files are public source.
+        public_app = App(Path(self.tmp.name) / "catalog-private", Path(__file__).resolve().parents[1])
+        expected = public_app.execute("resource.list")["items"]
+        self.assertEqual(30, len(expected))
+        self.server = MCPServer(public_app)
+        self.initialize()
+        for name in ("career_get", "career_resources"):
+            offset, collected = 0, []
+            while offset is not None:
+                response, content = self.call(name, {"operation": "resource.list", "user_id": "default",
+                    "args": {"limit": 5, "offset": offset}})
+                self.assertFalse(response["result"]["isError"])
+                self.assertNotIn("truncated", content)
+                self.assertLessEqual(len((json.dumps(response, ensure_ascii=False, separators=(",", ":")) + "\n").encode()), MAX_OUTPUT_BYTES)
+                page = content["data"]
+                self.assertEqual((30, 5, offset), (page["total"], page["limit"], page["offset"]))
+                self.assertTrue(page["items"])
+                collected.extend(page["items"])
+                offset = page["next_offset"]
+                self.assertLessEqual(len(collected), 30)
+            self.assertEqual(expected, collected)
+
     def test_large_binary_export_is_not_silently_corrupted(self):
         with self.assertRaises(AppError) as error:
             bounded_result({"filename": "public.zip", "content_base64": "a" * 50000})

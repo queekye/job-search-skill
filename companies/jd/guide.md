@@ -13,3 +13,7 @@
 `fillExistingProjectsOnce({tab,projects,authorization})` 处理任意现存项目子集，最多 50 卡。`projects` 为 `{index,expectedTitle,title,role,description,startDate,endDate}`；调用前读最新索引及原始标题。非空 expectedTitle 必须在页面唯一，且当前索引精确对应；重复标题或同数重排后停止并重新读取。expectedTitle 为空时，仅可重用 title、role、description、startDate、endDate 全空且页面唯一的空卡；无标题但已有其他内容的记录不当作空卡。写入期间逐项维护五字段旧值快照，任何未修改字段变化均停止。日期仅支持明确授权的 YYYY-MM-01 占位日，另需 `placeholderDayOne:true`；不把月份推断成真实日期。
 
 所有请求字段在首次写入前预检非空冲突，每次写前核对条目身份，写后读回；不增删卡片、不保存或投递，返回 `saved:false,submitted:false`。版本升级的数量泛化仅有合成回归，真实官网及已安装版本需分别验证。
+
+## 公开岗位 JD
+
+2026-10-16 已观察公开岗位详情，按 [岗位说明读取](references/job-description.md) 核对精确身份、完整保存正文及失败阻点。该能力仅为文档，不扩展现有网页动作或替代原执行模块的现场/安装验收；当前公开版本不证明历史投递版本。

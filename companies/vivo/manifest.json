@@ -1,6 +1,6 @@
 {
   "id": "vivo",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "contract_version": 1,
   "name": "vivo 校园招聘",
   "origin": "https://hr-campus.vivo.com",
@@ -21,6 +21,10 @@
     "submit": {
       "status": "unavailable",
       "detail": "User submission."
+    },
+    "job_description": {
+      "status": "documentation",
+      "detail": "Observed official public JD routes, identity checks and complete-text collection guidance. No automated JD reader or additional website action."
     }
   },
   "verification": {
@@ -31,7 +35,14 @@
     "scope": "Historical nonempty completed delivery-record structure only. Live-site and installed-version verification of this release have not been run.",
     "source_version": "0.1.0",
     "installed_verification": "not_run",
-    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification.",
+    "public_jd": {
+      "observed_on": "2026-10-16",
+      "method": "Read-only official public browser rendering",
+      "scope": "Public campus jobAdId detail with complete responsibilities/qualifications plus one stopped-recruiting redirect to /job/empty. Existing delivery reader not reverified.",
+      "authenticated_scope": "not_observed",
+      "historical_application_version": "not_verified"
+    }
   },
   "files": [
     {
@@ -56,7 +67,11 @@
     },
     {
       "path": "guide.md",
-      "sha256": "533426d3daca33cdc9beb43439cabb8682e27c5392fa89b1e06371ee481a2d5c"
+      "sha256": "5a43800a51f9858a2d06bc2b94d2c962b5d2ec98798ca7c86f294726c1e10c73"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "4436a5aab5624b768fbe8be8b2789e76996914c60c66a431f38a3ccf06c263ab"
     },
     {
       "path": "references/site-extension.json",

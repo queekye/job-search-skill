@@ -489,19 +489,29 @@ def _execute(app, operation, args, actor):
         from service.form_contract import template, validate_authoring
         return template(args) if operation == "resource.template" else validate_authoring(args)
     if operation == "resource.list":
+        if set(args) - {"limit", "offset"}:
+            fail("invalid_request", "Public package listing accepts only limit and offset.")
+        limit, offset = args.get("limit", 200), args.get("offset", 0)
+        if type(limit) is not int or not 1 <= limit <= 200:
+            fail("invalid_field", "Limit must be an integer from 1 to 200.")
+        if type(offset) is not int or offset < 0:
+            fail("invalid_field", "Offset must be a nonnegative integer.")
         directory = _safe_path(app.root_dir, "companies")
         ids = set(_lock(app)["packages"])
         if directory.is_dir():
             ids |= {p.name for p in directory.iterdir() if p.is_dir() and ID.fullmatch(p.name)}
         items = []
-        for package_id in sorted(ids):
+        ordered_ids = sorted(ids)
+        for package_id in ordered_ids[offset:offset + limit]:
             files, record = _select(app, package_id)
             items.append(_summary(files, record))
         try:
             settings = app.execute("state")["settings"]
         except (KeyError, AttributeError):
             settings = {}
-        return {"items": items, "registry_configured": bool(settings.get("registry_url")), "remote_registry_supported": True}
+        return {"items": items, "total": len(ordered_ids), "limit": limit, "offset": offset,
+                "next_offset": offset + len(items) if offset + len(items) < len(ordered_ids) else None,
+                "registry_configured": bool(settings.get("registry_url")), "remote_registry_supported": True}
     if operation == "resource.refresh":
         if set(args) - {"url"}:
             fail("invalid_registry", "Public index refresh accepts only a URL.")

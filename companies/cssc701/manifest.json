@@ -1,0 +1,59 @@
+{
+  "id": "cssc701",
+  "name": "中船七〇一研究所",
+  "version": "0.1.0",
+  "contract_version": 1,
+  "origin": "https://01zp.zhiye.com",
+  "description": "中船七〇一研究所公开详情的有限读取说明；已观察详情缺少职责条件，覆盖保持部分。",
+  "capabilities": {
+    "onboarding": {
+      "status": "documentation",
+      "detail": "Observed public portal/tenant and current landing or login boundary; see guide."
+    },
+    "job_description": {
+      "status": "documentation",
+      "detail": "Read-only procedure for observed public JD surfaces and actual gaps; no executable extractor."
+    },
+    "login": {
+      "status": "unavailable",
+      "detail": "User login only; no OTP or authentication automation."
+    },
+    "profile_prepare": {
+      "status": "unavailable",
+      "detail": "No observed form controls or executable filling module."
+    },
+    "applications": {
+      "status": "unavailable",
+      "detail": "No application-state reader."
+    },
+    "submit": {
+      "status": "unavailable",
+      "detail": "Final submission remains with the applicant."
+    }
+  },
+  "verification": {
+    "source_observed_on": "2026-10-16",
+    "public_jd_observation": "Current public DOM/navigation observed for the bounded surfaces described in references/job-description.md. Login, form writing, application-state and installed-package acceptance were not run.",
+    "live_reverified": false,
+    "scope": "Documentation-only observation; does not establish complete JD availability for every job, historical application version or any executable capability.",
+    "installed_verification": "not_run"
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "52e1855f97f9d7d17b93d4746dcfbfb4879cc43843cbe56c09770ddf4c57138d"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "83038f6aefb792756fd50b6537ba092761ac04d0f1728c2ddf3212d92b26836d"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "bd3652ef2009ffcd4bdf7b2b3386ebd89c58352bc3e0c8d9af7871fc7febdfa8"
+    }
+  ]
+}

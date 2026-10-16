@@ -43,6 +43,8 @@ DESCRIPTIONS['career_tasks'] += ' task.context separates personal facts, unique 
 DESCRIPTIONS['career_get'] += ' Discover public source capabilities with capability.list({}), then capability.describe({id}); these never read applicant records, install anything or assert browser/site/plugin acceptance. interview.schema({}) returns the data contract for custom interview_preparation tasks. Before asking for known company/job details, use record.list({kind:"application",query:"<company-name>",limit:20,offset:0}); query is existing JSON text matching, not a website search. Continue offset until total is covered.'
 DESCRIPTIONS['career_get'] += ' application.jd.read({id,offset?,limit?,revision?}) reads exact saved JD text slices from the existing application; follow next_offset with the returned revision to reconstruct long text without truncation. Missing JD requires reading the corresponding official job page and preserving source, observation time, coverage and identity match. Reading a current public JD does not verify application status or a historical submission version.'
 DESCRIPTIONS['career_save'] += ' application.jd.save({id,revision,changes:{job_description?,jd_url?,jd_checked_at?,jd_coverage?,jd_identity_status?,jd_last_attempt_at?,jd_blocker?}}) patches only JD evidence on an existing application. It preserves all other fields and record metadata, using the shared revision/history/writer guards. Failed retrieval updates only attempt time/blocker, preserving the last successful snapshot.'
+for _resource_tool in ('career_get', 'career_resources'):
+    DESCRIPTIONS[_resource_tool] += ' resource.list({limit?,offset?}) lists approved company packages in stable id order and returns total/limit/offset/next_offset. Use limit:5 for MCP, follow next_offset until null with the same user_id, and reduce the page size if truncated. The service default limit:200 preserves existing local web calls.'
 
 
 def _profile_changes_schema():
@@ -95,6 +97,11 @@ def _schema(operations):
                    "description": "Stable capability id from capability.list."}},
             "required": ["id"], "additionalProperties": False},
         "interview.schema": {"type": "object", "properties": {}, "additionalProperties": False},
+        "resource.list": {"type": "object", "properties": {
+            "limit": {"type": "integer", "minimum": 1, "maximum": 200, "default": 200,
+                      "description": "Use 5 for MCP to keep full company metadata within the output budget."},
+            "offset": {"type": "integer", "minimum": 0, "default": 0}},
+            "additionalProperties": False},
         "application.jd.read": {"type": "object", "properties": {
             "id": {"type": "string", "minLength": 1, "maxLength": 100},
             "revision": {"type": "integer", "minimum": 1},
@@ -328,7 +335,7 @@ def bounded_result(value):
         changes = []
         data = _shorten(value, max_items, max_text, changes=changes)
         result = {"ok": True, "data": data, "truncated": True, "truncated_paths": changes[:60],
-                  "hint": "This is an incomplete preview. Read record.list by kind or task.list with smaller limit and offset, document.read by offset, or individual resource.read, keeping the same user_id. Do not treat omissions as absent information."}
+                  "hint": "This is an incomplete preview. Read record.list by kind, task.list or resource.list with smaller limit and offset, document.read by offset, or individual resource.read, keeping the same user_id. Do not treat omissions as absent information."}
         if fits(result):
             return result
     raise AppError("output_too_large", "Result exceeds the MCP output budget. Request a smaller page.", 413)

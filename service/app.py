@@ -19,7 +19,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 from .locking import gate, locked
 
-VERSION = "0.4.1"
+VERSION = "0.4.4"
 MAX_DOCUMENT_BYTES = 15 * 1024 * 1024
 MAX_TEXT = 1024 * 1024
 JD_FIELDS = {"job_description", "jd_url", "jd_checked_at", "jd_coverage", "jd_identity_status", "jd_last_attempt_at", "jd_blocker"}

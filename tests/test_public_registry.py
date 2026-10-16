@@ -83,7 +83,7 @@ class PublicRegistryTests(unittest.TestCase):
         first = catalog_files()
         self.assertEqual(first, catalog_files())
         index = json.loads(first["index.json"])
-        self.assertEqual(len(index["packages"]), 15)
+        self.assertEqual(len(index["packages"]), 30)
         self.assertEqual(first[".nojekyll"], b"")
         self.assertIn(b"pack.download?.path", first["catalog.js"])
         for item in index["packages"]:
@@ -94,7 +94,7 @@ class PublicRegistryTests(unittest.TestCase):
             self.assertLess(len(raw), packages.MAX_ARCHIVE)
             manifest = json.loads(packages._unzip(raw)["manifest.json"])
             self.assertEqual((item["id"], item["version"]), (manifest["id"], manifest["version"]))
-        self.assertEqual(len(first), 21)
+        self.assertEqual(len(first), 36)
 
     def test_refresh_is_read_only_and_an_unconfigured_index_is_explicit(self):
         result = self.call("resource.refresh", actor="codex")
@@ -117,7 +117,7 @@ class PublicRegistryTests(unittest.TestCase):
         self.assertEqual(0, result.returncode, result.stderr)
         actual = {path.relative_to(output).as_posix(): path.read_bytes() for path in output.rglob('*') if path.is_file()}
         self.assertEqual(catalog_files(), actual)
-        self.assertEqual(21, len(actual))
+        self.assertEqual(36, len(actual))
         self.assertTrue(all(marker not in value for value in actual.values()))
         self.assertEqual(marker, (private / 'career.db').read_bytes())
         (output / 'synthetic-extra.txt').write_bytes(marker)

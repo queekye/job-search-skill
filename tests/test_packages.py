@@ -66,7 +66,7 @@ class PackageTests(unittest.TestCase):
 
     def test_bundled_offline_install_read_and_deterministic_public_export(self):
         listed = self.call("resource.list")
-        self.assertEqual(len(listed["items"]), 15)
+        self.assertEqual(len(listed["items"]), 30)
         self.assertFalse(listed["registry_configured"])
         self.assertEqual(sum(i["executable"] for i in listed["items"]), 10)
         (self.app.data_dir / "private.txt").write_text("DO_NOT_EXPORT_PRIVATE_DATA")
@@ -82,6 +82,44 @@ class PackageTests(unittest.TestCase):
         contents = packages._unzip(raw)
         self.assertNotIn("private.txt", contents)
         self.assertNotIn(b"DO_NOT_EXPORT_PRIVATE_DATA", b"".join(contents.values()))
+
+    def test_resource_list_pages_reassemble_the_complete_stable_catalog(self):
+        full = self.call("resource.list")
+        self.assertEqual(30, full["total"])
+        self.assertEqual((200, 0, None), (full["limit"], full["offset"], full["next_offset"]))
+        expected_ids = [item["id"] for item in full["items"]]
+        self.assertEqual(sorted(expected_ids), expected_ids)
+        offset, collected = 0, []
+        while offset is not None:
+            page = self.call("resource.list", {"limit": 7, "offset": offset})
+            self.assertEqual((30, 7, offset), (page["total"], page["limit"], page["offset"]))
+            self.assertTrue(page["items"])
+            self.assertLessEqual(len(page["items"]), 7)
+            collected.extend(page["items"])
+            next_offset = page["next_offset"]
+            if next_offset is not None:
+                self.assertEqual(offset + len(page["items"]), next_offset)
+            offset = next_offset
+        self.assertEqual(full["items"], collected)
+        self.assertEqual(len(expected_ids), len(set(expected_ids)))
+        for offset in (30, 31, 10 ** 20):
+            page = self.call("resource.list", {"limit": 1, "offset": offset})
+            self.assertEqual([], page["items"])
+            self.assertIsNone(page["next_offset"])
+            self.assertEqual(30, page["total"])
+        self.assertEqual(full["items"], self.call("resource.list", {"limit": 200})["items"])
+
+    def test_resource_list_rejects_invalid_or_unknown_pagination_arguments(self):
+        invalid = [{"limit": value} for value in (True, False, 0, -1, 201, 1.0, "5", None)]
+        invalid += [{"offset": value} for value in (True, False, -1, 1.0, "0", None)]
+        for args in invalid:
+            with self.subTest(args=args):
+                with self.assertRaises(AppError) as caught:
+                    self.call("resource.list", args)
+                self.assertEqual("invalid_field", caught.exception.code)
+        with self.assertRaises(AppError) as caught:
+            self.call("resource.list", {"id": "oppo"})
+        self.assertEqual("invalid_request", caught.exception.code)
 
     def test_review_immutable_versions_and_receipt_bound_rollback(self):
         bundled = self.call("resource.install", {"id": "oppo"})

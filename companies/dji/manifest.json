@@ -1,10 +1,10 @@
 {
   "id": "dji",
   "name": "大疆",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "contract_version": 1,
-  "origin": "https://we.dji.com",
-  "description": "文档型共建起点，未实现脚本或字段映射。",
+  "origin": "https://apply.careers.dji.com",
+  "description": "当前官网校园招聘入口与公开 JD 读取说明；无登录、填表或申请进度脚本。",
   "capabilities": {
     "onboarding": {
       "status": "documentation",
@@ -17,6 +17,10 @@
     "applications": {
       "status": "unavailable",
       "detail": "No reader."
+    },
+    "job_description": {
+      "status": "documentation",
+      "detail": "Observed official public JD routes, identity checks and complete-text collection guidance. No automated JD reader or additional website action."
     }
   },
   "verification": {
@@ -24,7 +28,15 @@
     "live_reverified": false,
     "scope": "Documentation starter only.",
     "installed_verification": "not_run",
-    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification.",
+    "public_jd": {
+      "observed_on": "2026-10-16",
+      "method": "Read-only official public browser rendering",
+      "scope": "Current official campus portal to apply.careers.dji.com dji tenant/project and #/job/<UUID>; complete public role description, base requirements, bonus section and scoped program notice. No executable code.",
+      "authenticated_scope": "not_observed",
+      "historical_application_version": "not_verified"
+    },
+    "origin_update": "Current public campus source observed via careers.dji.com; old we.dji.com remains historical evidence only."
   },
   "files": [
     {
@@ -37,7 +49,11 @@
     },
     {
       "path": "guide.md",
-      "sha256": "d80af03a8ab9597c2d086e756505d63c93269666c84323aec2292164aaa689cc"
+      "sha256": "0f4726e4d329a5b548928a24e2dfcf6274867210ad9f9497db5563084944c0b4"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "2217aac2537a4ddb2563530d7b7610395005e6d4629e6f9aeecffec4befbe984"
     }
   ]
 }

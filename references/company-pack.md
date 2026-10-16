@@ -14,7 +14,7 @@ Optional `form.json` declares typed inputs and a unified `inspect/fill/verify` m
 
 ## Local operations
 
-- `resource.list` lists bundled and selected installed versions offline.
+- `resource.list {limit?,offset?}` lists bundled and selected installed versions offline, sorted by stable package ID. Limit is an integer from 1 to 200 (default 200 for existing local web callers); offset is a nonnegative integer (default 0). The response includes `items,total,limit,offset,next_offset` plus registry flags. MCP callers should use `limit:5`, follow `next_offset` until null with the same `user_id`, and request a smaller page if the transport reports `truncated`; an incomplete preview is not the whole catalog.
 - `resource.install {id,version?}` installs only the bundled version, after member/hash validation. Installation never runs a script.
 - `resource.read {id,path?}` returns an approved text resource, at most 16,000 characters. The default is `guide.md`. Installed path is returned only for an accepted installed version. Long code is reviewed through the local file viewer.
 - `resource.export {id}` returns a deterministic ZIP of that selected pack only. It never reads profile, application, OTP or document storage. The public catalog download route always supplies `source:"bundled"`; this exports trusted repository content even when the user has installed a different local version. User-reviewed imports still need a fresh privacy review before sharing.

@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "fields": [
+    {
+      "local_field": "application.job_id",
+      "site_label": "官方岗位ID",
+      "method": "read_documentation",
+      "scope": "从实际详情URL的jobAdId读取；公开J编号另保留，不能冒充申请编号。"
+    },
+    {
+      "local_field": "application.title",
+      "site_label": "岗位完整标题",
+      "method": "read_documentation",
+      "scope": "只读详情标题；不能用相似标题替代精确身份。"
+    },
+    {
+      "local_field": "application.city",
+      "site_label": "城市原文",
+      "method": "read_documentation",
+      "scope": "保持页面列出的全部城市；未知不推断。"
+    },
+    {
+      "local_field": "application.program",
+      "site_label": "招聘项目/类型原文",
+      "method": "read_documentation",
+      "scope": "核对页面与当前官方项目，不能只靠URL推断。"
+    },
+    {
+      "local_field": "application.job_description",
+      "site_label": "工作职责及任职资格",
+      "method": "read_documentation",
+      "scope": "包含全部正文、总述、附加条件及加分项；本包没有自动读取器。"
+    },
+    {
+      "local_field": "application.jd_url",
+      "site_label": "公开岗位来源",
+      "method": "read_documentation",
+      "scope": "实际无凭据HTTP(S)详情URL。"
+    },
+    {
+      "local_field": "application.jd_checked_at",
+      "site_label": "成功观察时间",
+      "method": "read_documentation",
+      "scope": "只在实际读到所声明覆盖的JD后保存，独立于申请checked_at。"
+    },
+    {
+      "local_field": "application.jd_coverage",
+      "site_label": "JD读取覆盖",
+      "method": "read_documentation",
+      "scope": "complete/partial/unknown按实际可见正文确定。"
+    },
+    {
+      "local_field": "application.jd_identity_status",
+      "site_label": "岗位匹配程度",
+      "method": "read_documentation",
+      "scope": "exact/related/unknown按精确ID及标题/项目核对。"
+    },
+    {
+      "local_field": "application.jd_last_attempt_at",
+      "site_label": "本次尝试时间",
+      "method": "read_documentation",
+      "scope": "失败也可记录，不替代最后成功JD时间。"
+    },
+    {
+      "local_field": "application.jd_blocker",
+      "site_label": "JD阻点",
+      "method": "read_documentation",
+      "scope": "记录实际失效/登录/空页提示；失败保留最后成功原文。"
+    },
+    {
+      "local_field": "application.application_id",
+      "site_label": "个人申请编号",
+      "method": "unsupported",
+      "scope": "公开JD不是个人申请快照；未观察此字段。"
+    }
+  ]
+}

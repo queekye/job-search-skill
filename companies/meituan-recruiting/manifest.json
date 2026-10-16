@@ -1,6 +1,6 @@
 {
   "id": "meituan-recruiting",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "contract_version": 1,
   "name": "美团招聘",
   "origin": "https://job.meituan.com",
@@ -21,6 +21,10 @@
     "submit": {
       "status": "unavailable",
       "detail": "User submission."
+    },
+    "public_jd": {
+      "status": "documentation",
+      "detail": "Observed public JD routes, complete-text capture and historical-identity safeguards; no executable JD reader."
     }
   },
   "verification": {
@@ -32,13 +36,15 @@
     "live_reverified": false,
     "scope": "Historical finite current-page project and choice structures only; coverage remains partial. Live-site and installed-version verification of this release have not been run.",
     "installed_verification": "not_run",
-    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification.",
+    "public_jd_observation": {
+      "observed_on": "2026-10-16",
+      "mode": "read_only_browser",
+      "coverage": "Observed public directories and full JD detail pages only; prior executable reader scope is unchanged and was not revalidated in this pass.",
+      "reference": "references/job-description.md"
+    }
   },
   "files": [
-    {
-      "path": "LICENSE.txt",
-      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
-    },
     {
       "path": "adapter.mjs",
       "sha256": "79084ba43980732f4a3250dd28ee842e289dae5d4e0e474c3302d8d5eb4155c4"
@@ -61,7 +67,15 @@
     },
     {
       "path": "guide.md",
-      "sha256": "8a75485ce1d877dcb920b6c6a5f9b5004d86581f0dfd25b9af73aa0bc6a5cd1e"
+      "sha256": "0cf70c01bbfe3156689c1bd9a7e031c3629ec0f93bbdeecf6edc0a78d6e68fac"
+    },
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "635616e015156ef4ef7214811d8e57e8e3388a36cd266331ae7962cce6563c0b"
     },
     {
       "path": "references/site-extension.json",

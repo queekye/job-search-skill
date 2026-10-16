@@ -7,3 +7,5 @@
 REDstar 与普通校招分别核对当期规则。REDstar 草稿保存及最终投递尚未实测，不继承普通校招的志愿数量、名额或投递规则，也不能把填入或存在草稿记成已保存或已投递。
 
 本包为文档型方案，没有 reader、登录、字段写入、保存或投递脚本；`applications/profile_prepare` 为 unavailable。历史结构证据不等于执行 reader 的验收，`live_read/installed` 保持 `not_run`。合成测试、现场与安装证据分开记录，原件存于仓库外，以包版本和哈希关联。个人值、私人 DOM、申请记录不得进入贡献包。
+
+公开岗位详情及已有实习 JD 的浏览器读取见 [JD 采集说明](references/job-description.md)。public_jd 为 documentation；初始“-”占位符须等待正文渲染，当前完整 JD 与历史投递版本分别记录。

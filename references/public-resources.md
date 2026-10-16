@@ -30,7 +30,7 @@
 
 构建仅使用 Python 标准库，读取公开公司资源、目录页面、样式和许可证；不实例化个人数据服务，不读取 `JOB_SEARCH_DATA_DIR`，无需上传个人档案或设置 WebDAV/OTP 凭据。输出目录是部署资产的唯一入口。[Cloudflare 构建配置](https://developers.cloudflare.com/pages/configuration/build-configuration/)
 
-本地也可运行同一条命令。`--output` 要求新目录或空目录，避免把额外文件带进部署；重复本地构建时使用另一空目录。当前 15 个公司包生成 21 个公开文件，包含 15 个版本 ZIP。无参数运行 `python scripts/build_catalog.py` 仍只更新本地 `web/catalog.js`，保持既有发布构建兼容。
+本地也可运行同一条命令。`--output` 要求新目录或空目录，避免把额外文件带进部署；重复本地构建时使用另一空目录。当前 30 个公司包生成 36 个公开文件，包含 30 个版本 ZIP。无参数运行 `python scripts/build_catalog.py` 仍只更新本地 `web/catalog.js`，保持既有发布构建兼容。
 
 首次发布后，另一次 `main` 推送用于核验原生自动构建和部署。线上索引和选定 ZIP 核对 HTTP 200、字节数与 SHA-256；本机使用合成档案验收“刷新公共目录 → 下载并审阅 → 确认已审阅并启用”，不读取或发布真实求职资料。启用状态留在本机。
 

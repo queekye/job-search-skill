@@ -1,14 +1,14 @@
 {
   "id": "oppo",
   "name": "OPPO",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "contract_version": 1,
   "origin": "https://careers.oppo.com",
-  "description": "文档型共建起点，未实现脚本或字段映射。",
+  "description": "已观察公开校招/博士目录与JD的只读文档方案；未实现表单或申请reader。",
   "capabilities": {
     "onboarding": {
       "status": "documentation",
-      "detail": "Suggested portal and generic guidance; verify first."
+      "detail": "Observed official campus entry and doctor directory; public JD procedure only."
     },
     "profile_prepare": {
       "status": "unavailable",
@@ -17,6 +17,10 @@
     "applications": {
       "status": "unavailable",
       "detail": "No reader."
+    },
+    "public_jd": {
+      "status": "documentation",
+      "detail": "Observed public JD routes, complete-text capture and historical-identity safeguards; no executable JD reader."
     }
   },
   "verification": {
@@ -24,20 +28,30 @@
     "live_reverified": false,
     "scope": "Documentation starter only.",
     "installed_verification": "not_run",
-    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification.",
+    "public_jd_observation": {
+      "observed_on": "2026-10-16",
+      "mode": "read_only_browser",
+      "coverage": "Observed public directories and full JD detail pages only; prior executable reader scope is unchanged and was not revalidated in this pass.",
+      "reference": "references/job-description.md"
+    }
   },
   "files": [
-    {
-      "path": "LICENSE.txt",
-      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
-    },
     {
       "path": "fields.json",
       "sha256": "0d4cebd3008346d32807cc8622cec943caafd7be941d9230860cd734e5717fd6"
     },
     {
       "path": "guide.md",
-      "sha256": "d07d8e73308f649b7459425ff64456e1c4dd5a5818e42a229da52d6f49918fa9"
+      "sha256": "2e45cfb76cf9b6cfa72f81687d721bf2807b695a0602a2bb5362ecf78906c85c"
+    },
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "9c254a6bcc18cbfc03a30530f0779d013ba3af7cbf11321551a6c47075e61ab7"
     }
   ]
 }

@@ -1,0 +1,55 @@
+{
+  "id": "xiaomi",
+  "name": "小米",
+  "version": "0.1.0",
+  "contract_version": 1,
+  "origin": "https://xiaomi.jobs.f.mioffice.cn",
+  "description": "普通与顶尖校园JD路由、原申请对应和本人登录交接的只读文档。",
+  "capabilities": {
+    "onboarding": {
+      "status": "documentation",
+      "detail": "Observed official routes and applicant-completed login handoff."
+    },
+    "job_description": {
+      "status": "documentation",
+      "detail": "Identity-aware JD lookup and preservation guidance; no executable extractor."
+    },
+    "applications": {
+      "status": "unavailable",
+      "detail": "No executable application reader."
+    },
+    "profile_prepare": {
+      "status": "unavailable",
+      "detail": "No form writer."
+    }
+  },
+  "verification": {
+    "public_jd": {
+      "observed_on": "2026-10-16",
+      "scope": "Official routes and manual read-only observations; full site coverage is not asserted.",
+      "private_evidence": "not_distributed"
+    },
+    "local_checks": "Manifest integrity only; no company scripts supplied or executed.",
+    "live_reverified": false,
+    "installed_verification": "not_run",
+    "scope": "Documentation only; login and current application UI observations do not establish automated reading or writing."
+  },
+  "files": [
+    {
+      "path": "fields.json",
+      "sha256": "a481ca46cb9ad4cb746fb4abb2b5235c9c387e32865ae8a20d950620e823b240"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "605dd5d0c6a26dff27abf55d504ff24462b904b463834e68d71c14904ee83f80"
+    },
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "6990c68c6912d6dce1c5a69b100ee21f5c558b20754dc79a9ddc6669ea233edb"
+    }
+  ]
+}

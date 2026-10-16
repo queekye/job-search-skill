@@ -1,6 +1,6 @@
 {
   "id": "bytedance-campus",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "contract_version": 1,
   "name": "字节跳动校招",
   "origin": "https://jobs.bytedance.com",
@@ -33,6 +33,10 @@
     "submit": {
       "status": "unavailable",
       "detail": "User final submission."
+    },
+    "job_description": {
+      "status": "documentation",
+      "detail": "Observed public JD or login-boundary workflow; source/identity/coverage saved separately in the existing application. No new browser executor."
     }
   },
   "verification": {
@@ -44,13 +48,15 @@
     "live_reverified": false,
     "scope": "Historical source evidence only; check current page before use.",
     "installed_verification": "not_run",
-    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification.",
+    "public_jd": {
+      "observed_on": "2026-10-16",
+      "scope": "public routes and login handoff only; no new authenticated reader, profile writes or application submission",
+      "private_evidence": "not_distributed",
+      "installed_verification": "not_run"
+    }
   },
   "files": [
-    {
-      "path": "LICENSE.txt",
-      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
-    },
     {
       "path": "adapter.mjs",
       "sha256": "418f240492a2c34ff37ae0dbf996e7f3a6025893da78c5486abdce5cdcaf969a"
@@ -105,7 +111,11 @@
     },
     {
       "path": "guide.md",
-      "sha256": "513911cc5e8b16e9c23994cce80cf922c484cbe1d7adf339649aaa5a85f4b4f7"
+      "sha256": "e733c64d7b76db60b31a53f6b204a75cdf8e17689014e45cf49187ec7371a90c"
+    },
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
     },
     {
       "path": "profile-audit.mjs",
@@ -122,6 +132,10 @@
     {
       "path": "references/form-controls.md",
       "sha256": "9ec3d9f2b3f5225de6198d7eeb53acc7ff923341d1b0bdba076e5a727a463b73"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "8812f715cc63de6f44c7d346b6d865f4af8a5301ec4b90614f1681be613c7a5b"
     },
     {
       "path": "verification-overlay.mjs",

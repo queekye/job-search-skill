@@ -1,0 +1,61 @@
+{
+  "id": "bilibili",
+  "name": "哔哩哔哩",
+  "origin": "https://jobs.bilibili.com",
+  "description": "已观察公开校招及B-UP目录与JD详情的只读文档包；无执行reader或自动填表。",
+  "version": "0.1.0",
+  "contract_version": 1,
+  "capabilities": {
+    "public_jd": {
+      "status": "documentation",
+      "detail": "Observed public routes and full JD capture procedure; no executable reader."
+    },
+    "applications": {
+      "status": "unavailable",
+      "detail": "No private application reader."
+    },
+    "profile_prepare": {
+      "status": "unavailable",
+      "detail": "No form writer."
+    },
+    "login": {
+      "status": "unavailable",
+      "detail": "User login if required."
+    },
+    "submit": {
+      "status": "unavailable",
+      "detail": "User submission only."
+    }
+  },
+  "verification": {
+    "source_observed_on": "2026-10-16",
+    "live_reverified": false,
+    "scope": "Public nonempty job directories and JD content observed read-only. No browser code, synthetic reader fixture, private-account acceptance or installed-package execution claimed.",
+    "public_jd_observation": {
+      "observed_on": "2026-10-16",
+      "mode": "read_only_browser",
+      "coverage": "Observed public directories and detail pages only; current snapshots do not verify historical application identity or JD wording.",
+      "reference": "references/job-description.md"
+    },
+    "local_checks": "2026-10-16 resource.validate integrity and form-contract check passed; executed:false. No executable reader tests apply to this documentation-only package.",
+    "installed_verification": "not_run"
+  },
+  "files": [
+    {
+      "path": "fields.json",
+      "sha256": "89238fbfc5ad8463c67f7273226bd044ece1d6e0627e246fa7031f96579dd296"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "fff3d56cbb2d04f69949b222a8b1447ee8241ebcae13af28820b6d3ed0404699"
+    },
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "f26df835ae6dbae6a8809ed0a6b16b31a82dcd7957f5094643f1fd8db32661f5"
+    }
+  ]
+}

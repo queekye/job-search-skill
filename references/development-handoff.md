@@ -1,4 +1,6 @@
-# 开发交接 · 0.4.1 开发预览发行
+# 开发交接 · 0.4.4 本地开发版
+
+2026-10-16 增补：公司资源由 15 包扩至 30 包，补充实际观察的只读 JD 路由、完整正文采集、身份与历史版本边界。新增包仅文档；既有执行脚本与填表映射未扩展。`resource.list` 增加稳定 ID 排序和 `limit/offset/next_offset` 分页，MCP 从每页 5 包开始读取，网页默认请求保持兼容。JD 批量回填先限定公司再核对岗位，不为只读查询导航到可能改变志愿的 `postprocess2`。当前公共发行仍为 0.4.1，本地 0.4.4 未公开发布；验收分层见 [验证](validation.md)。
 
 2026-10-15 增补：公共能力目录 `capability.list/describe`、`interview.schema` 和 `scripts/career-call.py` 单次 MCP 客户端已接入；四个 skills 由 `career` 路由，面试流程先读已有材料、保留事实与建议边界、通过真实回答及复测更新进度。面试复用原 `custom` 任务，网页任务区提供模板、关联资料、计划、项目卡及练习视图；`task.context.interview_context` 检查本账号引用与版本变化，不修改原资料、数据库 schema、官网状态或已有自动化。完整参数见 [调用配方](agent-recipes.md) 与 [开发契约](development-contract.md)。当前版本的源码、本地浏览器、运行包和安装新会话结果分别记录在 [验证](validation.md)，不能从接口存在推断全部验收。
 

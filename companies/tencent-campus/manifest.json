@@ -1,6 +1,6 @@
 {
   "id": "tencent-campus",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "contract_version": 1,
   "name": "腾讯校招",
   "origin": "https://join.qq.com",
@@ -29,6 +29,10 @@
     "submit": {
       "status": "unavailable",
       "detail": "User final submission."
+    },
+    "job_description": {
+      "status": "documentation",
+      "detail": "Observed public JD or login-boundary workflow; source/identity/coverage saved separately in the existing application. No new browser executor."
     }
   },
   "verification": {
@@ -42,13 +46,15 @@
     "live_reverified": false,
     "installed_verification": "not_run",
     "scope": "Current source supports the bounded preparation detail above. Historical observations are reference evidence only; no new real-site save, completeness or submission acceptance.",
-    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification.",
+    "public_jd": {
+      "observed_on": "2026-10-16",
+      "scope": "public routes and login handoff only; no new authenticated reader, profile writes or application submission",
+      "private_evidence": "not_distributed",
+      "installed_verification": "not_run"
+    }
   },
   "files": [
-    {
-      "path": "LICENSE.txt",
-      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
-    },
     {
       "path": "adapter.mjs",
       "sha256": "84b2aa8f954eb4d2c424033c4976660481d8d567ca29d0acc41ddde1eb82a531"
@@ -83,7 +89,11 @@
     },
     {
       "path": "guide.md",
-      "sha256": "d996250f9343af571c445dc0252cf12bf18ed4a338661c8cd6eb5b32e2f7cdc3"
+      "sha256": "8ca173da10a50c22a92c7136ca883357019000ec6888f6d66f5f57d1d61ddd2a"
+    },
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
     },
     {
       "path": "professional-fields.mjs",
@@ -92,6 +102,10 @@
     {
       "path": "references/company-rules.json",
       "sha256": "6ebe596dff8042047a9393a28df862f428411c2d0c1b9d2feb682c2f95630e46"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "f8a20e3f5d7cd7803ed7f821e013173d9518ea0e2a35f435db8f86edcb6c8a1d"
     },
     {
       "path": "references/professional-fields.md",

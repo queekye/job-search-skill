@@ -1,7 +1,7 @@
 {
   "id": "xiaohongshu",
   "name": "小红书",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "contract_version": 1,
   "origin": "https://job.xiaohongshu.com",
   "description": "基于已观察校招记录区段的文档方案；未新增执行reader或填表能力。",
@@ -17,6 +17,10 @@
     "applications": {
       "status": "unavailable",
       "detail": "No reader."
+    },
+    "public_jd": {
+      "status": "documentation",
+      "detail": "Observed public JD routes, complete-text capture and historical-identity safeguards; no executable JD reader."
     }
   },
   "verification": {
@@ -24,20 +28,30 @@
     "live_reverified": false,
     "scope": "Documentation-only plan for observed delivery sections. This release has no executable reader; live-site and installed-version verification have not been run.",
     "installed_verification": "not_run",
-    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification.",
+    "public_jd_observation": {
+      "observed_on": "2026-10-16",
+      "mode": "read_only_browser",
+      "coverage": "Observed public campus and existing internship detail pages with full JD text only; historical delivery-section plan and unavailable reader scope are unchanged.",
+      "reference": "references/job-description.md"
+    }
   },
   "files": [
-    {
-      "path": "LICENSE.txt",
-      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
-    },
     {
       "path": "fields.json",
       "sha256": "0d4cebd3008346d32807cc8622cec943caafd7be941d9230860cd734e5717fd6"
     },
     {
       "path": "guide.md",
-      "sha256": "8e59817bd653bf16e498c197c985c594bb75281f649ab1f43dd7e2e5d0a1c420"
+      "sha256": "9284585ca7a0120809703e3ce26b821905dfe1b81455e7c840d124190caf8980"
+    },
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "d674df2cee664fa7ffaee2fa1ad0b2550237b5a274377edbbca8eb0f32138ee6"
     },
     {
       "path": "references/site-extension.json",

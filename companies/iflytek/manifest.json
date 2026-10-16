@@ -1,7 +1,7 @@
 {
   "id": "iflytek",
   "name": "科大讯飞",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "contract_version": 1,
   "origin": "https://iflytek.zhiye.com",
   "description": "讯飞个人与明确学历字段、现存可变数量教育及论文补填、经独立授权的实践准备；不保存或投递。",
@@ -17,6 +17,10 @@
     "applications": {
       "status": "unavailable",
       "detail": "No application reader."
+    },
+    "job_description": {
+      "status": "documentation",
+      "detail": "Observed official public JD routes, identity checks and complete-text collection guidance. No automated JD reader or additional website action."
     }
   },
   "verification": {
@@ -27,7 +31,14 @@
     "live_reverified": false,
     "installed_verification": "not_run",
     "scope": "Current source supports the bounded preparation detail above. Historical observations are reference evidence only; no new real-site save, completeness or submission acceptance.",
-    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification.",
+    "public_jd": {
+      "observed_on": "2026-10-16",
+      "method": "Read-only official public browser rendering",
+      "scope": "Public campus jobAdId detail including title/J code, program, cities, publication date, responsibilities, qualifications and bonus section. Existing profile code not reverified.",
+      "authenticated_scope": "not_observed",
+      "historical_application_version": "not_verified"
+    }
   },
   "files": [
     {
@@ -44,7 +55,7 @@
     },
     {
       "path": "guide.md",
-      "sha256": "143740e85bd17a6f89fe77e7bac9769ba6c0006b7ba347f423fbb271d3421404"
+      "sha256": "54350ec953beea420b5ad06b9ef1f416e4671b230183130981a83cf437fbeb7f"
     },
     {
       "path": "profile-practice.mjs",
@@ -57,6 +68,10 @@
     {
       "path": "profile-sections.mjs",
       "sha256": "89809ff362b44ab0520b1a062ee9d64c6e6165789001483c0908f3990c56a32f"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "787a3e9874e299ff4c16657f81335fcbb7228f52b0991d2ba02375135a011a4d"
     }
   ]
 }

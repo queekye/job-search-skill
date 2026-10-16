@@ -1,7 +1,7 @@
 {
   "id": "stepfun",
   "name": "阶跃星辰",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "contract_version": 1,
   "origin": "https://app.mokahr.com",
   "description": "阶跃 Moka 租户授权的所在地与证件文本准备；就绪不依赖申请人学校，供本人审阅后保存。",
@@ -17,6 +17,10 @@
     "applications": {
       "status": "unavailable",
       "detail": "No application reader."
+    },
+    "job_description": {
+      "status": "documentation",
+      "detail": "Observed current public job-detail procedure, tenant and completeness boundaries; no executable extractor or new form acceptance."
     }
   },
   "verification": {
@@ -27,7 +31,9 @@
     "live_reverified": false,
     "installed_verification": "not_run",
     "scope": "Current source supports the bounded preparation detail above. Historical observations are reference evidence only; no new real-site save, completeness or submission acceptance.",
-    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification.",
+    "job_description_observed_on": "2026-10-16",
+    "job_description_scope": "Current public job-detail DOM only; existing executable controls, persistence, applications and installation were not reverified."
   },
   "files": [
     {
@@ -44,7 +50,11 @@
     },
     {
       "path": "guide.md",
-      "sha256": "5d5ae6283fec4fe8e36b443bf2d28deb8cdb83843c16d6dc9951b71298b67bc3"
+      "sha256": "2a017588727a2550eb3646d86f62fdf34024289ceff0b0576cccd312da6bea02"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "b95ef780ef7e2914ddb2786ce547a56d29b1745bed3fcf7973a48e6449c9e52e"
     }
   ]
 }

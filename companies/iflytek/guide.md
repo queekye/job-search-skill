@@ -13,3 +13,7 @@ null、undefined、空文本兼容字段不请求教育写入，单独给 educat
 `ensurePracticeOnce({tab,practice,authorization})` 使用 title、role、desc、startMonth、endMonth，支持现存精确标题卡、唯一全空卡和明确 `addPractice:true` 的一次新增。非空未完成卡的接续另需 `resumePartialPractice:true`，且每个非空字段精确一致。最多 8 卡，月份只使用已观察选择器；未知月份不猜测。
 
 `resumeUploadPlan` 配合核心上传 helper，自动解析可能替换表单，须同时授权上传与 `replaceProfile:true`；没有只换附件模式。文件出现不证明解析正确，逐项复核附件及各条经历。所有填写方法保护旧值、读回结果并返回 `saved:false,submitted:false`，不提供保存或投递。新数量/学历泛化的现场及安装验收仍未执行。
+
+## 公开岗位 JD
+
+2026-10-16 已观察公开岗位详情，按 [岗位说明读取](references/job-description.md) 核对精确身份、完整保存正文及失败阻点。该能力仅为文档，不扩展现有网页动作或替代原执行模块的现场/安装验收；当前公开版本不证明历史投递版本。

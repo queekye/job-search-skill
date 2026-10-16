@@ -199,8 +199,8 @@
         {
           "tool": "career_get",
           "operation": "resource.list",
-          "args": {},
-          "purpose": "读取公司包能力与版本，再 resource.read 查看指引"
+          "args": {"limit": 5, "offset": 0},
+          "purpose": "分页读取公司包能力与版本，沿 next_offset 到 null，再 resource.read 查看指引"
         }
       ],
       "evidence": {

@@ -1,0 +1,64 @@
+{
+  "id": "ymtc",
+  "name": "长江存储",
+  "version": "0.1.0",
+  "contract_version": 1,
+  "origin": "https://ymtc.zhiye.com",
+  "description": "公开校园招聘 JD 与岗位身份核对说明；无登录、填表或申请执行代码。",
+  "capabilities": {
+    "onboarding": {
+      "status": "documentation",
+      "detail": "Observed official public entry; operator navigation only."
+    },
+    "job_description": {
+      "status": "documentation",
+      "detail": "Observed public JD routes and complete-text guidance; no automated reader, authentication, save or submission."
+    },
+    "login": {
+      "status": "unavailable",
+      "detail": "Applicant login; no credential or OTP handling."
+    },
+    "profile_prepare": {
+      "status": "unavailable",
+      "detail": "No form adapter or executable field mappings."
+    },
+    "applications": {
+      "status": "unavailable",
+      "detail": "No application progress reader."
+    },
+    "submit": {
+      "status": "unavailable",
+      "detail": "Applicant final submission only."
+    }
+  },
+  "verification": {
+    "live_reverified": false,
+    "installed_verification": "not_run",
+    "public_jd": {
+      "observed_on": "2026-10-16",
+      "method": "Read-only official public browser rendering",
+      "scope": "Official public campus detail; exact jobAdId plus displayed J code, title, city, category, publication date, responsibilities and qualifications. No authenticated or closed-page acceptance.",
+      "authenticated_scope": "not_observed",
+      "executable_scope": "none",
+      "historical_application_version": "not_verified"
+    }
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "e3552c72c77f6b841d1c9d4bc64f0398b8cc94ac6a1e2b2f8c633e8da6b1a0e1"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "880e87dfd811f56b00ba4c72095a8e4ed29aaad0999ad5cdf4c18937415f2d2d"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "b0dd28deac157f8ae9b895d4ff1a4494dc0b4c387c1b8cb8d50286e247d0a900"
+    }
+  ]
+}

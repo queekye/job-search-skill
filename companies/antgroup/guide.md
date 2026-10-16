@@ -13,3 +13,5 @@ null、undefined、空文本兼容字段不请求教育写入，单独给 educat
 `resumeUploadPlan` 配合核心上传 helper。上传与解析覆盖是不同授权；`parse:false` 只换附件，`parse:true` 需独立 `replaceProfile:true` 并选择明确的覆盖确认。附件出现不证明解析正确。
 
 联系方式需本网站单独授权。填入前预检全部请求字段，保护非空冲突；每次写入后读回。所有方法不保存或投递，返回 `saved:false,submitted:false`。新学历别名及可变论文行已有合成回归；旧控件观察不代替新版本现场与安装验收。
+
+公开岗位的原始JD、公司/租户身份、登录及下架边界见[JD读取说明](references/job-description.md)。2026-10-16 本轮只核验公开岗位详情读取；不提升既有表单执行代码的现场或安装验收结论。

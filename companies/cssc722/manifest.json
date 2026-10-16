@@ -1,0 +1,59 @@
+{
+  "id": "cssc722",
+  "name": "中船七二二研究所",
+  "version": "0.1.0",
+  "contract_version": 1,
+  "origin": "https://xiaoyuan.zhaopin.com",
+  "description": "中船七二二研究所公开目录与智联校园登录阻点说明；不含可执行填写或状态读取。",
+  "capabilities": {
+    "onboarding": {
+      "status": "documentation",
+      "detail": "Observed public portal/tenant and current landing or login boundary; see guide."
+    },
+    "job_description": {
+      "status": "documentation",
+      "detail": "Read-only guidance and blockers only. Legacy postprocess2 is a preference workflow that may mutate drafts; never navigate it for JD collection. No reusable safe detail route or executable extractor verified."
+    },
+    "login": {
+      "status": "unavailable",
+      "detail": "User login only; no OTP or authentication automation."
+    },
+    "profile_prepare": {
+      "status": "unavailable",
+      "detail": "No observed form controls or executable filling module."
+    },
+    "applications": {
+      "status": "unavailable",
+      "detail": "No application-state reader."
+    },
+    "submit": {
+      "status": "unavailable",
+      "detail": "Final submission remains with the applicant."
+    }
+  },
+  "verification": {
+    "source_observed_on": "2026-10-16",
+    "public_jd_observation": "Current public DOM/navigation observed for the bounded surfaces described in references/job-description.md. Login, form writing, application-state and installed-package acceptance were not run. Follow-up navigation review confirmed postprocess2 is a preference workflow and may create/switch drafts; only a separately observed non-submitting detail is suitable for read-only JD collection.",
+    "live_reverified": false,
+    "scope": "Documentation-only observation; does not establish complete JD availability for every job, historical application version or any executable capability.",
+    "installed_verification": "not_run"
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "52e1855f97f9d7d17b93d4746dcfbfb4879cc43843cbe56c09770ddf4c57138d"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "a7c6bbb399be7a50e1ed78cde4919b3fe4ea582ef849a34171ec44d6161f6023"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "b7f5e35d3efe639c8b57fcaf7b0960df303a338e5cfdce2aea30dfab506fb201"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "id": "alibaba-campus",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "contract_version": 1,
   "name": "阿里巴巴集团校招",
   "origin": "https://campus-talent.alibaba.com",
@@ -21,6 +21,10 @@
     "submit": {
       "status": "unavailable",
       "detail": "User submission."
+    },
+    "public_jd": {
+      "status": "documentation",
+      "detail": "Observed public JD routes, complete-text capture and historical-identity safeguards; no executable JD reader."
     }
   },
   "verification": {
@@ -32,13 +36,15 @@
     "live_reverified": false,
     "scope": "Historical source evidence only; check current page before use.",
     "installed_verification": "not_run",
-    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification.",
+    "public_jd_observation": {
+      "observed_on": "2026-10-16",
+      "mode": "read_only_browser",
+      "coverage": "Observed public directories and full JD detail pages only; prior executable reader scope is unchanged and was not revalidated in this pass.",
+      "reference": "references/job-description.md"
+    }
   },
   "files": [
-    {
-      "path": "LICENSE.txt",
-      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
-    },
     {
       "path": "adapter.mjs",
       "sha256": "cc4e4e4e1bd0d87d40d07e66abb3422f5acedd7bc2bda6f9002af2b9466a8f59"
@@ -61,7 +67,15 @@
     },
     {
       "path": "guide.md",
-      "sha256": "bca4e841ff05a2cc7c91bd9aa3bad4d965f4094460947f75a3c9704c5df9fe6b"
+      "sha256": "0ac04cb2ac788a95109b8ce29d604851bf04cafa6a653bba18e6655f34b35b1d"
+    },
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "9f26ee156aafaa2215767a3cf5e3ea1b69b1e4d378d94740b3585b573cb61c6e"
     },
     {
       "path": "surface.mjs",

@@ -1,7 +1,7 @@
 {
   "id": "jd",
   "name": "京东",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "contract_version": 1,
   "origin": "https://campus.jd.com",
   "description": "京东校招统一基本信息填表入口及独立旧模块；不保存或投递。",
@@ -21,6 +21,10 @@
     "form_fill": {
       "status": "executable",
       "detail": "Unified inspect/fill/verify for six observed basic fields only. Runtime-provided authorization, readback and conflicts; no education, projects, attachments, save or submit in this entry."
+    },
+    "job_description": {
+      "status": "documentation",
+      "detail": "Observed official public JD routes, identity checks and complete-text collection guidance. No automated JD reader or additional website action."
     }
   },
   "verification": {
@@ -31,9 +35,20 @@
     "live_reverified": false,
     "installed_verification": "not_run",
     "scope": "Current unified entry covers declared basic fields only; old bounded education/project/upload helpers are unchanged. No current live-site save or completeness acceptance.",
-    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification."
+    "license_update": "Public MIT license notice added; this release has no new live-site or installed-package verification.",
+    "public_jd": {
+      "observed_on": "2026-10-16",
+      "method": "Read-only official public browser rendering",
+      "scope": "Public #/details?id route; title, category, business labels, cities, responsibilities and complete qualifications. Existing fill code not reverified.",
+      "authenticated_scope": "not_observed",
+      "historical_application_version": "not_verified"
+    }
   },
   "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
     {
       "path": "adapter.mjs",
       "sha256": "b948223b5189a308483ffbdd4d8834c494754c973fa31edc3f8d39c13db5ff24"
@@ -56,11 +71,7 @@
     },
     {
       "path": "guide.md",
-      "sha256": "ac645e594b03ea6ea757ffeb39854d8368962b96f4cfddc0a4d7b7567b13ed53"
-    },
-    {
-      "path": "LICENSE.txt",
-      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+      "sha256": "d335bbe2e1bdee46e0a8cddb263fc40171eaab0b83ba39716fb39f1d5b13b2d1"
     },
     {
       "path": "profile-projects.mjs",
@@ -69,6 +80,10 @@
     {
       "path": "profile-sections.mjs",
       "sha256": "aac8a1020d5c7a16d4eb6072740615dee1675a6166f001ac4e5d31cbe089abe1"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "f69ba387e998abc2c8097e0942fed8365bcc0925964b999843d1526cbe8020be"
     }
   ]
 }

@@ -11,3 +11,5 @@
 可见弹层、导航、过期值、重复控件、未知 query 或岗位不符需要局部发现。每次最多一次 fill 后读回，不重试不明结果。不提供身份、日期、下拉、附件、保存或投递。新数量泛化仅有合成回归，现场与安装验证需分开进行。
 
 references/company-rules.json 是历史公开规则来源，使用前核对项目和当期条款。
+
+JD 补齐与本人登录交接见 [job-description.md](references/job-description.md)；新增内容为文档，不扩展已有执行范围。

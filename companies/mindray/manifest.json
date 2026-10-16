@@ -1,0 +1,64 @@
+{
+  "id": "mindray",
+  "name": "迈瑞医疗",
+  "version": "0.1.0",
+  "contract_version": 1,
+  "origin": "https://career.mindray.com",
+  "description": "公开博士优招目录与 JD 读取说明；无登录、填表或申请执行代码。",
+  "capabilities": {
+    "onboarding": {
+      "status": "documentation",
+      "detail": "Observed official public entry; operator navigation only."
+    },
+    "job_description": {
+      "status": "documentation",
+      "detail": "Observed public JD routes and complete-text guidance; no automated reader, authentication, save or submission."
+    },
+    "login": {
+      "status": "unavailable",
+      "detail": "Applicant login; no credential or OTP handling."
+    },
+    "profile_prepare": {
+      "status": "unavailable",
+      "detail": "No form adapter or executable field mappings."
+    },
+    "applications": {
+      "status": "unavailable",
+      "detail": "No application progress reader."
+    },
+    "submit": {
+      "status": "unavailable",
+      "detail": "Applicant final submission only."
+    }
+  },
+  "verification": {
+    "live_reverified": false,
+    "installed_verification": "not_run",
+    "public_jd": {
+      "observed_on": "2026-10-16",
+      "method": "Read-only official public browser rendering",
+      "scope": "Official public doctoral activity directory, expanded job text and campus detail; exact displayed code/title and detail jobAdId. No authenticated application or form acceptance.",
+      "authenticated_scope": "not_observed",
+      "executable_scope": "none",
+      "historical_application_version": "not_verified"
+    }
+  },
+  "files": [
+    {
+      "path": "LICENSE.txt",
+      "sha256": "4fb3758a1ffc1ca5ff98ef66d45368cd11df032b8e9c793d612edaeef64fbb5a"
+    },
+    {
+      "path": "fields.json",
+      "sha256": "e3552c72c77f6b841d1c9d4bc64f0398b8cc94ac6a1e2b2f8c633e8da6b1a0e1"
+    },
+    {
+      "path": "guide.md",
+      "sha256": "2c61915f457cb1d8446c9d4bcda977e18da696fa703b5d85826336391be5685d"
+    },
+    {
+      "path": "references/job-description.md",
+      "sha256": "9bef367f640d76580c5d8330d538a139930339a6e90449026ad30f05851fac9c"
+    }
+  ]
+}

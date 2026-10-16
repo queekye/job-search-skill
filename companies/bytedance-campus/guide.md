@@ -9,3 +9,5 @@ session.fillProfileField(label,{value}) 支持部分基本文本。复杂控件�
 写前后调用 inspectVerificationOverlay（verification-overlay.mjs）。空验证层可无文字，empty_overlay/unknown 停止重试，不把刷新或 Escape 当已验证恢复。字段 helper 返回布尔读回及 saved:false,submitted:false，不保存/上传/删除/投递。另行保存需有当前授权和保存后页面证据。
 
 已保存带日期的公开规则见 [company-rules.json](references/company-rules.json)。这是历史来源记录，不是本次重新核验；使用前确认项目与当前条款。
+
+JD 补齐与本人登录交接见 [job-description.md](references/job-description.md)；新增内容为文档，不扩展已有执行范围。

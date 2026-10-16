@@ -1,10 +1,10 @@
 # Job Search Skill
 
-面向 **Windows** 的本地求职协作工具和 Codex 插件，当前源码为 **0.4.4 本地开发版**。网页与 Agent 共用 SQLite 档案、类型化意向、简历方案和公司答案；个人事实与方案文案分别维护，自动填表可独立于 Codex 运行。用户选择岗位、审阅资料并最终投递。默认优先正式校招，也可按明确范围处理社招；实习须用户明确要求。每人独立本地使用，账号是同一可信 Windows 用户下的档案分区。
+面向 **Windows** 的本地求职协作工具和 Codex 插件，当前源码为 **0.4.4 开发预览版**。网页与 Agent 共用 SQLite 档案、类型化意向、简历方案和公司答案；个人事实与方案文案分别维护，自动填表可独立于 Codex 运行。用户选择岗位、审阅资料并最终投递。默认优先正式校招，也可按明确范围处理社招；实习须用户明确要求。每人独立本地使用，账号是同一可信 Windows 用户下的档案分区。
 
 ## 开始使用
 
-当前开发预览发行版为 [0.4.1](https://github.com/queekye/job-search-skill/releases/tag/v0.4.1)，新增类型化资料、简历方案、能力目录、面试准备及 JD 证据。旧 [0.2.1 运行包](https://github.com/queekye/job-search-skill/releases/tag/v0.2.1) 使用旧数据库格式。升级前关闭旧服务和 MCP 实例并保存完整备份，schema 4 资料库须由新版服务访问。
+当前开发预览发行版为 [0.4.4](https://github.com/queekye/job-search-skill/releases/tag/v0.4.4)，公司资源扩至 30 包，补齐只读岗位 JD 指引、采集边界与资源目录分页。[0.4.1](https://github.com/queekye/job-search-skill/releases/tag/v0.4.1) 为此前的开发预览版，已引入类型化资料、简历方案、能力目录、面试准备及 JD 证据。旧 [0.2.1 运行包](https://github.com/queekye/job-search-skill/releases/tag/v0.2.1) 使用旧数据库格式。升级前关闭旧服务和 MCP 实例并保存完整备份，schema 4 资料库须由新版服务访问。
 
 1. 将运行 ZIP 解压到普通本地目录，双击 `Start.cmd`，打开 <http://127.0.0.1:8766/>。
 2. 选择或新建账号，填写资料或导入简历材料，保存招聘类型、城市和方向等偏好，建立 Agent 任务。

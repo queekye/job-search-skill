@@ -30,6 +30,7 @@ def _javascript(version, items):
 const version = VERSION;
 document.getElementById('catalog-version').textContent = version;
 const catalog = DATA;
+document.getElementById('catalog-index').hidden = !catalog.some(pack => pack.download?.path);
 const container = document.getElementById('catalog');
 for (const pack of catalog) {
  const article=document.createElement('article'); article.className='resource-card';
@@ -38,7 +39,8 @@ for (const pack of catalog) {
  const tags=document.createElement('div'); tags.className='capabilities';
  for (const [name,cap] of Object.entries(pack.capabilities||{})) {
   if (cap.status==='unavailable') continue;
-  const tag=document.createElement('span');tag.className='badge';tag.textContent=name+' · '+(cap.status==='executable'?'已封装':'文档指引');tags.append(tag);
+  const label=({public_jd:'岗位 JD',job_description:'岗位 JD',form_fill:'自动填表'}[name]||name);
+  const tag=document.createElement('span');tag.className='badge';tag.textContent=label+' · '+(cap.status==='executable'?'已封装':'文档指引');tags.append(tag);
  }
  article.append(tags);
  const origin=document.createElement('p');origin.textContent=pack.origin;article.append(origin);

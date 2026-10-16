@@ -158,6 +158,59 @@ test('public resource defaults appear in settings without reading the remote dir
  assert.equal(ui.calls.some(c=>c.operation==='resource.refresh'),false);
 });
 
+async function resourceDocumentWorkspace(){
+ const ui=await app({withAccounts:true});
+ ui.handlers['resource.list']=()=>({items:['synthetic-a','synthetic-b'].map(id=>({id,name:id,version:'0.1.0',files:['guide.md','references/job-description.md'],capabilities:{job_description:{status:'documentation'}}}))});
+ await ui.evaluate("navigate('resources')");return ui;
+}
+function resourceDocumentButton(ui,kind,id){return ui.document.querySelectorAll(`[data-resource-${kind}]`).find(button=>button.dataset[kind==='jd'?'resourceJd':'resourceGuide']===id);}
+
+test('only the latest selected JD document is displayed when an earlier response arrives late',async()=>{
+ const ui=await resourceDocumentWorkspace(),first=deferred(),latest=deferred();
+ ui.handlers['resource.read']=args=>(args.id==='synthetic-a'?first:latest).promise;
+ const readingFirst=resourceDocumentButton(ui,'jd','synthetic-a').click(),readingLatest=resourceDocumentButton(ui,'jd','synthetic-b').click();
+ latest.resolve({content:'Latest document <script>synthetic</script>'});await readingLatest;
+ const html=ui.el('detail-content').innerHTML;assert.match(html,/Latest document &lt;script&gt;synthetic&lt;\/script&gt;/);assert.doesNotMatch(html,/<script>/);
+ first.resolve({content:'Earlier stale document'});await readingFirst;
+ assert.equal(ui.el('detail-content').innerHTML,html);assert.equal(ui.el('detail-title').textContent,'岗位 JD 指引');
+ assert.deepEqual(ui.calls.filter(call=>call.operation==='resource.read').map(call=>call.args),[{id:'synthetic-a',path:'references/job-description.md'},{id:'synthetic-b',path:'references/job-description.md'}]);
+});
+
+test('JD and usage-guide requests share the same latest-selection guard in either order',async()=>{
+ for(const [earlier,later] of [['jd','guide'],['guide','jd']]){
+  const ui=await resourceDocumentWorkspace(),first=deferred(),latest=deferred();
+  ui.handlers['resource.read']=args=>(args.id==='synthetic-a'?first:latest).promise;
+  const readingFirst=resourceDocumentButton(ui,earlier,'synthetic-a').click(),readingLatest=resourceDocumentButton(ui,later,'synthetic-b').click();
+  latest.resolve({content:'Latest selected resource document'});await readingLatest;
+  const html=ui.el('detail-content').innerHTML,title=ui.el('detail-title').textContent;
+  first.resolve({content:'Stale resource document from another entry'});await readingFirst;
+  assert.equal(ui.el('detail-content').innerHTML,html);assert.equal(ui.el('detail-title').textContent,title);
+  assert.equal(title,later==='jd'?'岗位 JD 指引':'公司使用说明');
+  assert.deepEqual(ui.calls.filter(call=>call.operation==='resource.read').map(call=>call.args.path),[earlier==='jd'?'references/job-description.md':'guide.md',later==='jd'?'references/job-description.md':'guide.md']);
+ }
+});
+
+test('a superseded resource-document failure does not report an error over the latest selection',async()=>{
+ const ui=await resourceDocumentWorkspace(),first=deferred();
+ ui.handlers['resource.read']=args=>args.id==='synthetic-a'?first.promise:{content:'Current guide'};
+ const reading=resourceDocumentButton(ui,'jd','synthetic-a').click();await resourceDocumentButton(ui,'guide','synthetic-b').click();
+ first.reject(Error('Stale synthetic request failure'));await reading;
+ assert.equal(ui.el('detail-content').innerHTML,'<pre>Current guide</pre>');assert.equal(ui.el('notice').hidden,true);
+});
+
+test('resource documents cannot reopen after navigation or display data from the previous account',async()=>{
+ for(const change of ['navigation','account']){
+  const ui=await resourceDocumentWorkspace(),pending=deferred();ui.handlers['resource.read']=()=>pending.promise;
+  const reading=resourceDocumentButton(ui,'guide','synthetic-a').click();
+  if(change==='account')await ui.evaluate("switchAccount('synthetic-user-b')");
+  else{await ui.evaluate("navigate('settings')");await ui.evaluate("navigate('resources')");}
+  const writes=ui.el('detail-content').htmlWrites;
+  pending.resolve({content:'Stale account or page document'});await reading;
+  assert.equal(ui.el('detail-content').htmlWrites,writes);assert.equal(Boolean(ui.el('detail').open),false);assert.equal(ui.el('notice').hidden,true);
+  assert.equal(ui.calls.find(call=>call.operation==='resource.read').user_id,'synthetic-user-a');
+ }
+});
+
 test('public resources never fetch automatically and remain available through offline import',async()=>{
  const ui=await app({withAccounts:true});await ui.render('resources');
  assert.equal(ui.el('registry-refresh').disabled,false);assert.equal(ui.calls.length,0);

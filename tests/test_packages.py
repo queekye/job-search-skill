@@ -8,6 +8,7 @@ from pathlib import Path
 import stat
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 from service.app import AppError
@@ -82,6 +83,27 @@ class PackageTests(unittest.TestCase):
         contents = packages._unzip(raw)
         self.assertNotIn("private.txt", contents)
         self.assertNotIn(b"DO_NOT_EXPORT_PRIVATE_DATA", b"".join(contents.values()))
+
+    def test_public_export_bytes_match_across_zip_platform_defaults(self):
+        original_info = zipfile.ZipInfo
+        exports = []
+        for platform in (0, 3):
+            class PlatformZipInfo(original_info):
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, **kwargs)
+                    self.create_system = platform
+
+            with patch.object(zipfile, "ZipInfo", PlatformZipInfo):
+                exports.append(self.call("resource.export", {"id": "oppo", "source": "bundled"}))
+        self.assertEqual(exports[0], exports[1])
+        expected = packages._bundled(self.app, "oppo")
+        for result in exports:
+            raw = base64.b64decode(result["content_base64"])
+            self.assertEqual(hashlib.sha256(raw).hexdigest(), result["sha256"])
+            self.assertEqual(packages._unzip(raw), expected)
+            with zipfile.ZipFile(io.BytesIO(raw)) as packed:
+                self.assertEqual(packed.namelist(), sorted(expected))
+                self.assertTrue(all(info.create_system == 3 for info in packed.infolist()))
 
     def test_resource_list_pages_reassemble_the_complete_stable_catalog(self):
         full = self.call("resource.list")

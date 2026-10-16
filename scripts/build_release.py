@@ -39,6 +39,8 @@ def zip_bytes(files):
     with zipfile.ZipFile(buffer,'w',compression=zipfile.ZIP_DEFLATED) as archive:
         for name,raw in sorted(files.items()):
             info=zipfile.ZipInfo(name,(2026,1,1,0,0,0));info.compress_type=zipfile.ZIP_DEFLATED
+            # Match the canonical Unix metadata used by standalone company exports.
+            info.create_system=3
             info.external_attr=0o100644<<16
             archive.writestr(info,raw)
     return buffer.getvalue()

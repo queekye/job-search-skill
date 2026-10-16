@@ -250,6 +250,8 @@ def _zip(files):
         for name in sorted(files):
             info = zipfile.ZipInfo(name, date_time=(2026, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
+            # Canonical Unix metadata keeps Windows and Linux exports byte-identical.
+            info.create_system = 3
             info.external_attr = (stat.S_IFREG | 0o644) << 16
             archive.writestr(info, files[name])
     return result.getvalue()

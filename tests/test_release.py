@@ -1,10 +1,12 @@
 import importlib.util
 import hashlib
+import io
 import json
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("release_checker", ROOT / "scripts" / "check_release.py")
@@ -92,6 +94,27 @@ class ReleaseTests(unittest.TestCase):
                 files = _bundled(SimpleNamespace(root_dir=ROOT), path.parent.name)
                 members = _unzip(_zip(files))
                 self.assertEqual(members["LICENSE.txt"], expected)
+
+    def test_release_zip_bytes_match_across_platform_defaults_without_member_changes(self):
+        from scripts.build_release import zip_bytes
+        files = {"web/中文指引.md": "公开合成说明".encode("utf-8"),
+                 "empty.txt": b"", "runtime/data.bin": bytes(range(256))}
+        original_info = zipfile.ZipInfo
+        archives = []
+        for platform in (0, 3):
+            class PlatformZipInfo(original_info):
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, **kwargs)
+                    self.create_system = platform
+
+            with patch.object(zipfile, "ZipInfo", PlatformZipInfo):
+                archives.append(zip_bytes(files))
+        self.assertEqual(archives[0], archives[1])
+        for raw in archives:
+            with zipfile.ZipFile(io.BytesIO(raw)) as packed:
+                self.assertEqual(packed.namelist(), sorted(files))
+                self.assertEqual({name: packed.read(name) for name in packed.namelist()}, files)
+                self.assertTrue(all(info.create_system == 3 for info in packed.infolist()))
 
     def make_install_snapshot(self):
         from scripts.build_release import installation_files

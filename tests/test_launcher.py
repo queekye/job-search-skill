@@ -59,7 +59,7 @@ class LauncherTests(unittest.TestCase):
                                     text=True, encoding='utf-8', timeout=15)
             self.assertEqual(result.returncode, 0, result.stderr)
             responses = [json.loads(line) for line in result.stdout.splitlines()]
-            self.assertEqual(len(responses[1]['result']['tools']), 8)
+            self.assertEqual(len(responses[1]['result']['tools']), 9)
             self.assertTrue(verify(root)['ok'])
 
     @unittest.skipUnless(os.name=='nt','Windows runtime installer')

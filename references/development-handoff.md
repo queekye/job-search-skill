@@ -1,4 +1,6 @@
-# 开发交接 · 0.4.4 开发预览版
+# 开发交接 · 0.4.5 开发预览版
+
+2026-10-16 邮箱增补：0.4.5 提供通用 IMAP over TLS 通知自动同步、QQ 预设及自定义公共服务器，使用本机凭据、增量读取与去重，关联已有实际申请及面试任务。新增 `career_mail` 为第九组原生工具。旧 QQ 配置和原通知兼容保留，数据库 schema 4 不变；更换电脑须重新配置凭据。邮箱通知不覆盖官网流程或本人填写的面试时间，自动同步只在新版网页服务或 MCP 运行期间执行。源码、网页、真实 QQ 与安装后验证分别见 [验证](validation.md)。
 
 2026-10-16 增补：公司资源由 15 包扩至 30 包，补充实际观察的只读 JD 路由、完整正文采集、身份与历史版本边界。新增包仅文档；既有执行脚本与填表映射未扩展。`resource.list` 增加稳定 ID 排序和 `limit/offset/next_offset` 分页，MCP 从每页 5 包开始读取，网页默认请求保持兼容。JD 批量回填先限定公司再核对岗位，不为只读查询导航到可能改变志愿的 `postprocess2`。本人已明确授权本轮网页验收、推送及发布 [0.4.4 开发预览版](https://github.com/queekye/job-search-skill/releases/tag/v0.4.4)，发布前合成网页验收已通过；最终源码、发行资产、公共目录及原生安装的实际结果分别见 [验证](validation.md)。
 
@@ -10,7 +12,7 @@
 
 ## 当前基线
 
-- 当前发布目标为 [0.4.4 开发预览版](https://github.com/queekye/job-search-skill/releases/tag/v0.4.4)，增加 30 公司包的只读 JD 指引与资源目录分页；此前 [0.4.1](https://github.com/queekye/job-search-skill/releases/tag/v0.4.1) 已包含共用类型化资料、独立简历方案、能力目录、面试准备及 JD 证据。公开源码、运行包和 Cloudflare 目录分别发布；提交代码不等于完成三者的发布。
+- 当前发布目标为 [0.4.5 开发预览版](https://github.com/queekye/job-search-skill/releases/tag/v0.4.5)，增加通用邮箱通知自动同步；此前 [0.4.4](https://github.com/queekye/job-search-skill/releases/tag/v0.4.4) 已包含 30 公司包的只读 JD 指引与资源目录分页。公开源码、运行包和 Cloudflare 目录分别发布；提交代码不等于完成三者的发布。
 - 一份 `settings.preferences` 为意向权威；旧偏好行仅用于整理和历史，不与新表单双写。薪资期望、上下限、币种与税基分开，未知事实不推断。
 - 简历方案保存事实 ID、顺序及独立文案，不复制个人事实；来源更新需复核，公司答案精确绑定公司与招聘范围。暂停/排除决定由本人维护并阻止自动填写推进，历史授权不成为现时授权。
 - 独立自动填表已经接通网页和 `career_forms` MCP：准备输入、打开专用浏览器、填写、读回、状态、取消、恢复。无需模型或 Codex 参与浏览器执行。
@@ -32,6 +34,7 @@
 | 制作公司包 | `scripts/company-resource.py`、`skills/company-resource/SKILL.md`、[制作指南](company-resource.md) |
 | 推荐反馈 | `service/recommendations.py`、`skills/job-recommendation/` |
 | 迁移与同步 | `service/backup.py`、`sync.py`；[离线迁移](migration.md)、[WebDAV](sync.md) |
+| 邮箱通知 | `service/mailbox.py`；本机凭据、只读 IMAP、去重和任务证据关联 |
 | 发行 | `scripts/check_source.py`、`build_release.py`、`build_catalog.py`、`verify_release.py` |
 
 稳定请求契约见 [development-contract.md](development-contract.md)，实际使用见 [automation.md](automation.md)。不要为已有数据创建第二个事实来源，或绕过修订、账号隔离和同步写入权。公司包代码是经本人审阅的可信代码，浏览器 driver 不是任意 JavaScript 沙箱。

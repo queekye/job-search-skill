@@ -30,7 +30,7 @@ class CapabilityTests(unittest.TestCase):
             page = self.app.execute("capability.list", actor="codex")
             item = self.app.execute("capability.describe", {"id": "interview_preparation"}, actor="codex")
             schema = self.app.execute("interview.schema", actor="codex")
-        self.assertEqual(9, page["total"])
+        self.assertEqual(10, page["total"])
         self.assertEqual("workflow", item["status"])
         self.assertEqual("interview_preparation", schema["properties"]["workflow"]["const"])
 
@@ -39,7 +39,7 @@ class CapabilityTests(unittest.TestCase):
         self.app.execute("record.save", {"kind": "basic", "data": {"name": private_name}})
         page = self.app.execute("capability.list")
         self.assertEqual({"profile", "resume", "recommendation", "application_followup", "form_filling",
-                          "resource_authoring", "interview_preparation", "schedule", "migration_sync"},
+                          "resource_authoring", "interview_preparation", "schedule", "migration_sync", "recruitment_mail"},
                          {item["id"] for item in page["items"]})
         self.assertEqual({"implemented", "workflow", "company_scoped", "configuration"}, set(page["statuses"]))
         for item in page["items"]:

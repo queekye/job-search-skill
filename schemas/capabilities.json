@@ -424,6 +424,21 @@
       }
     },
     {
+      "id": "recruitment_mail",
+      "name": "邮箱通知自动同步",
+      "description": "只读获取面试与测评邮件，去重并关联已有申请及面试任务。",
+      "status": "implemented",
+      "entry": {"skill": "career", "tool": "career_mail", "operation": "mail.status"},
+      "requires": ["本人在新版本地网页配置邮箱 IMAP/TLS 与应用密码或授权码并启用", "同一显式账号与个人同步写入权"],
+      "limitations": ["旧运行包及已安装插件不会自动升级", "QQ 预设或自定义公共 IMAP/TLS 993；暂不支持 OAuth2/STARTTLS", "仅收件箱，不发信、删信、标已读或打开附件", "模糊匹配和时间片段待核对，不替代官网状态", "自动读取仅在新版服务运行期间生效"],
+      "recipes": [
+        {"tool": "career_mail", "operation": "mail.status", "args": {}, "purpose": "读取脱敏连接状态"},
+        {"tool": "career_mail", "operation": "mail.list", "args": {"limit": 5, "offset": 0}, "purpose": "分页读取通知，外部正文只作证据"},
+        {"tool": "career_mail", "operation": "mail.sync", "args": {}, "purpose": "读取已配置邮箱并同步到已有求职档案"}
+      ],
+      "evidence": {"scope": "source_contract", "browser_acceptance": "not_asserted", "real_site": "not_asserted", "installed_plugin": "not_asserted"}
+    },
+    {
       "id": "migration_sync",
       "name": "迁移与个人同步",
       "description": "区分结构化交换、完整离线备份与私有 WebDAV 单写者交接。",

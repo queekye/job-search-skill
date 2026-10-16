@@ -119,7 +119,7 @@ async function app({withAccounts=false}={}) {
     + '<dialog id="detail"><h2 id="detail-title"></h2><div id="detail-content"></div><div id="detail-actions"></div></dialog>'
     + '<dialog id="task-editor"><h2 id="task-editor-title"></h2><form id="task-form"><div id="task-editor-fields"></div><button type="submit"></button></form></dialog>'
     + (withAccounts?'<select id="account-select"></select><button id="account-new"></button><dialog id="account-editor"><form id="account-form"><input name="name"><button type="submit"></button></form></dialog>':'');
-  const calls = [], syncCalls = [], timers = [], clipboard = [];
+  const calls = [], syncCalls = [], mailCalls = [], timers = [], clipboard = [];
   const stored = {records: {}, relations: [], documents: [], settings: {...publicDefaults, _revision: 4, schedule: {
     time: '10:00', timezone: 'Asia/Shanghai', allow_relogin: false, enabled: false, host_task_id: null,
   }}};
@@ -138,6 +138,7 @@ async function app({withAccounts=false}={}) {
     'profile.relation.list': args => {const all=stored.relations.filter(r=>!args.record_id||[r.from_id,r.to_id].includes(args.record_id)),offset=args.offset||0,limit=args.limit||20,items=all.slice(offset,offset+limit);return {items,total:all.length,offset,limit,next_offset:offset+items.length<all.length?offset+items.length:null};},
     'otp.status': manual,
     'sync.status': localSync,
+    'mail.status': () => ({configured:false,provider:'qq',email:null,host:'imap.qq.com',port:993,username:'',enabled:false,automatic:false,interval_minutes:15,lookback_days:30,credential_set:false,authorization_code_set:false,last_sync_at:null,last_result:null,connection_test:null}),
     'resource.list': () => ({items:[],registry_configured:false,remote_registry_supported:true}),
     'otp.test': () => connectionResult(),
     'settings.save': args => ({...stored.settings, ...args.settings, _revision: 5}),
@@ -151,9 +152,10 @@ async function app({withAccounts=false}={}) {
     fetch: async (path, options = {}) => {
       const url=new URL(path,'http://synthetic.local'),request=url.pathname==='/api/state'?{operation:'state',args:{},...(url.searchParams.has('user_id')?{user_id:url.searchParams.get('user_id')}:{})}:url.pathname==='/api/accounts'?{operation:'account.list',args:{}}:JSON.parse(options.body);
       // Keep existing per-account operation assertions independent of the
-      // additional shared sync status read. Sync assertions inspect syncCalls.
-      if(request.operation!=='sync.status')calls.push(request);
+      // added read-only status calls; feature assertions inspect syncCalls/mailCalls.
+      if(!['sync.status','mail.status'].includes(request.operation))calls.push(request);
       if(request.operation.startsWith('sync.'))syncCalls.push(request);
+      if(request.operation.startsWith('mail.'))mailCalls.push(request);
       assert.ok(handlers[request.operation], `Unexpected API operation ${request.operation}`);
       const data = await handlers[request.operation](request.args);
       return data?.failure ? {ok: false, json: async () => ({ok: false, error: data.failure})}
@@ -166,7 +168,7 @@ async function app({withAccounts=false}={}) {
   const evaluate = code => vm.runInContext(code, context);
   evaluate('profileCatalog='+JSON.stringify(profileCatalogFixture));
   return {
-    document, calls, syncCalls, timers, handlers, clipboard, evaluate,stored,
+    document, calls, syncCalls, mailCalls, timers, handlers, clipboard, evaluate,stored,
     el: id => document.querySelector(`#${id}`),
     render: target => evaluate(`page=${JSON.stringify(target)}; render()`),
     submit: async () => {

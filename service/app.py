@@ -19,7 +19,7 @@ import zipfile
 import xml.etree.ElementTree as ET
 from .locking import gate, locked
 
-VERSION = "0.4.4"
+VERSION = "0.4.5"
 MAX_DOCUMENT_BYTES = 15 * 1024 * 1024
 MAX_TEXT = 1024 * 1024
 JD_FIELDS = {"job_description", "jd_url", "jd_checked_at", "jd_coverage", "jd_identity_status", "jd_last_attempt_at", "jd_blocker"}
@@ -221,7 +221,7 @@ class App:
                 db.close()
 
     def execute(self, operation, args=None, actor="user", user_id=None):
-        if operation == "otp.test" or isinstance(operation, str) and (operation.startswith("fill.") or operation.startswith("browser.")):
+        if operation == "otp.test" or isinstance(operation, str) and (operation.startswith("fill.") or operation.startswith("browser.") or operation.startswith("mail.")):
             # Its local capture/commit are gated separately; network waits must
             # still permit configuration changes and newer test results.
             return self._execute(operation, args, actor, user_id)
@@ -236,6 +236,9 @@ class App:
         if actor not in {"user", "codex"}:
             raise AppError("invalid_actor", "Unknown actor.")
         args = args or {}
+        if operation.startswith("mail."):
+            from . import mailbox
+            return mailbox.execute(self, operation, args, actor)
         if operation.startswith("capability.") or operation == "interview.schema":
             from . import capabilities
             return capabilities.execute(operation, args)

@@ -39,7 +39,7 @@ class MCPTests(unittest.TestCase):
         self.initialize()
         response = self.server.handle({"jsonrpc": "2.0", "id": 3, "method": "tools/list"})
         tools = response["result"]["tools"]
-        self.assertEqual({"career_get", "career_save", "career_import", "career_resources", "career_otp", "career_schedule", "career_tasks", "career_forms"}, {tool["name"] for tool in tools})
+        self.assertEqual({"career_get", "career_save", "career_import", "career_resources", "career_otp", "career_schedule", "career_tasks", "career_forms", "career_mail"}, {tool["name"] for tool in tools})
         for tool in tools:
             self.assertFalse(tool["inputSchema"]["additionalProperties"])
             self.assertIn("readOnlyHint", tool["annotations"])

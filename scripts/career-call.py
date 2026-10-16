@@ -11,7 +11,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 TOOLS = ("career_get", "career_save", "career_import", "career_resources",
-         "career_otp", "career_tasks", "career_schedule", "career_forms")
+         "career_otp", "career_tasks", "career_schedule", "career_forms", "career_mail")
 
 
 def main(argv=None):

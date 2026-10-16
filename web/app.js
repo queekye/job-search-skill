@@ -1,7 +1,7 @@
 'use strict';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const titles={overview:'概览',profile:'个人资料',recommendations:'推荐岗位',applications:'投递情况',documents:'简历材料',resumes:'简历方案',forms:'自动填表',tasks:'Agent 任务',resources:'公司资源',intention:'求职意向',settings:'设置与跟进'};
+const titles={overview:'概览',profile:'个人资料',recommendations:'推荐岗位',applications:'投递情况',mailbox:'邮箱通知',documents:'简历材料',resumes:'简历方案',forms:'自动填表',tasks:'Agent 任务',resources:'公司资源',intention:'求职意向',settings:'设置与跟进'};
 const labels={basic:'基础信息',education:'教育经历',experience:'项目与经历',family:'家庭简况',preference:'求职偏好',application:'申请记录'};
 const stageNames={candidate:'推荐岗位',user_reported:'本人报告已投',submitted:'已核验投递',assessment:'测评',interview:'面试',offer:'录用',closed:'已结束'};
 const actualApplicationStages=new Set(['user_reported','submitted','assessment','interview','offer','closed']);
@@ -21,6 +21,7 @@ let intentionCatalog=null,intentionRead=null,resumeRecords=[],companyAnswers=[],
 let syncState=null,syncBusy=false,publicRegistry=null,registryBusy=false;
 let recommendationExclusionEdit=null,recommendationExclusionBusy=false,recommendationExclusionView=0,taskEditorVersion=0;
 let resourceDocumentView=0;
+let mailState=null,mailBusy=false,mailNotices=[],mailTotal=0,mailOffset=0,mailNextOffset=null,mailHasMore=false,mailListLoading=false,mailDetailView=0;
 if(typeof CareerForms!=='undefined')CareerForms.configure({api,accountContext,ensureAccount,esc,notify,getState:()=>state,isActive:()=>page==='forms'});
 function accountContext(){return {userId:state.user_id||state.account?.id||null,epoch:accountEpoch};}
 function ensureAccount(context){if(context.epoch!==accountEpoch){const error=Error('账号已切换，旧账号的操作结果已丢弃。');error.code='stale_account';throw error;}}
@@ -99,6 +100,7 @@ function renderAccounts(){const select=$('#account-select');if(!select)return;co
 function clearAccountView(){
  if(typeof CareerForms!=='undefined')CareerForms.reset();
  ++loadVersion;++renderVersion;state={records:{},documents:[],settings:{}};resources=[];editing=null;taskEditing=null;otpState=null;otpBusy=false;publicRegistry=null;registryBusy=false;
+ mailState=null;mailBusy=false;mailNotices=[];mailTotal=0;mailOffset=0;mailNextOffset=null;mailHasMore=false;mailListLoading=false;
  profileRead=null;profileRelations=[];intentionRead=null;resumeRecords=[];companyAnswers=[];resumeEditing=null;answerEditing=null;composeRead=null;companyDecisions=[];decisionEditing=null;profileTab='basic';query='';stageFilter='';progressFilter='open';companyFilter='';collapsedCompanies.clear();recommendQuery='';recommendType='campus';recommendCompany='';recommendCity='';collapsedRecommendationCompanies.clear();preparingRecommendations.clear();recommendationExclusionEdit=null;recommendationExclusionBusy=false;++recommendationExclusionView;taskRecords=[];taskTotal=0;taskOffset=0;taskStatus='';applicationLoadInfo={complete:true,expected:0};
  $$('dialog').forEach(dialog=>{if(dialog.open)dialog.close();});$('#notice').hidden=true;$('#toast').hidden=true;$('#content').innerHTML=empty('正在切换账号','正在读取所选账号的数据库资料…');$('#save-state').textContent='';
 }
@@ -135,16 +137,19 @@ async function render(){
  if(page==='forms'&&typeof CareerForms!=='undefined')body.innerHTML=CareerForms.render();
  if(page==='tasks')body.innerHTML=tasks();
  if(page==='resources')body.innerHTML=resourcePage();
- if(page==='settings'){otpState=null;otpBusy=false;syncState=null;syncBusy=false;body.innerHTML=settings();}
+ if(page==='mailbox'){mailState=null;mailBusy=false;mailListLoading=true;body.innerHTML=mailboxPage();}
+ if(page==='settings'){otpState=null;otpBusy=false;syncState=null;syncBusy=false;mailState=null;mailBusy=false;body.innerHTML=settings();}
  bind();
  if(page==='forms'&&typeof CareerForms!=='undefined')CareerForms.bind();
  if(page==='settings'){
   await Promise.all([
    (async()=>{try{const status=await api('otp.status');if(version===renderVersion)applyOtpStatus(status);}catch(error){if(version===renderVersion)$('#otp-status').textContent='读取验证码配置失败，请刷新后重试：'+otpError(error);}})(),
-   (async()=>{try{const status=await api('sync.status');if(version===renderVersion)applySyncStatus(status,true);}catch(error){if(version===renderVersion)$('#sync-status').textContent='读取同步配置失败：'+error.message;}})()
+   (async()=>{try{const status=await api('sync.status');if(version===renderVersion)applySyncStatus(status,true);}catch(error){if(version===renderVersion)$('#sync-status').textContent='读取同步配置失败：'+error.message;}})(),
+   readMailSettings(version)
   ]);
   pollSyncStatus(version);
  }
+ if(page==='mailbox')await readMailboxPage(version);
 }
 function applicationRecords(){return rows('application').filter(r=>!isRecommendation(r.data))}
 function recommendationRecords(){return rows('application').filter(r=>isRecommendation(r.data))}
@@ -470,7 +475,7 @@ async function showResourceDocument(id,path,title,context){
 }
 function capabilityBadges(c){return Object.entries(c||{}).filter(([,v])=>v?.status!=='unavailable').slice(0,5).map(([k,v])=>badge(({applications:'进度读取',profile_fields:'字段填写',resume:'简历读取',candidates:'岗位检索',login:'登录',search:'岗位搜索',field_fill:'字段填写',save:'保存',profile_prepare:'专业字段准备',resume_audit:'简历核验',candidate_catalog:'岗位目录',onboarding:'入口指引',public_jd:'岗位 JD',job_description:'岗位 JD',form_fill:'自动填表'}[k]||k)+(v?.status==='documentation'?' · 指引':''))).join('')}
 function resourcePage(){return `<div class="section-header"><div><h2>公司资源包</h2><p>查看适用网站与已验证能力，按版本安装。</p></div><button class="button secondary" id="import-package">导入资源包</button><input type="file" id="package-file" class="hidden-file" accept=".zip"></div><div class="card-grid">${resources.map(r=>`<article class="resource-card"><div class="record-top"><h3>${esc(r.name||r.id)}</h3>${badge(r.installed?'已安装 '+(r.installed_version||r.version):'可用 '+r.version,r.installed?'good':'')}</div><p>${esc(r.description||'公司网站适配资源')}</p><div class="capabilities">${capabilityBadges(r.capabilities)}</div><div class="muted caption">${esc(r.origin||'')}<br>${r.verification?.live_reverified?'包内附有现场复核记录，请核对适用范围':'包内未附本版本现场复核结论；本地验收另行记录'}</div><div class="form-actions"><button class="button ghost small" data-resource-guide="${esc(r.id)}">使用说明</button>${Array.isArray(r.files)&&r.files.includes('references/job-description.md')?`<button class="button ghost small" data-resource-jd="${esc(r.id)}">岗位 JD 指引</button>`:''}<button class="button secondary small" data-export-package="${esc(r.id)}">导出共建包</button><button class="button small" data-install="${esc(r.id)}">${r.installed?'核对安装':'安装'}</button></div></article>`).join('')}</div>${publicResourceSection()}<section class="panel spaced"><h2>共建与下载</h2><p class="muted">导出的公司包只包含通用方法和代码。投稿前请预览内容；个人档案单独保存在本机。</p><div class="plain-actions"><a class="button secondary" href="/catalog.html" target="_blank" rel="noopener">打开公开目录预览</a>${safeUrl(state.settings.contribution_url)?link(state.settings.contribution_url,'打开投稿入口'):'<span class="help">发布仓库尚未配置，当前可导入／导出资源包。</span>'}</div></section>`}
-function settings(){const s=state.settings||{},sc=s.schedule||{};return `<div class="settings-grid"><section class="panel"><h2>求职意向</h2><p>城市、方向与招聘范围在独立页面统一维护。</p><button class="button secondary" data-go="intention">编辑求职意向</button></section><section class="panel"><h2>每日跟进</h2><p>生成任务说明时会先保存当前时间与范围，再交给 Codex 创建或更新自动化。此页面不会直接启动调度。</p><form id="schedule-form"><div class="form-grid"><label>检查时间<input name="time" type="time" required value="${esc(sc.time||'10:00')}"></label><label>时区<input name="timezone" required value="${esc(sc.timezone||'Asia/Shanghai')}"></label></div><label class="check"><input name="allow_relogin" type="checkbox" ${sc.allow_relogin?'checked':''}>允许通过已配置验证码来源重新登录</label><p class="help">已结束岗位保留历史，不再例行核验或提醒；同公司新岗位按本人后续决定处理。其余岗位无变化保持安静，登录失效或新状态需要处理时通知。</p><div class="plain-actions"><button class="button" type="submit">保存跟进设置</button><button class="button secondary" type="button" id="schedule-prompt">生成 Codex 任务说明</button></div></form><p>${sc.host_task_id?'已登记宿主任务（状态请由 Codex 核验）':'尚未登记宿主自动化任务'}</p></section>${syncSettings()}${otpSettings()}<section class="panel"><h2>资源与共建入口</h2><p>已默认填写本项目的公开公司资源目录和 GitHub 共建入口；可修改为自己的地址，清空后恢复默认。公司资源仍需点击刷新、下载并审阅后启用。</p><form id="registry-form"><label>公共目录索引地址<input name="registry_url" type="url" value="${esc(s.registry_url||'')}" placeholder="https://你的目录地址/index.json"></label><label>贡献表单地址<input name="contribution_url" type="url" value="${esc(s.contribution_url||'')}" placeholder="GitHub Issue 表单链接"></label><button class="button secondary" type="submit">保存入口</button></form></section><section class="panel"><h2>本机数据库</h2><p>当前账号：${esc(state.account?.name||'默认账号')}。资料、偏好、任务和变更记录共用 SQLite 数据库；附件原件保存在本机。</p><pre>${esc(state.database?.path||state.database_path||state.data_dir||'')}</pre><div class="plain-actions"><button id="export-profile" class="button secondary">导出结构化 JSON</button><button id="migration-help" class="button ghost">备份与换机</button></div><p class="help">JSON 只含当前账号的结构化记录；完整换机备份包含全部账号、设置、任务历史和附件。备份与原件包含个人信息，保存在自己的本地目录。本地账号分区不提供网络身份认证。</p></section></div>`}
+function settings(){const s=state.settings||{},sc=s.schedule||{};return `<div class="settings-grid"><section class="panel"><h2>求职意向</h2><p>城市、方向与招聘范围在独立页面统一维护。</p><button class="button secondary" data-go="intention">编辑求职意向</button></section><section class="panel"><h2>每日跟进</h2><p>生成任务说明时会先保存当前时间与范围，再交给 Codex 创建或更新自动化。此页面不会直接启动调度。</p><form id="schedule-form"><div class="form-grid"><label>检查时间<input name="time" type="time" required value="${esc(sc.time||'10:00')}"></label><label>时区<input name="timezone" required value="${esc(sc.timezone||'Asia/Shanghai')}"></label></div><label class="check"><input name="allow_relogin" type="checkbox" ${sc.allow_relogin?'checked':''}>允许通过已配置验证码来源重新登录</label><p class="help">已结束岗位保留历史，不再例行核验或提醒；同公司新岗位按本人后续决定处理。其余岗位无变化保持安静，登录失效或新状态需要处理时通知。</p><div class="plain-actions"><button class="button" type="submit">保存跟进设置</button><button class="button secondary" type="button" id="schedule-prompt">生成 Codex 任务说明</button></div></form><p>${sc.host_task_id?'已登记宿主任务（状态请由 Codex 核验）':'尚未登记宿主自动化任务'}</p></section>${syncSettings()}${mailSettings()}${otpSettings()}<section class="panel"><h2>资源与共建入口</h2><p>已默认填写本项目的公开公司资源目录和 GitHub 共建入口；可修改为自己的地址，清空后恢复默认。公司资源仍需点击刷新、下载并审阅后启用。</p><form id="registry-form"><label>公共目录索引地址<input name="registry_url" type="url" value="${esc(s.registry_url||'')}" placeholder="https://你的目录地址/index.json"></label><label>贡献表单地址<input name="contribution_url" type="url" value="${esc(s.contribution_url||'')}" placeholder="GitHub Issue 表单链接"></label><button class="button secondary" type="submit">保存入口</button></form></section><section class="panel"><h2>本机数据库</h2><p>当前账号：${esc(state.account?.name||'默认账号')}。资料、偏好、任务和变更记录共用 SQLite 数据库；附件原件保存在本机。</p><pre>${esc(state.database?.path||state.database_path||state.data_dir||'')}</pre><div class="plain-actions"><button id="export-profile" class="button secondary">导出结构化 JSON</button><button id="migration-help" class="button ghost">备份与换机</button></div><p class="help">JSON 只含当前账号的结构化记录；完整换机备份包含全部账号、设置、任务历史和附件。备份与原件包含个人信息，保存在自己的本地目录。本地账号分区不提供网络身份认证。</p></section></div>`}
 function editorFields(kind,data){if(kind!=='application')return profileDefinition(kind,data).map(f=>[f.key,f.label,f.type,f.options,f]);return isRecommendation(data)?[...fields[kind],['recommendation_bucket','推荐分区','select',recommendationBuckets],['fit_tier','匹配梯队','select',recommendationTiers],['recommendation_scope','梯队适用范围']]:fields[kind]}
 function editorValue(value,definition={}){if(value===null||value===undefined)return '';if(definition.value_type==='string_array')return Array.isArray(value)?value.join('\n'):String(value);if(typeof value==='object')return JSON.stringify(value);return String(value);}
 function typedCategoryBound(data){return profileDefinition('experience',data).some(f=>f.categories&&hasValue(data[f.key]));}
@@ -563,6 +568,120 @@ function bind(){const run=fn=>async e=>{const context=accountContext();try{ensur
  if($('#registry-refresh'))$('#registry-refresh').onclick=run((e,context)=>refreshPublicRegistry(context));$$('[data-registry-package]').forEach(button=>button.onclick=run((e,context)=>downloadPublicPackage(button.dataset.registryPackage,button.dataset.registryVersion,context)));
  if($('#sync-form')){$('#sync-form').onsubmit=saveSync;for(const id of ['sync-url','sync-username','sync-workspace','sync-password'])$('#'+id).oninput=syncFields;$('#sync-automatic').onchange=syncFields;$('#sync-now').onclick=()=>runSync('sync.run');$('#sync-handoff').onclick=()=>runSync('sync.handoff');$('#sync-takeover').onclick=confirmSyncTakeover;$('#sync-disable').onclick=confirmSyncDisable;}
  if($('#otp-form')){$('#otp-form').onsubmit=saveOtp;$('#otp-provider').onchange=syncOtpFields;$('#otp-url').oninput=syncOtpFields;$('#otp-token').oninput=syncOtpFields;$('#otp-test').onclick=testOtp;}
+ bindMail();
+}
+function mailSettings(){return `<section class="panel"><h2>邮箱通知自动同步</h2><p id="mail-status" role="status">正在读取邮箱配置…</p><form id="mail-form"><fieldset id="mail-fields" disabled><label for="mail-provider">邮箱接入方式<select id="mail-provider" name="provider"><option value="qq">QQ 邮箱</option><option value="custom">自定义 IMAP</option></select></label><label for="mail-email">邮箱地址<input id="mail-email" name="email" type="email" autocomplete="username" required placeholder="完整邮箱地址"></label><div id="mail-custom-fields" hidden><label for="mail-host">IMAP 服务器<input id="mail-host" name="host" autocomplete="off" placeholder="邮箱服务商提供的 IMAP 主机名"></label><div class="form-grid"><label for="mail-port">TLS 端口<input id="mail-port" name="port" type="number" min="993" max="993" value="993" readonly><small>使用 IMAP over TLS（993）。</small></label><label for="mail-username">IMAP 登录账号<input id="mail-username" name="username" autocomplete="username"><small>留空时使用邮箱地址。</small></label></div></div><label for="mail-code">应用密码／授权码<input id="mail-code" name="password" type="password" autocomplete="new-password" maxlength="1024"><small id="mail-code-status"></small><small>保存后输入框清空，应用密码或授权码不会回显。</small><small id="mail-qq-help">在 QQ 邮箱设置中开启 IMAP 并生成 16 位英文字母授权码。${link('https://help.mail.qq.com/detail/106/985','查看 QQ 邮箱官方说明')}</small><small id="mail-custom-help" hidden>使用邮箱服务商提供的应用密码或 IMAP 授权码，最多 1024 个字符。</small></label><label class="check"><input id="mail-enabled" name="enabled" type="checkbox">启用招聘邮件读取</label><label class="check"><input id="mail-automatic" name="automatic" type="checkbox">本地服务运行期间自动同步</label><div class="form-grid"><label>同步间隔（分钟）<input id="mail-interval" name="interval_minutes" type="number" min="5" max="1440" required value="15"></label><label>首次回看天数<input id="mail-lookback" name="lookback_days" type="number" min="1" max="90" required value="30"></label></div><div class="plain-actions"><button id="mail-save" class="button" type="submit">保存邮箱配置</button><button id="mail-test" class="button secondary" type="button" disabled>测试已保存连接</button><button id="mail-sync" class="button secondary" type="button" disabled>立即同步通知</button></div></fieldset></form><p id="mail-error" role="alert" hidden></p><button id="mail-retry" class="button secondary small" hidden>重新读取配置</button><p id="mail-test-status" role="status"></p><p id="mail-sync-status" role="status"></p><p class="help">连接测试只验证邮箱连接；点击同步后，相关面试、测评邮件会保存到当前账号的邮箱通知中。自动同步需要本地服务持续运行，关闭服务后暂停。</p><button class="button ghost" data-go="mailbox">查看邮箱通知</button></section>`;}
+function mailTestText(result){return !result?'尚未测试已保存的邮箱连接。':result.status==='passed'?'连接测试通过；尚未验证招聘通知已同步。':`连接测试失败：${result.message||'请检查应用密码／授权码与 IMAP 设置。'}`;}
+function mailSyncText(result){
+ if(!result)return '尚未同步招聘通知。';
+ if(result.status==='failed')return '最近同步失败：'+(result.message||'请检查邮箱连接后重试。');
+ return `最近同步：新增 ${result.imported??0} 条，重复 ${result.duplicates??0} 条，待复核 ${result.pending_review??0} 条。${result.has_more?'还有邮件待处理，请继续同步。':''}`;
+}
+function mailStatusText(status){
+ if(!status?.configured)return '尚未配置邮箱。';
+ return `已保存 ${status.email||'邮箱'}（${status.provider==='custom'?'自定义 IMAP':'QQ 邮箱'}） · ${status.enabled?'已启用读取':'读取已停用'}。${status.enabled&&status.automatic?`本地服务运行期间每 ${status.interval_minutes} 分钟自动同步。`:'自动同步已关闭。'}`;
+}
+function applyMailStatus(status){
+ mailState=status;mailHasMore=Boolean(status.last_result?.has_more);
+ if($('#mail-form')){
+  $('#mail-provider').value=status.provider||'qq';$('#mail-email').value=status.email||'';$('#mail-host').value=status.host||'imap.qq.com';$('#mail-port').value=String(status.port??993);$('#mail-username').value=status.username||status.email||'';$('#mail-enabled').checked=Boolean(status.enabled);$('#mail-automatic').checked=Boolean(status.automatic);$('#mail-interval').value=String(status.interval_minutes??15);$('#mail-lookback').value=String(status.lookback_days??30);
+  $('#mail-code').value='';$('#mail-status').textContent=mailStatusText(status);$('#mail-test-status').textContent=mailTestText(status.connection_test);$('#mail-sync-status').textContent=mailSyncText(status.last_result);$('#mail-retry').hidden=true;
+ }
+ syncMailFields();
+}
+function mailSavedIdentity(){
+ const provider=mailState?.provider||'qq',email=String(mailState?.email||'').trim().toLowerCase();return {provider,email,host:provider==='qq'?'imap.qq.com':String(mailState?.host||'').trim().toLowerCase(),port:provider==='qq'?993:Number(mailState?.port??993),username:provider==='qq'?email:String(mailState?.username||email).trim()};
+}
+function mailFormIdentity(){
+ const provider=$('#mail-provider').value,email=$('#mail-email').value.trim().toLowerCase();return {provider,email,host:provider==='qq'?'imap.qq.com':$('#mail-host').value.trim().toLowerCase(),port:provider==='qq'?993:Number($('#mail-port').value),username:provider==='qq'?email:$('#mail-username').value.trim()||email};
+}
+function mailIdentityMatches(){return JSON.stringify(mailFormIdentity())===JSON.stringify(mailSavedIdentity());}
+function mailFormChanged(){
+ if(!mailState||!$('#mail-form'))return false;
+ return !mailIdentityMatches()||!!$('#mail-code').value||$('#mail-enabled').checked!==Boolean(mailState.enabled)||$('#mail-automatic').checked!==Boolean(mailState.automatic)||Number($('#mail-interval').value)!==Number(mailState.interval_minutes??15)||Number($('#mail-lookback').value)!==Number(mailState.lookback_days??30);
+}
+function syncMailFields(){
+ if($('#mail-fields')){
+  $('#mail-fields').disabled=mailBusy||!mailState;
+  const custom=$('#mail-provider').value==='custom',sameMailbox=Boolean(mailState?.credential_set??mailState?.authorization_code_set)&&mailIdentityMatches();
+  $('#mail-custom-fields').hidden=!custom;$('#mail-qq-help').hidden=custom;$('#mail-custom-help').hidden=!custom;
+  for(const id of ['mail-host','mail-port','mail-username'])$('#'+id).disabled=!custom;$('#mail-host').required=custom;$('#mail-port').required=custom;
+  $('#mail-code').required=!sameMailbox;$('#mail-code').placeholder=sameMailbox?'已保存，留空保留现有凭据':'首次配置或更换连接信息时必填';$('#mail-code-status').textContent=sameMailbox?'当前邮箱与连接信息的凭据已加密保存在本机。':'请填写当前连接所需的应用密码／授权码。';
+  $('#mail-automatic').disabled=!$('#mail-enabled').checked;
+  const cannotRun=mailBusy||!mailState?.configured||mailFormChanged();
+  $('#mail-test').disabled=cannotRun;$('#mail-sync').disabled=cannotRun||!mailState?.enabled;$('#mail-test').title=$('#mail-sync').title=mailFormChanged()?'请先保存当前修改。':'使用已保存配置。';$('#mail-sync').textContent=mailHasMore?'继续同步通知':'立即同步通知';
+ }
+ if($('#mail-page-sync')){$('#mail-page-sync').disabled=mailBusy||!mailState?.configured||!mailState.enabled;$('#mail-page-sync').textContent=mailBusy?'正在同步…':mailHasMore?'继续同步通知':'立即同步通知';}
+}
+async function readMailSettings(version=renderVersion){
+ const context=accountContext();if($('#mail-retry'))$('#mail-retry').disabled=true;
+ try{const status=await api('mail.status',{},context);if(version!==renderVersion)return;applyMailStatus(status);$('#mail-error').hidden=true;}
+ catch(error){if(version===renderVersion&&!staleAccount(error)){mailState=null;$('#mail-status').textContent='读取邮箱配置失败。';$('#mail-error').textContent=error.message;$('#mail-error').hidden=false;$('#mail-retry').hidden=false;}}
+ finally{if(version===renderVersion&&$('#mail-retry'))$('#mail-retry').disabled=false;}
+}
+async function saveMail(event){
+ event.preventDefault();const form=event.target;if(!mailState||mailBusy||!form.reportValidity())return;
+ const context=accountContext(),version=renderVersion,f=new FormData(form),args={provider:f.get('provider'),email:String(f.get('email')||'').trim(),enabled:f.get('enabled')==='on',automatic:f.get('automatic')==='on',interval_minutes:Number(f.get('interval_minutes')),lookback_days:Number(f.get('lookback_days'))};
+ if(args.provider==='custom'){args.host=String(f.get('host')||'').trim();args.port=Number(f.get('port'));args.username=String(f.get('username')||'').trim();}
+ if(f.get('password'))args.password=f.get('password');
+ $('#mail-code').value='';mailBusy=true;syncMailFields();$('#mail-error').hidden=true;
+ let saved=false;
+ try{await api('mail.configure',args,context);saved=true;if(version!==renderVersion)return;const status=await api('mail.status',{},context);if(version!==renderVersion)return;applyMailStatus(status);notify('邮箱配置已保存；可测试连接或同步通知。');}
+ catch(error){if(version===renderVersion&&!staleAccount(error)){$('#mail-error').textContent=(saved?'配置已保存，但读取确认失败：':'配置未保存：')+error.message;$('#mail-error').hidden=false;if(saved){mailState=null;$('#mail-retry').hidden=false;}notify($('#mail-error').textContent,true);}}
+ finally{if(version===renderVersion){mailBusy=false;syncMailFields();}}
+}
+async function testMail(){
+ if(mailBusy||!mailState?.configured||mailFormChanged())return;
+ const version=renderVersion,context=accountContext();mailBusy=true;syncMailFields();$('#mail-error').hidden=true;$('#mail-test-status').textContent='正在测试已保存的邮箱连接…';
+ try{const status=await api('mail.test',{},context);if(version!==renderVersion)return;applyMailStatus(status);}
+ catch(error){if(version===renderVersion&&!staleAccount(error)){$('#mail-test-status').textContent='连接测试未完成：'+error.message;}}
+ finally{if(version===renderVersion){mailBusy=false;syncMailFields();}}
+}
+async function syncMail(){
+ if(mailBusy||!mailState?.configured||!mailState.enabled||mailFormChanged())return;
+ const version=renderVersion,context=accountContext();mailBusy=true;syncMailFields();if($('#mail-sync-status'))$('#mail-sync-status').textContent='正在读取招聘通知…';
+ try{
+  const result=await api('mail.sync',{},context);if(version!==renderVersion)return;
+  applyMailStatus(result);mailHasMore=Boolean(result.has_more??result.last_result?.has_more);
+  if(page==='mailbox'){mailOffset=0;const refreshed=await readMailboxPage(version,context);if(!refreshed){if(version===renderVersion)notify('招聘通知已同步，但列表刷新失败，请刷新查看。',true);return;}}else $('#mail-sync-status').textContent=mailSyncText(result.last_result||result);
+  if(version===renderVersion)notify(mailHasMore?'本批通知已同步，还有邮件待处理。':'招聘通知已同步，请复核原文与申请关联。');
+ }catch(error){if(version===renderVersion&&!staleAccount(error)){if($('#mail-sync-status'))$('#mail-sync-status').textContent='同步失败：'+error.message;notify(error.message,true);}}
+ finally{if(version===renderVersion){mailBusy=false;syncMailFields();}}
+}
+function mailboxPage(){
+ return `<div class="section-header"><div><h2>邮箱通知</h2><p>保存面试、测评等邮件证据，供求职跟进与面试准备使用。</p></div><div class="plain-actions"><button id="mail-page-sync" class="button" disabled>立即同步通知</button><button class="button secondary" data-go="settings">邮箱设置</button></div></div><section class="panel"><p id="mail-page-status" role="status">${esc(mailStatusText(mailState))}</p><p id="mail-sync-status" role="status">${esc(mailSyncText(mailState?.last_result))}</p><p class="help">邮件中的日期片段、要求和岗位关联需要复核。通知不会修改官网申请状态，也不会自动建立投递或日历安排。</p></section><div id="mail-notices">${mailListLoading?empty('正在读取通知','正在读取当前账号已同步的招聘邮件。'):mailNotices.length?mailNotices.map(mailNoticeCard).join(''):empty('暂无招聘通知','在邮箱设置中选择接入方式并保存连接信息，启用后同步招聘通知。')}</div><div class="task-pagination"><p class="help">${mailTotal?`${mailOffset+1}–${mailOffset+mailNotices.length} / ${mailTotal} 条`:'0 条通知'}</p><div class="plain-actions"><button id="mail-prev" class="button secondary" ${mailOffset===0||mailListLoading?'disabled':''}>上一页</button><button id="mail-next" class="button secondary" ${mailNextOffset===null||mailListLoading?'disabled':''}>下一页</button></div></div>`;
+}
+function mailNoticeApplication(item){return applicationRecords().find(record=>record.id===item.application_id);}
+function mailNoticeCard(item){
+ const application=mailNoticeApplication(item),types={interview:'面试',assessment:'测评',other:'其他招聘通知'},matched=Boolean(application);
+ return `<article class="panel mail-notice"><div class="record-top"><h3>${esc(item.subject||item.title||'招聘通知')}</h3>${badge(types[item.notice_type]||'招聘通知','blue')}</div><p class="muted">发件人：${esc(item.sender||'未知')} · 收件时间：${when(item.received_at)}</p><p class="record-summary">${esc(item.summary||'请查看邮件原文。')}</p><p>时间原文：${esc(Array.isArray(item.time_candidates)&&item.time_candidates.length?item.time_candidates.join('；'):'未识别，需查看原文')}</p><p>${matched?`关联申请：${esc(application.data?.company||'未知公司')} · ${esc(application.data?.title||'未知岗位')}`:`${badge(item.application_id?'关联申请暂未读到，需核对':item.match_status==='ambiguous'?'多个可能申请，待确认':'尚未关联申请','warning')}`}</p><div class="plain-actions"><button class="button secondary small" data-mail-detail="${esc(item.id)}">查看原文与关联</button>${badge('时间与要求待复核','warning')}</div></article>`;
+}
+async function readMailboxPage(version=renderVersion,context=accountContext()){
+ try{
+  const [statusRead,listRead]=await Promise.allSettled([api('mail.status',{},context),api('mail.list',{limit:50,offset:mailOffset},context)]);if(version!==renderVersion)return false;
+  if(statusRead.status==='fulfilled'){mailState=statusRead.value;mailHasMore=Boolean(mailState.last_result?.has_more);}
+  if(listRead.status==='rejected')throw listRead.reason;const result=listRead.value;
+  if(!Array.isArray(result.items)||!Number.isInteger(result.total))throw Error('通知列表返回异常，请刷新。');
+  mailNotices=result.items;mailTotal=result.total;mailNextOffset=result.next_offset??null;mailListLoading=false;
+  $('#content').innerHTML=mailboxPage();bind();syncMailFields();
+  if(statusRead.status==='rejected'){$('#mail-page-status').textContent='读取邮箱配置失败，请在设置中重试。';notify(statusRead.reason.message,true);return false;}return true;
+ }catch(error){if(version===renderVersion&&!staleAccount(error)){mailListLoading=false;$('#mail-page-status').textContent=mailState?mailStatusText(mailState):'读取邮箱配置失败，请刷新。';$('#mail-sync-status').textContent=mailSyncText(mailState?.last_result);$('#mail-notices').innerHTML=empty('读取通知失败',error.message);syncMailFields();notify(error.message,true);}return false;}
+}
+function showMailNotice(id){
+ const item=mailNotices.find(notice=>notice.id===id);if(!item)return;const context=accountContext(),version=renderVersion,detailView=++mailDetailView,applications=applicationRecords(),selected=mailNoticeApplication(item);
+ showDetail('招聘邮件原文',`<h3>${esc(item.subject||item.title||'招聘通知')}</h3><dl class="profile-facts"><dt>发件人</dt><dd>${esc(item.sender||'未知')}</dd><dt>收件时间</dt><dd>${when(item.received_at)}</dd><dt>时间原文（待确认）</dt><dd>${esc(Array.isArray(item.time_candidates)&&item.time_candidates.length?item.time_candidates.join('；'):'未识别')}</dd></dl><p class="help">以下是邮件证据原文；请核对发件人、时间与具体要求。</p><pre class="mail-raw-text">${esc(item.raw_text||item.summary||'未保存正文')}</pre><form id="mail-link-form"><label>关联已有申请<select id="mail-application" name="application_id" aria-label="关联已有申请" required><option value="">请选择实际申请</option>${applications.map(record=>`<option value="${esc(record.id)}" ${record.id===item.application_id?'selected':''}>${esc(record.data?.company||'未知公司')} · ${esc(record.data?.title||'未知岗位')}（${esc(stageNames[record.data?.stage]||'实际申请')}）</option>`).join('')}</select></label><p class="help">${selected?'当前关联如不准确，可以重新选择。':item.application_id?'已存关联申请当前未读到，请先刷新核对。':'尚未确认关联；不会根据邮件自动新增申请。'}${applicationLoadInfo.complete?'':'申请列表尚未完整读取，请先刷新核对。'}</p><p id="mail-link-error" role="alert" hidden></p><button class="button" id="mail-link-save" type="submit" ${applications.length?'':'disabled'}>保存关联</button></form>`);
+ const form=$('#mail-link-form');form.onsubmit=async event=>{
+  event.preventDefault();if(!form.reportValidity()||$('#mail-link-save').disabled)return;const button=$('#mail-link-save');button.disabled=true;
+  try{const result=await api('mail.link',{id:item.id,revision:item.revision,application_id:$('#mail-application').value},context);if(version!==renderVersion||detailView!==mailDetailView||!$('#detail').open)return;mailNotices=mailNotices.map(notice=>notice.id===result.id?result:notice);$('#mail-notices').innerHTML=mailNotices.map(mailNoticeCard).join('');bindMail();$('#detail').close();notify('通知已关联到所选申请。');}
+  catch(error){if(version===renderVersion&&detailView===mailDetailView&&!staleAccount(error)&&$('#detail').open){$('#mail-link-error').textContent=error.message;$('#mail-link-error').hidden=false;button.disabled=false;}}
+ };
+}
+function bindMail(){
+ if($('#mail-form')){$('#mail-form').onsubmit=saveMail;for(const id of ['mail-email','mail-host','mail-port','mail-username'])$('#'+id).oninput=()=>{$('#mail-code').value='';syncMailFields();};for(const id of ['mail-code','mail-interval','mail-lookback'])$('#'+id).oninput=syncMailFields;$('#mail-provider').onchange=()=>{$('#mail-code').value='';syncMailFields();};$('#mail-enabled').onchange=()=>{if(!$('#mail-enabled').checked)$('#mail-automatic').checked=false;syncMailFields();};$('#mail-automatic').onchange=syncMailFields;$('#mail-test').onclick=testMail;$('#mail-sync').onclick=syncMail;$('#mail-retry').onclick=()=>readMailSettings();}
+ if($('#mail-page-sync'))$('#mail-page-sync').onclick=syncMail;
+ if($('#mail-prev'))$('#mail-prev').onclick=()=>{if(!mailListLoading&&!mailBusy){mailOffset=Math.max(0,mailOffset-50);return render();}};
+ if($('#mail-next'))$('#mail-next').onclick=()=>{if(!mailListLoading&&!mailBusy&&mailNextOffset!==null){mailOffset=mailNextOffset;return render();}};
+ $$('[data-mail-detail]').forEach(button=>button.onclick=()=>showMailNotice(button.dataset.mailDetail));
 }
 function otpSettings(){return `<section class="panel"><h2>自动验证码</h2><p id="otp-status" role="status">正在读取配置…</p><form id="otp-form"><fieldset id="otp-fields" disabled><label>验证码来源<select id="otp-provider" name="provider"><option value="manual">本人手动输入</option><option value="gotify">SmsForwarder → Gotify</option><option value="kde" disabled>KDE Connect（暂不支持）</option></select></label><div id="gotify-fields" hidden><label>Gotify 服务地址<input id="otp-url" name="url" type="url" placeholder="http://127.0.0.1:端口 或 HTTPS 地址"><small>本机地址可用 HTTP，远程地址须用 HTTPS；填写服务根地址，不要附带 Token 或查询参数。</small></label><label>Gotify 客户端读取 Token<input id="otp-token" name="token" type="password" autocomplete="new-password"><small id="otp-token-status"></small><small>在 Gotify 管理网页的 Clients 中新建一个客户端，将其 Token 填在这里。手机短信转发使用的 Applications Token 用于发送，不能用于这里的读取。保存后输入框会清空，Token 不会回显。</small></label></div><p id="otp-manual-help" class="help">保存为手动输入会关闭自动取码，并清除本机已保存的 Gotify 来源和 Token。</p><p id="otp-error" role="alert" hidden></p><div class="plain-actions"><button class="button" id="otp-save" type="submit">保存来源</button><button class="button secondary" id="otp-test" type="button" disabled>测试已保存来源</button></div><p id="otp-test-status" role="status"></p><p class="help">保存 Gotify 来源后会自动测试连接和消息读取权限；测试不发送短信、不请求网站验证码。</p></fieldset></form></section>`;}
 function otpError(error){return ({invalid_url:'地址未保存：请使用 HTTPS，或 http://127.0.0.1:端口；不要附带账号、Token 或查询参数。',token_required:'来源未保存：首次配置或更换服务地址时，需要填写 Gotify 客户端读取 Token。',invalid_token:'来源未保存：Token 格式无效，请检查是否多复制了空格或换行。',provider_unavailable:'此验证码来源暂不支持，请选择 Gotify 或本人手动输入。',secret_storage_failed:'来源未保存：Windows 未能加密 Token，请重试。',platform_unavailable:'来源未保存：Token 加密保存目前需要 Windows。',otp_storage_error:'来源未保存：无法写入本机验证码配置，请检查数据目录访问权限。',otp_config_invalid:'无法读取本机验证码配置，请先排查配置文件。'})[error.code]||error.message;}

@@ -41,8 +41,11 @@ class LocalServer(ThreadingHTTPServer):
         super().__init__((host, port), Handler)
         from .sync import start_worker
         self.sync_worker = start_worker(app)
+        from .mailbox import start_worker as start_mail_worker
+        self.mail_worker = start_mail_worker(app)
 
     def server_close(self):
+        self.mail_worker.stop()
         self.sync_worker.stop()
         super().server_close()
 

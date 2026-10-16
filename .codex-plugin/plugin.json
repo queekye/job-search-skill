@@ -1,6 +1,6 @@
 {
   "name": "job-search-skill",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "Codex 桌面的本地求职档案、岗位推荐、简历与面试准备、投递跟进及公司资源。",
   "author": {
     "name": "Job Search Skill contributors"
@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Job Search Skill",
     "shortDescription": "共用本地档案，准备求职材料与面试。",
-    "longDescription": "网页与 Codex 共用档案和任务，发现岗位、准备简历、深挖研究项目并练习面试，按已验证范围跟进申请和填写公司资料。个人事实与建议文案分别保留，最终投递由本人完成。",
+    "longDescription": "网页与 Codex 共用档案和任务，发现岗位、准备简历、深挖研究项目并练习面试，自动同步邮箱面试及测评通知，按已验证范围跟进申请和填写公司资料。个人事实与建议文案分别保留，最终投递由本人完成。",
     "developerName": "Job Search Skill contributors",
     "category": "Productivity",
     "capabilities": [],

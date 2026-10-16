@@ -1,10 +1,10 @@
 # Job Search Skill
 
-面向 **Windows** 的本地求职协作工具和 Codex 插件，当前源码为 **0.4.4 开发预览版**。网页与 Agent 共用 SQLite 档案、类型化意向、简历方案和公司答案；个人事实与方案文案分别维护，自动填表可独立于 Codex 运行。用户选择岗位、审阅资料并最终投递。默认优先正式校招，也可按明确范围处理社招；实习须用户明确要求。每人独立本地使用，账号是同一可信 Windows 用户下的档案分区。
+面向 **Windows** 的本地求职协作工具和 Codex 插件，当前源码为 **0.4.5 开发预览版**。网页与 Agent 共用 SQLite 档案、类型化意向、简历方案和公司答案；个人事实与方案文案分别维护，自动填表可独立于 Codex 运行。用户选择岗位、审阅资料并最终投递。默认优先正式校招，也可按明确范围处理社招；实习须用户明确要求。每人独立本地使用，账号是同一可信 Windows 用户下的档案分区。
 
 ## 开始使用
 
-当前开发预览发行版为 [0.4.4](https://github.com/queekye/job-search-skill/releases/tag/v0.4.4)，公司资源扩至 30 包，补齐只读岗位 JD 指引、采集边界与资源目录分页。[0.4.1](https://github.com/queekye/job-search-skill/releases/tag/v0.4.1) 为此前的开发预览版，已引入类型化资料、简历方案、能力目录、面试准备及 JD 证据。旧 [0.2.1 运行包](https://github.com/queekye/job-search-skill/releases/tag/v0.2.1) 使用旧数据库格式。升级前关闭旧服务和 MCP 实例并保存完整备份，schema 4 资料库须由新版服务访问。
+当前开发预览发行版为 [0.4.5](https://github.com/queekye/job-search-skill/releases/tag/v0.4.5)，新增通用邮箱通知自动同步、通知去重与申请关联，以及 `career_mail` 原生工具。[0.4.4](https://github.com/queekye/job-search-skill/releases/tag/v0.4.4) 已包含 30 家公司资源、只读岗位 JD 指引及资源目录分页。旧 [0.2.1 运行包](https://github.com/queekye/job-search-skill/releases/tag/v0.2.1) 使用旧数据库格式。升级前关闭旧服务和 MCP 实例并保存完整备份，schema 4 资料库须由新版服务访问。
 
 1. 将运行 ZIP 解压到普通本地目录，双击 `Start.cmd`，打开 <http://127.0.0.1:8766/>。
 2. 选择或新建账号，填写资料或导入简历材料，保存招聘类型、城市和方向等偏好，建立 Agent 任务。
@@ -33,11 +33,12 @@
 - **推荐与申请**：未选岗位在“推荐岗位”；明确选定后进入准备，实际投递分别记录本人自报和官网核验。保留岗位/申请编号、原始状态、覆盖、决定、待办、阻点和证据。
 - **任务协作**：账号偏好与任务存在同一数据库。Codex 执行前重新读取上下文与分页，执行后写回进度与结果；用户取消任务或修改偏好后按最新状态执行。
 - **面试准备**：使用 `$interview-preparation` 先读取已有岗位、简历与研究，再诊断知识缺口、深挖项目并进行追问练习。网页“任务协作”可创建面试任务，显示计划、项目卡与练习结果；复用原任务表，不改变投递状态或自动化。
+- **邮箱通知自动同步**：通过通用 IMAP over TLS 读取面试、笔试和测评通知，去重后关联已有申请及面试任务。支持 QQ 预设和自定义公共邮箱服务器，本人在本地设置应用密码或授权码。服务运行期间可定时检查，模糊匹配留待核对，官网状态和本人填写的时间保留。旧版本须更新至 0.4.5 或以上，见 [邮箱设置](references/automation.md#邮箱通知自动同步)。
 - **公司资源**：本地源码有 30 家独立版本包，新增 JD 路由、原岗位匹配和本人登录交接文档；已发布目录以远端实际版本为准。支持本地安装、公共目录下载、完整审阅后导入、回退与公开包导出。新增文档不扩充自动填表范围，字段脚本仅覆盖已观察控件；未知结构需要发现和扩展。
 - **个人跨电脑同步**：网页配置 WebDAV，轮流换机时同步并交接写入权；约每 30 秒同步全部账号的业务数据和原始附件，公司资源不参与个人同步。
 - **可选取码与跟进**：用户配置自己的 Gotify，Token 由 Windows DPAPI 保护；取码窗口单次消费。每日设置生成绑定账号的宿主任务说明，保存时间不等于自动化已建立。
 
-原生工具为 `career_get`、`career_save`、`career_import`、`career_resources`、`career_forms`、`career_otp`、`career_tasks`、`career_schedule`。执行任务先用 `career_tasks(operation="task.context",user_id="账号",args={"id":"任务编号"})`；无指定任务可省略 `id`。按 `total/next_offset` 继续分页，更新携带最新 `revision`。临时接口也可用 `scripts/run.py mcp --data-dir ... --user-id ...` 绑定同一档案。偏好、账号创建与凭据配置由用户网页完成。
+原生工具为 `career_get`、`career_save`、`career_import`、`career_resources`、`career_forms`、`career_otp`、`career_tasks`、`career_schedule`、`career_mail`。执行任务先用 `career_tasks(operation="task.context",user_id="账号",args={"id":"任务编号"})`；无指定任务可省略 `id`。按 `total/next_offset` 继续分页，更新携带最新 `revision`。临时接口也可用 `scripts/run.py mcp --data-dir ... --user-id ...` 绑定同一档案。偏好、账号创建与凭据配置由用户网页完成。
 
 使用 `career_get(operation="capability.list")` 发现能力，再用 `capability.describe` 的 `args.id` 读取具体入口、参数、前置条件、限制和证据范围；`interview.schema` 返回面试任务数据约定。目录是公共能力说明，不表示本机配置、真实网站或当前会话已经验收。调用示例、先查后问规则和无原生工具时的 `scripts/career-call.py` 入口见 [Agent 调用配方](references/agent-recipes.md)。本插件包含 `career`、`job-recommendation`、`interview-preparation`、`company-resource` 四个 skills；源码存在、插件已安装、会话可调用需分别核实。
 
